@@ -21,6 +21,11 @@ import ProgramasDisponibles from './pages/cliente/ProgramasDisponibles';
 import MisPostulaciones from './pages/cliente/MisPostulaciones';
 import CursosDisponibles from './pages/cliente/CursosDisponibles';
 import ClienteFinanciamiento from './pages/cliente/Financiamiento';
+import ClienteAvisos from './pages/cliente/Avisos';
+import ClienteRecursos from './pages/cliente/Recursos';
+import ClienteContacto from './pages/cliente/Contacto';
+import Enlaces from './pages/Enlaces';
+import Contacto from './pages/Contacto';
 
 function App() {
   return (
