@@ -2,11 +2,9 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import ProtectedRoute from './components/ProtectedRoute';
 
-// Páginas públicas
 import Login from './pages/Login';
 import Register from './pages/Register';
 
-// Páginas Admin/Colaborador
 import Dashboard from './pages/Dashboard';
 import Negocios from './pages/Negocios';
 import Programas from './pages/Programas';
@@ -14,13 +12,15 @@ import Cursos from './pages/Cursos';
 import Postulaciones from './pages/Postulaciones';
 import Usuarios from './pages/Usuarios';
 import Perfil from './pages/Perfil';
+import Avisos from './pages/Avisos';
+import Financiamiento from './pages/Financiamiento';
 
-// Páginas Cliente
 import ClienteDashboard from './pages/cliente/Dashboard';
 import MisNegocios from './pages/cliente/MisNegocios';
 import ProgramasDisponibles from './pages/cliente/ProgramasDisponibles';
 import MisPostulaciones from './pages/cliente/MisPostulaciones';
 import CursosDisponibles from './pages/cliente/CursosDisponibles';
+import ClienteFinanciamiento from './pages/cliente/Financiamiento';
 
 function App() {
   return (
@@ -51,11 +51,9 @@ function App() {
       />
       
       <Routes>
-        {/* Rutas públicas */}
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
 
-        {/* Rutas Admin/Colaborador */}
         <Route
           path="/dashboard"
           element={
@@ -104,8 +102,23 @@ function App() {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/avisos"
+          element={
+            <ProtectedRoute allowedRoles={['admin', 'colaborador']}>
+              <Avisos />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/financiamiento"
+          element={
+            <ProtectedRoute allowedRoles={['admin', 'colaborador']}>
+              <Financiamiento />
+            </ProtectedRoute>
+          }
+        />
 
-        {/* Rutas Cliente */}
         <Route
           path="/cliente/dashboard"
           element={
@@ -146,8 +159,15 @@ function App() {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/cliente/financiamiento"
+          element={
+            <ProtectedRoute allowedRoles={['cliente']}>
+              <ClienteFinanciamiento />
+            </ProtectedRoute>
+          }
+        />
 
-        {/* Ruta compartida */}
         <Route
           path="/perfil"
           element={
@@ -157,7 +177,6 @@ function App() {
           }
         />
 
-        {/* Redireccionamiento */}
         <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
