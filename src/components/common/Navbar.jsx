@@ -2,14 +2,14 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 import { useAuth } from '../../hooks/useAuth';
-import { 
-  Bell, 
-  User, 
-  LogOut, 
-  Settings, 
+import {
+  Bell,
+  User,
+  LogOut,
+  Settings,
   Menu,
+  ChevronDown,
   X,
-  ChevronDown
 } from 'lucide-react';
 
 const Navbar = ({ onMenuClick }) => {
@@ -18,187 +18,296 @@ const Navbar = ({ onMenuClick }) => {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
 
-  const getRoleName = (rol) => {
-    const roles = {
-      admin: 'Administrador',
-      colaborador: 'Colaborador',
-      cliente: 'Cliente'
-    };
-    return roles[rol] || rol;
-  };
+  const roleName = { admin: 'Administrador', colaborador: 'Colaborador', cliente: 'Cliente' };
+  const roleBg   = { admin: '#FEE2E2', colaborador: '#DBEAFE', cliente: '#D1FAE5' };
+  const roleColor= { admin: '#B91C1C', colaborador: '#1D4ED8', cliente: '#065F46' };
 
-  const getRoleBadgeColor = (rol) => {
-    const colors = {
-      admin: 'bg-red-100 text-red-800',
-      colaborador: 'bg-blue-100 text-blue-800',
-      cliente: 'bg-green-100 text-green-800'
-    };
-    return colors[rol] || 'bg-gray-100 text-gray-800';
-  };
+  const notifications = [
+    { title: 'Nueva postulación recibida', time: 'Hace 5 min', unread: true },
+    { title: 'Curso próximo a iniciar', time: 'Hace 1 hora', unread: true },
+    { title: 'Nuevo programa disponible', time: 'Hace 3 horas', unread: false },
+  ];
 
   return (
-    <nav className="bg-white border-b border-gray-200 fixed w-full z-30 top-0">
-      <div className="px-3 py-3 lg:px-5 lg:pl-3">
-        <div className="flex items-center justify-between">
-          {/* Left side - Logo y menú hamburguesa */}
-          <div className="flex items-center justify-start">
-            {/* Botón hamburguesa (móvil) */}
-            <button
-              onClick={onMenuClick}
-              className="inline-flex items-center p-2 text-sm text-gray-500 rounded-lg lg:hidden hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-200"
+    <nav style={{
+      position: 'fixed', top: 0, left: 0, right: 0, zIndex: 30,
+      height: '64px',
+      background: 'rgba(255,255,255,0.96)',
+      backdropFilter: 'blur(12px)',
+      WebkitBackdropFilter: 'blur(12px)',
+      borderBottom: '1px solid var(--border)',
+      boxShadow: '0 1px 0 var(--border), 0 2px 8px rgba(15,42,90,0.04)',
+      display: 'flex', alignItems: 'center',
+      padding: '0 20px',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+
+        {/* Left */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          {/* Hamburger */}
+          <button
+            onClick={onMenuClick}
+            className="lg:hidden"
+            style={{
+              padding: '8px', borderRadius: 'var(--radius-md)',
+              border: 'none', background: 'transparent', cursor: 'pointer',
+              color: 'var(--gray-600)',
+              transition: 'background var(--transition)',
+            }}
+            onMouseEnter={e => e.currentTarget.style.background = 'var(--gray-100)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+          >
+            <Menu style={{ width: '20px', height: '20px' }} />
+          </button>
+
+          {/* Logo */}
+          <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '10px', textDecoration: 'none' }}>
+            <img src="/logo-capyme.png" alt="CAPYME" style={{ height: '36px' }} />
+            <span
+              className="hidden sm:block"
+              style={{
+                fontFamily: "'Plus Jakarta Sans', sans-serif",
+                fontSize: '17px',
+                fontWeight: 800,
+                color: 'var(--capyme-blue)',
+                letterSpacing: '-0.02em',
+              }}
             >
-              <Menu className="w-6 h-6" />
+              CAPYME
+            </span>
+          </Link>
+        </div>
+
+        {/* Right */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+
+          {/* Notificaciones */}
+          <div style={{ position: 'relative' }}>
+            <button
+              onClick={() => { setShowNotifications(!showNotifications); setShowUserMenu(false); }}
+              style={{
+                position: 'relative',
+                padding: '8px', borderRadius: 'var(--radius-md)',
+                border: 'none', background: 'transparent', cursor: 'pointer',
+                color: 'var(--gray-600)',
+                transition: 'background var(--transition)',
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = 'var(--gray-100)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+            >
+              <Bell style={{ width: '20px', height: '20px' }} />
+              <span style={{
+                position: 'absolute', top: '5px', right: '5px',
+                width: '8px', height: '8px',
+                background: '#EF4444',
+                borderRadius: '50%',
+                border: '2px solid white',
+              }} />
             </button>
 
-            {/* Logo */}
-            <Link to="/" className="flex ml-2 md:mr-24">
-              <img
-                src="/logo-capyme.png"
-                className="h-10 mr-3"
-                alt="CAPYME Logo"
-              />
-              <span className="self-center text-xl font-semibold sm:text-2xl whitespace-nowrap text-capyme-blue hidden sm:block">
-                CAPYME
-              </span>
-            </Link>
-          </div>
-
-          {/* Right side - Notificaciones y usuario */}
-          <div className="flex items-center gap-3">
-            {/* Notificaciones */}
-            <div className="relative">
-              <button
-                onClick={() => {
-                  setShowNotifications(!showNotifications);
-                  setShowUserMenu(false);
-                }}
-                className="relative p-2 text-gray-500 rounded-lg hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-200"
-              >
-                <Bell className="w-6 h-6" />
-                {/* Badge de notificaciones */}
-                <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white transform translate-x-1/2 -translate-y-1/2 bg-red-500 rounded-full">
-                  3
-                </span>
-              </button>
-
-              {/* Dropdown de notificaciones */}
-              {showNotifications && (
-                <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
-                  <div className="px-4 py-2 border-b border-gray-200">
-                    <h3 className="text-sm font-semibold text-gray-900">
-                      Notificaciones
-                    </h3>
-                  </div>
-                  <div className="max-h-96 overflow-y-auto">
-                    {/* Ejemplo de notificaciones */}
-                    <div className="px-4 py-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100">
-                      <p className="text-sm font-medium text-gray-900">
-                        Nueva postulación recibida
-                      </p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        Hace 5 minutos
-                      </p>
-                    </div>
-                    <div className="px-4 py-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100">
-                      <p className="text-sm font-medium text-gray-900">
-                        Curso próximo a iniciar
-                      </p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        Hace 1 hora
-                      </p>
-                    </div>
-                    <div className="px-4 py-3 hover:bg-gray-50 cursor-pointer">
-                      <p className="text-sm font-medium text-gray-900">
-                        Nuevo programa disponible
-                      </p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        Hace 3 horas
-                      </p>
-                    </div>
-                  </div>
-                  <div className="px-4 py-2 border-t border-gray-200">
-                    <button className="text-sm text-capyme-blue hover:text-capyme-dark font-medium w-full text-center">
-                      Ver todas las notificaciones
-                    </button>
-                  </div>
+            {showNotifications && (
+              <div style={{
+                position: 'absolute', right: 0, top: 'calc(100% + 8px)',
+                width: '320px',
+                background: 'var(--surface)',
+                borderRadius: 'var(--radius-lg)',
+                border: '1px solid var(--border)',
+                boxShadow: 'var(--shadow-lg)',
+                overflow: 'hidden',
+                animation: 'slideUp 150ms var(--ease)',
+                zIndex: 50,
+              }}>
+                <div style={{
+                  padding: '16px 20px',
+                  borderBottom: '1px solid var(--border)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                }}>
+                  <span style={{
+                    fontFamily: "'Plus Jakarta Sans', sans-serif",
+                    fontSize: '14px', fontWeight: 700, color: 'var(--gray-900)',
+                  }}>Notificaciones</span>
+                  <span style={{
+                    padding: '2px 8px',
+                    background: 'var(--capyme-blue-pale)',
+                    color: 'var(--capyme-blue-mid)',
+                    borderRadius: '99px',
+                    fontSize: '11px', fontWeight: 700,
+                    fontFamily: "'Plus Jakarta Sans', sans-serif",
+                  }}>3 nuevas</span>
                 </div>
-              )}
-            </div>
 
-            {/* Menú de usuario */}
-            <div className="relative">
-              <button
-                onClick={() => {
-                  setShowUserMenu(!showUserMenu);
-                  setShowNotifications(false);
-                }}
-                className="flex items-center gap-2 p-2 text-sm text-gray-500 rounded-lg hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-200"
-              >
-                <div className="hidden md:flex flex-col items-end">
-                  <span className="text-sm font-medium text-gray-900">
-                    {user?.nombre} {user?.apellido}
-                  </span>
-                  <span className={`text-xs px-2 py-0.5 rounded-full ${getRoleBadgeColor(user?.rol)}`}>
-                    {getRoleName(user?.rol)}
-                  </span>
-                </div>
-                <div className="w-10 h-10 rounded-full bg-capyme-blue flex items-center justify-center text-white font-semibold">
-                  {user?.nombre?.charAt(0)}{user?.apellido?.charAt(0)}
-                </div>
-                <ChevronDown className="w-4 h-4 text-gray-500" />
-              </button>
-
-              {/* Dropdown de usuario */}
-              {showUserMenu && (
-                <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
-                  {/* Info del usuario en móvil */}
-                  <div className="px-4 py-3 border-b border-gray-200 md:hidden">
-                    <p className="text-sm font-medium text-gray-900">
-                      {user?.nombre} {user?.apellido}
-                    </p>
-                    <p className="text-xs text-gray-500 mt-1">
-                      {user?.email}
-                    </p>
-                    <span className={`inline-block text-xs px-2 py-0.5 rounded-full mt-2 ${getRoleBadgeColor(user?.rol)}`}>
-                      {getRoleName(user?.rol)}
-                    </span>
-                  </div>
-
-                  <Link
-                    to="/perfil"
-                    className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                    onClick={() => setShowUserMenu(false)}
+                {notifications.map((n, i) => (
+                  <div key={i} style={{
+                    padding: '14px 20px',
+                    borderBottom: i < notifications.length - 1 ? '1px solid var(--border)' : 'none',
+                    background: n.unread ? 'var(--capyme-blue-pale)' : 'transparent',
+                    cursor: 'pointer',
+                    transition: 'background var(--transition)',
+                    display: 'flex', gap: '12px', alignItems: 'flex-start',
+                  }}
+                    onMouseEnter={e => e.currentTarget.style.background = 'var(--gray-50)'}
+                    onMouseLeave={e => e.currentTarget.style.background = n.unread ? 'var(--capyme-blue-pale)' : 'transparent'}
                   >
-                    <User className="w-4 h-4" />
-                    Mi Perfil
-                  </Link>
+                    {n.unread && (
+                      <div style={{
+                        width: '7px', height: '7px', borderRadius: '50%',
+                        background: 'var(--capyme-blue-mid)',
+                        marginTop: '6px', flexShrink: 0,
+                      }} />
+                    )}
+                    <div style={{ flex: 1 }}>
+                      <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--gray-800)', marginBottom: '2px' }}>{n.title}</p>
+                      <p style={{ fontSize: '12px', color: 'var(--gray-400)' }}>{n.time}</p>
+                    </div>
+                  </div>
+                ))}
 
-                  {user?.rol === 'admin' && (
-                    <Link
-                      to="/configuracion"
-                      className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                      onClick={() => setShowUserMenu(false)}
-                    >
-                      <Settings className="w-4 h-4" />
-                      Configuración
-                    </Link>
-                  )}
-
-                  <hr className="my-2 border-gray-200" />
-
-                  <button
-                    onClick={() => {
-                      setShowUserMenu(false);
-                      logout();
-                    }}
-                    className="flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 w-full"
-                  >
-                    <LogOut className="w-4 h-4" />
-                    Cerrar Sesión
+                <div style={{ padding: '12px 20px' }}>
+                  <button style={{
+                    width: '100%', padding: '9px',
+                    background: 'var(--capyme-blue-pale)',
+                    color: 'var(--capyme-blue-mid)',
+                    border: 'none', borderRadius: 'var(--radius-md)',
+                    fontFamily: "'Plus Jakarta Sans', sans-serif",
+                    fontSize: '13px', fontWeight: 600, cursor: 'pointer',
+                  }}>
+                    Ver todas las notificaciones
                   </button>
                 </div>
-              )}
-            </div>
+              </div>
+            )}
+          </div>
+
+          {/* Usuario */}
+          <div style={{ position: 'relative' }}>
+            <button
+              onClick={() => { setShowUserMenu(!showUserMenu); setShowNotifications(false); }}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '8px',
+                padding: '6px 10px 6px 6px',
+                borderRadius: 'var(--radius-lg)',
+                border: '1px solid var(--border)',
+                background: showUserMenu ? 'var(--gray-50)' : 'transparent',
+                cursor: 'pointer',
+                transition: 'all var(--transition)',
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = 'var(--gray-50)'}
+              onMouseLeave={e => { if (!showUserMenu) e.currentTarget.style.background = 'transparent'; }}
+            >
+              {/* Avatar */}
+              <div style={{
+                width: '34px', height: '34px', borderRadius: '50%',
+                background: 'linear-gradient(135deg, var(--capyme-blue-mid), var(--capyme-blue))',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: '#fff',
+                fontFamily: "'Plus Jakarta Sans', sans-serif",
+                fontSize: '13px', fontWeight: 700,
+              }}>
+                {user?.nombre?.charAt(0)}{user?.apellido?.charAt(0)}
+              </div>
+
+              <div className="hidden md:flex flex-col items-start">
+                <span style={{
+                  fontFamily: "'Plus Jakarta Sans', sans-serif",
+                  fontSize: '13px', fontWeight: 600, color: 'var(--gray-800)',
+                  lineHeight: 1.3,
+                }}>
+                  {user?.nombre} {user?.apellido}
+                </span>
+                <span style={{
+                  display: 'inline-block',
+                  padding: '1px 7px',
+                  background: roleBg[user?.rol] || 'var(--gray-100)',
+                  color: roleColor[user?.rol] || 'var(--gray-600)',
+                  borderRadius: '99px',
+                  fontSize: '10px', fontWeight: 700,
+                  fontFamily: "'Plus Jakarta Sans', sans-serif",
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.04em',
+                }}>
+                  {roleName[user?.rol] || user?.rol}
+                </span>
+              </div>
+
+              <ChevronDown style={{
+                width: '15px', height: '15px', color: 'var(--gray-400)',
+                transform: showUserMenu ? 'rotate(180deg)' : 'none',
+                transition: 'transform var(--transition)',
+              }} />
+            </button>
+
+            {/* Dropdown usuario */}
+            {showUserMenu && (
+              <div style={{
+                position: 'absolute', right: 0, top: 'calc(100% + 8px)',
+                width: '220px',
+                background: 'var(--surface)',
+                borderRadius: 'var(--radius-lg)',
+                border: '1px solid var(--border)',
+                boxShadow: 'var(--shadow-lg)',
+                overflow: 'hidden',
+                animation: 'slideUp 150ms var(--ease)',
+                zIndex: 50,
+              }}>
+                {/* Info usuario (móvil) */}
+                <div className="md:hidden" style={{
+                  padding: '16px 18px',
+                  borderBottom: '1px solid var(--border)',
+                  background: 'var(--gray-50)',
+                }}>
+                  <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--gray-800)' }}>
+                    {user?.nombre} {user?.apellido}
+                  </p>
+                  <p style={{ fontSize: '12px', color: 'var(--gray-500)', marginTop: '2px' }}>
+                    {user?.email}
+                  </p>
+                </div>
+
+                {[
+                  { to: '/perfil', icon: User, label: 'Mi Perfil' },
+                  ...(user?.rol === 'admin' ? [{ to: '/configuracion', icon: Settings, label: 'Configuración' }] : []),
+                ].map((item, i) => (
+                  <Link
+                    key={i}
+                    to={item.to}
+                    onClick={() => setShowUserMenu(false)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: '10px',
+                      padding: '11px 18px',
+                      fontSize: '13px', fontWeight: 500,
+                      color: 'var(--gray-700)',
+                      textDecoration: 'none',
+                      transition: 'background var(--transition)',
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.background = 'var(--gray-50)'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                  >
+                    <item.icon style={{ width: '15px', height: '15px', color: 'var(--gray-400)' }} />
+                    {item.label}
+                  </Link>
+                ))}
+
+                <div style={{ height: '1px', background: 'var(--border)' }} />
+
+                <button
+                  onClick={() => { setShowUserMenu(false); logout(); }}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '10px',
+                    padding: '11px 18px', width: '100%',
+                    fontSize: '13px', fontWeight: 500,
+                    color: '#DC2626',
+                    background: 'transparent', border: 'none', cursor: 'pointer',
+                    transition: 'background var(--transition)',
+                    textAlign: 'left',
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.background = '#FEF2F2'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                >
+                  <LogOut style={{ width: '15px', height: '15px' }} />
+                  Cerrar Sesión
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>

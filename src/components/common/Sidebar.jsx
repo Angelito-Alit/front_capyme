@@ -12,80 +12,114 @@ import {
   Briefcase,
   ClipboardList,
   X,
-  ChevronRight
+  ChevronRight,
+  MessageCircle,
 } from 'lucide-react';
 
 const Sidebar = ({ isOpen, onClose }) => {
   const location = useLocation();
   const { user } = useAuthStore();
 
-  // Menús según rol
   const menuItems = {
     admin: [
-      { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-      { path: '/negocios', icon: Building2, label: 'Negocios' },
-      { path: '/programas', icon: FileText, label: 'Programas' },
-      { path: '/postulaciones', icon: ClipboardList, label: 'Postulaciones' },
-      { path: '/cursos', icon: GraduationCap, label: 'Cursos' },
-      { path: '/usuarios', icon: Users, label: 'Usuarios' },
-      { path: '/avisos', icon: BellRing, label: 'Avisos' },
-      { path: '/enlaces', icon: Link2, label: 'Recursos' },
-      { path: '/contacto', icon: Phone, label: 'Contacto' }
+      { path: '/dashboard',      icon: LayoutDashboard, label: 'Dashboard' },
+      { path: '/negocios',       icon: Building2,       label: 'Negocios' },
+      { path: '/programas',      icon: FileText,        label: 'Programas' },
+      { path: '/postulaciones',  icon: ClipboardList,   label: 'Postulaciones' },
+      { path: '/cursos',         icon: GraduationCap,   label: 'Cursos' },
+      { path: '/usuarios',       icon: Users,           label: 'Usuarios' },
+      { path: '/avisos',         icon: BellRing,        label: 'Avisos' },
+      { path: '/enlaces',        icon: Link2,           label: 'Recursos' },
+      { path: '/contacto',       icon: Phone,           label: 'Contacto' },
     ],
     colaborador: [
-      { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-      { path: '/negocios', icon: Building2, label: 'Negocios' },
-      { path: '/programas', icon: FileText, label: 'Programas' },
-      { path: '/postulaciones', icon: ClipboardList, label: 'Postulaciones' },
-      { path: '/cursos', icon: GraduationCap, label: 'Cursos' },
-      { path: '/avisos', icon: BellRing, label: 'Avisos' },
-      { path: '/enlaces', icon: Link2, label: 'Recursos' }
+      { path: '/dashboard',      icon: LayoutDashboard, label: 'Dashboard' },
+      { path: '/negocios',       icon: Building2,       label: 'Negocios' },
+      { path: '/programas',      icon: FileText,        label: 'Programas' },
+      { path: '/postulaciones',  icon: ClipboardList,   label: 'Postulaciones' },
+      { path: '/cursos',         icon: GraduationCap,   label: 'Cursos' },
+      { path: '/avisos',         icon: BellRing,        label: 'Avisos' },
+      { path: '/enlaces',        icon: Link2,           label: 'Recursos' },
     ],
     cliente: [
-      { path: '/cliente/dashboard', icon: LayoutDashboard, label: 'Inicio' },
-      { path: '/cliente/mis-negocios', icon: Building2, label: 'Mis Negocios' },
-      { path: '/cliente/programas', icon: FileText, label: 'Programas' },
-      { path: '/cliente/postulaciones', icon: ClipboardList, label: 'Mis Postulaciones' },
-      { path: '/cliente/cursos', icon: GraduationCap, label: 'Cursos' },
-      { path: '/cliente/financiamiento', icon: Briefcase, label: 'Financiamiento' },
-      { path: '/cliente/avisos', icon: BellRing, label: 'Avisos' },
-      { path: '/cliente/recursos', icon: Link2, label: 'Recursos' }
-    ]
+      { path: '/cliente/dashboard',     icon: LayoutDashboard, label: 'Inicio' },
+      { path: '/cliente/mis-negocios',  icon: Building2,       label: 'Mis Negocios' },
+      { path: '/cliente/programas',     icon: FileText,        label: 'Programas' },
+      { path: '/cliente/postulaciones', icon: ClipboardList,   label: 'Mis Postulaciones' },
+      { path: '/cliente/cursos',        icon: GraduationCap,   label: 'Cursos' },
+      { path: '/cliente/financiamiento',icon: Briefcase,       label: 'Financiamiento' },
+      { path: '/cliente/avisos',        icon: BellRing,        label: 'Avisos' },
+      { path: '/cliente/recursos',      icon: Link2,           label: 'Recursos' },
+    ],
   };
 
   const currentMenu = menuItems[user?.rol] || menuItems.cliente;
-
-  const isActive = (path) => {
-    return location.pathname === path;
-  };
+  const isActive = (path) => location.pathname === path;
 
   return (
     <>
-      {/* Overlay para móvil */}
+      {/* Overlay */}
       {isOpen && (
         <div
-          className="fixed inset-0 bg-gray-900 bg-opacity-50 z-40 lg:hidden"
           onClick={onClose}
+          className="lg:hidden"
+          style={{
+            position: 'fixed', inset: 0,
+            background: 'rgba(15,23,42,0.45)',
+            backdropFilter: 'blur(2px)',
+            zIndex: 39,
+            animation: 'fadeIn 150ms ease',
+          }}
         />
       )}
 
-      {/* Sidebar */}
-      <aside
-        className={`fixed top-0 left-0 z-40 w-64 h-screen pt-20 transition-transform bg-white border-r border-gray-200 ${
-          isOpen ? 'translate-x-0' : '-translate-x-full'
-        } lg:translate-x-0`}
+      {/* Sidebar panel */}
+      <aside style={{
+        position: 'fixed',
+        top: '64px', left: 0, bottom: 0,
+        width: '256px',
+        background: 'var(--surface)',
+        borderRight: '1px solid var(--border)',
+        overflowY: 'auto',
+        zIndex: 40,
+        transition: 'transform 250ms cubic-bezier(0.4,0,0.2,1)',
+        transform: isOpen ? 'translateX(0)' : '',
+        display: 'flex',
+        flexDirection: 'column',
+      }}
+        className={!isOpen ? 'lg:translate-x-0 -translate-x-full' : ''}
       >
         {/* Botón cerrar en móvil */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 p-2 text-gray-500 rounded-lg lg:hidden hover:bg-gray-100"
+          className="lg:hidden"
+          style={{
+            position: 'absolute', top: '12px', right: '12px',
+            padding: '6px', borderRadius: 'var(--radius-md)',
+            border: 'none', background: 'var(--gray-100)',
+            cursor: 'pointer', color: 'var(--gray-500)',
+          }}
         >
-          <X className="w-6 h-6" />
+          <X style={{ width: '16px', height: '16px' }} />
         </button>
 
-        <div className="h-full px-3 pb-4 overflow-y-auto bg-white">
-          {/* Menú de navegación */}
-          <ul className="space-y-2 font-medium">
+        {/* Nav items */}
+        <nav style={{ padding: '16px 0', flex: 1 }}>
+          {/* Label de sección */}
+          <p style={{
+            padding: '0 22px',
+            marginBottom: '8px',
+            fontFamily: "'Plus Jakarta Sans', sans-serif",
+            fontSize: '10px',
+            fontWeight: 700,
+            color: 'var(--gray-400)',
+            letterSpacing: '0.08em',
+            textTransform: 'uppercase',
+          }}>
+            {user?.rol === 'cliente' ? 'Mi Espacio' : 'Gestión'}
+          </p>
+
+          <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
             {currentMenu.map((item, index) => {
               const Icon = item.icon;
               const active = isActive(item.path);
@@ -95,52 +129,121 @@ const Sidebar = ({ isOpen, onClose }) => {
                   <Link
                     to={item.path}
                     onClick={onClose}
-                    className={`flex items-center p-3 rounded-lg transition-colors group ${
-                      active
-                        ? 'bg-capyme-blue text-white'
-                        : 'text-gray-900 hover:bg-gray-100'
-                    }`}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '10px',
+                      padding: '10px 14px',
+                      margin: '2px 10px',
+                      borderRadius: 'var(--radius-md)',
+                      textDecoration: 'none',
+                      fontSize: '14px',
+                      fontWeight: active ? 600 : 500,
+                      fontFamily: "'DM Sans', sans-serif",
+                      color: active ? '#fff' : 'var(--gray-600)',
+                      background: active
+                        ? 'linear-gradient(135deg, var(--capyme-blue-mid), var(--capyme-blue))'
+                        : 'transparent',
+                      boxShadow: active ? '0 3px 10px rgba(43,91,166,0.28)' : 'none',
+                      transition: 'all 180ms ease',
+                    }}
+                    onMouseEnter={e => {
+                      if (!active) {
+                        e.currentTarget.style.background = 'var(--capyme-blue-pale)';
+                        e.currentTarget.style.color = 'var(--capyme-blue-mid)';
+                      }
+                    }}
+                    onMouseLeave={e => {
+                      if (!active) {
+                        e.currentTarget.style.background = 'transparent';
+                        e.currentTarget.style.color = 'var(--gray-600)';
+                      }
+                    }}
                   >
-                    <Icon
-                      className={`w-5 h-5 transition duration-75 ${
-                        active
-                          ? 'text-white'
-                          : 'text-gray-500 group-hover:text-gray-900'
-                      }`}
-                    />
-                    <span className="ml-3">{item.label}</span>
+                    <Icon style={{
+                      width: '18px', height: '18px', flexShrink: 0,
+                      opacity: active ? 1 : 0.65,
+                    }} />
+                    <span style={{ flex: 1 }}>{item.label}</span>
                     {active && (
-                      <ChevronRight className="w-4 h-4 ml-auto" />
+                      <ChevronRight style={{ width: '14px', height: '14px', opacity: 0.7 }} />
                     )}
                   </Link>
                 </li>
               );
             })}
           </ul>
+        </nav>
 
-          {/* Información de contacto (solo para clientes) */}
+        {/* Footer Sidebar */}
+        <div style={{ padding: '16px 10px 20px' }}>
+          {/* Card de ayuda para clientes */}
           {user?.rol === 'cliente' && (
-            <div className="mt-8 p-4 bg-gradient-to-br from-capyme-blue to-capyme-lightBlue rounded-lg text-white">
-              <h3 className="text-sm font-semibold mb-2">¿Necesitas ayuda?</h3>
-              <p className="text-xs mb-3 opacity-90">
-                Contáctanos para recibir asesoría personalizada
+            <div style={{
+              padding: '16px',
+              background: 'linear-gradient(135deg, var(--capyme-blue) 0%, var(--capyme-blue-light) 100%)',
+              borderRadius: 'var(--radius-lg)',
+              color: '#fff',
+              marginBottom: '12px',
+              position: 'relative',
+              overflow: 'hidden',
+            }}>
+              <div style={{
+                position: 'absolute', top: '-20px', right: '-20px',
+                width: '80px', height: '80px',
+                background: 'rgba(255,255,255,0.08)',
+                borderRadius: '50%',
+              }} />
+              <MessageCircle style={{ width: '20px', height: '20px', marginBottom: '8px', opacity: 0.9 }} />
+              <p style={{
+                fontFamily: "'Plus Jakarta Sans', sans-serif",
+                fontSize: '13px', fontWeight: 700, marginBottom: '4px',
+              }}>¿Necesitas ayuda?</p>
+              <p style={{ fontSize: '12px', opacity: 0.75, lineHeight: 1.5, marginBottom: '10px' }}>
+                Nuestros asesores están disponibles
               </p>
               <Link
                 to="/cliente/contacto"
                 onClick={onClose}
-                className="block w-full px-3 py-2 text-xs text-center bg-white text-capyme-blue rounded-lg font-medium hover:bg-gray-100 transition-colors"
+                style={{
+                  display: 'block',
+                  textAlign: 'center',
+                  padding: '7px 12px',
+                  background: 'rgba(255,255,255,0.15)',
+                  color: '#fff',
+                  borderRadius: 'var(--radius-sm)',
+                  fontSize: '12px', fontWeight: 600,
+                  fontFamily: "'Plus Jakarta Sans', sans-serif",
+                  textDecoration: 'none',
+                  backdropFilter: 'blur(4px)',
+                  border: '1px solid rgba(255,255,255,0.2)',
+                  transition: 'background var(--transition)',
+                }}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.25)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.15)'}
               >
                 Contactar CAPYME
               </Link>
             </div>
           )}
 
-          {/* Info del sistema */}
-          <div className="mt-8 pt-4 border-t border-gray-200">
-            <div className="flex items-center justify-between px-3 text-xs text-gray-500">
-              <span>CAPYME Sistema</span>
-              <span>v1.0.0</span>
-            </div>
+          {/* Version info */}
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: '0 12px',
+          }}>
+            <span style={{ fontSize: '11px', color: 'var(--gray-400)', fontFamily: "'DM Sans', sans-serif" }}>
+              CAPYME Sistema
+            </span>
+            <span style={{
+              fontSize: '10px',
+              padding: '2px 8px',
+              background: 'var(--gray-100)',
+              color: 'var(--gray-500)',
+              borderRadius: '99px',
+              fontFamily: "'Plus Jakarta Sans', sans-serif",
+              fontWeight: 700,
+            }}>v1.0.0</span>
           </div>
         </div>
       </aside>
