@@ -9,8 +9,8 @@ import {
   Settings,
   Menu,
   ChevronDown,
-  X,
 } from 'lucide-react';
+import LogoCapyme from '../../assets/LogoCapyme.png';
 
 const Navbar = ({ onMenuClick }) => {
   const { user } = useAuthStore();
@@ -32,11 +32,11 @@ const Navbar = ({ onMenuClick }) => {
     <nav style={{
       position: 'fixed', top: 0, left: 0, right: 0, zIndex: 30,
       height: '64px',
-      background: 'rgba(255,255,255,0.96)',
-      backdropFilter: 'blur(12px)',
-      WebkitBackdropFilter: 'blur(12px)',
+      background: 'rgba(255,255,255,0.97)',
+      backdropFilter: 'blur(16px)',
+      WebkitBackdropFilter: 'blur(16px)',
       borderBottom: '1px solid var(--border)',
-      boxShadow: '0 1px 0 var(--border), 0 2px 8px rgba(15,42,90,0.04)',
+      boxShadow: '0 1px 0 var(--border), 0 2px 12px rgba(15,42,90,0.05)',
       display: 'flex', alignItems: 'center',
       padding: '0 20px',
     }}>
@@ -44,7 +44,6 @@ const Navbar = ({ onMenuClick }) => {
 
         {/* Left */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          {/* Hamburger */}
           <button
             onClick={onMenuClick}
             className="lg:hidden"
@@ -60,21 +59,17 @@ const Navbar = ({ onMenuClick }) => {
             <Menu style={{ width: '20px', height: '20px' }} />
           </button>
 
-          {/* Logo */}
-          <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '10px', textDecoration: 'none' }}>
-            <img src="/logo-capyme.png" alt="CAPYME" style={{ height: '36px' }} />
-            <span
-              className="hidden sm:block"
+          {/* Logo CAPYME */}
+          <Link to="/dashboard" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
+            <img
+              src={LogoCapyme}
+              alt="CAPYME"
               style={{
-                fontFamily: "'Plus Jakarta Sans', sans-serif",
-                fontSize: '17px',
-                fontWeight: 800,
-                color: 'var(--capyme-blue)',
-                letterSpacing: '-0.02em',
+                height: '40px',
+                width: 'auto',
+                objectFit: 'contain',
               }}
-            >
-              CAPYME
-            </span>
+            />
           </Link>
         </div>
 
@@ -89,7 +84,7 @@ const Navbar = ({ onMenuClick }) => {
                 position: 'relative',
                 padding: '8px', borderRadius: 'var(--radius-md)',
                 border: 'none', background: 'transparent', cursor: 'pointer',
-                color: 'var(--gray-600)',
+                color: 'var(--gray-500)',
                 transition: 'background var(--transition)',
               }}
               onMouseEnter={e => e.currentTarget.style.background = 'var(--gray-100)'}
@@ -194,7 +189,6 @@ const Navbar = ({ onMenuClick }) => {
               onMouseEnter={e => e.currentTarget.style.background = 'var(--gray-50)'}
               onMouseLeave={e => { if (!showUserMenu) e.currentTarget.style.background = 'transparent'; }}
             >
-              {/* Avatar */}
               <div style={{
                 width: '34px', height: '34px', borderRadius: '50%',
                 background: 'linear-gradient(135deg, var(--capyme-blue-mid), var(--capyme-blue))',
@@ -202,6 +196,7 @@ const Navbar = ({ onMenuClick }) => {
                 color: '#fff',
                 fontFamily: "'Plus Jakarta Sans', sans-serif",
                 fontSize: '13px', fontWeight: 700,
+                flexShrink: 0,
               }}>
                 {user?.nombre?.charAt(0)}{user?.apellido?.charAt(0)}
               </div>
@@ -230,13 +225,13 @@ const Navbar = ({ onMenuClick }) => {
               </div>
 
               <ChevronDown style={{
-                width: '15px', height: '15px', color: 'var(--gray-400)',
+                width: '14px', height: '14px', color: 'var(--gray-400)',
                 transform: showUserMenu ? 'rotate(180deg)' : 'none',
                 transition: 'transform var(--transition)',
+                flexShrink: 0,
               }} />
             </button>
 
-            {/* Dropdown usuario */}
             {showUserMenu && (
               <div style={{
                 position: 'absolute', right: 0, top: 'calc(100% + 8px)',
@@ -249,7 +244,6 @@ const Navbar = ({ onMenuClick }) => {
                 animation: 'slideUp 150ms var(--ease)',
                 zIndex: 50,
               }}>
-                {/* Info usuario (móvil) */}
                 <div className="md:hidden" style={{
                   padding: '16px 18px',
                   borderBottom: '1px solid var(--border)',

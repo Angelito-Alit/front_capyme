@@ -15,6 +15,7 @@ import {
   ChevronRight,
   MessageCircle,
 } from 'lucide-react';
+import LogoCapyme from '../../assets/LogoCapyme.png';
 
 const Sidebar = ({ isOpen, onClose }) => {
   const location = useLocation();
@@ -58,7 +59,7 @@ const Sidebar = ({ isOpen, onClose }) => {
 
   return (
     <>
-      {/* Overlay */}
+      {/* Overlay móvil */}
       {isOpen && (
         <div
           onClick={onClose}
@@ -73,7 +74,7 @@ const Sidebar = ({ isOpen, onClose }) => {
         />
       )}
 
-      {/* Sidebar panel */}
+      {/* Panel sidebar */}
       <aside style={{
         position: 'fixed',
         top: '64px', left: 0, bottom: 0,
@@ -89,7 +90,7 @@ const Sidebar = ({ isOpen, onClose }) => {
       }}
         className={!isOpen ? 'lg:translate-x-0 -translate-x-full' : ''}
       >
-        {/* Botón cerrar en móvil */}
+        {/* Botón cerrar móvil */}
         <button
           onClick={onClose}
           className="lg:hidden"
@@ -105,7 +106,6 @@ const Sidebar = ({ isOpen, onClose }) => {
 
         {/* Nav items */}
         <nav style={{ padding: '16px 0', flex: 1 }}>
-          {/* Label de sección */}
           <p style={{
             padding: '0 22px',
             marginBottom: '8px',
@@ -184,7 +184,7 @@ const Sidebar = ({ isOpen, onClose }) => {
               background: 'linear-gradient(135deg, var(--capyme-blue) 0%, var(--capyme-blue-light) 100%)',
               borderRadius: 'var(--radius-lg)',
               color: '#fff',
-              marginBottom: '12px',
+              marginBottom: '14px',
               position: 'relative',
               overflow: 'hidden',
             }}>
@@ -227,14 +227,23 @@ const Sidebar = ({ isOpen, onClose }) => {
             </div>
           )}
 
-          {/* Version info */}
+          {/* Logo + versión en footer */}
           <div style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            padding: '0 12px',
+            padding: '8px 12px',
+            borderTop: '1px solid var(--border)',
+            paddingTop: '14px',
           }}>
-            <span style={{ fontSize: '11px', color: 'var(--gray-400)', fontFamily: "'DM Sans', sans-serif" }}>
-              CAPYME Sistema
-            </span>
+            <img
+              src={LogoCapyme}
+              alt="CAPYME"
+              style={{
+                height: '24px',
+                width: 'auto',
+                objectFit: 'contain',
+                opacity: 0.7,
+              }}
+            />
             <span style={{
               fontSize: '10px',
               padding: '2px 8px',

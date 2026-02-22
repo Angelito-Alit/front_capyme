@@ -15,11 +15,12 @@ const Layout = ({ children }) => {
         style={{ paddingTop: '64px' }}
         className="lg:pl-64"
       >
-        <main style={{
-          padding: '28px',
-          maxWidth: '1400px',
-          margin: '0 auto',
-        }}
+        <main
+          style={{
+            padding: '28px',
+            maxWidth: '1400px',
+            margin: '0 auto',
+          }}
           className="sm:p-6 lg:p-8"
         >
           {children}
