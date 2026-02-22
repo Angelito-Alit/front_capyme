@@ -10,18 +10,14 @@ const Layout = ({ children }) => {
       <Navbar onMenuClick={() => setSidebarOpen(true)} />
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
-      {/* Main content */}
-      <div
-        style={{ paddingTop: '64px' }}
-        className="lg:pl-64"
-      >
+      {/* Main content — sin padding-left ya que el sidebar es drawer */}
+      <div style={{ paddingTop: '64px' }}>
         <main
           style={{
-            padding: '28px',
             maxWidth: '1400px',
             margin: '0 auto',
           }}
-          className="sm:p-6 lg:p-8"
+          className="p-4 sm:p-6 lg:p-8"
         >
           {children}
         </main>

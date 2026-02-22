@@ -44,14 +44,15 @@ const Navbar = ({ onMenuClick }) => {
 
         {/* Left */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          {/* Botón hamburguesa — SIEMPRE visible */}
           <button
             onClick={onMenuClick}
-            className="lg:hidden"
             style={{
               padding: '8px', borderRadius: 'var(--radius-md)',
               border: 'none', background: 'transparent', cursor: 'pointer',
               color: 'var(--gray-600)',
               transition: 'background var(--transition)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}
             onMouseEnter={e => e.currentTarget.style.background = 'var(--gray-100)'}
             onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
@@ -104,6 +105,7 @@ const Navbar = ({ onMenuClick }) => {
               <div style={{
                 position: 'absolute', right: 0, top: 'calc(100% + 8px)',
                 width: '320px',
+                maxWidth: 'calc(100vw - 40px)',
                 background: 'var(--surface)',
                 borderRadius: 'var(--radius-lg)',
                 border: '1px solid var(--border)',
@@ -201,7 +203,7 @@ const Navbar = ({ onMenuClick }) => {
                 {user?.nombre?.charAt(0)}{user?.apellido?.charAt(0)}
               </div>
 
-              <div className="hidden md:flex flex-col items-start">
+              <div className="hidden sm:flex flex-col items-start">
                 <span style={{
                   fontFamily: "'Plus Jakarta Sans', sans-serif",
                   fontSize: '13px', fontWeight: 600, color: 'var(--gray-800)',
@@ -244,7 +246,7 @@ const Navbar = ({ onMenuClick }) => {
                 animation: 'slideUp 150ms var(--ease)',
                 zIndex: 50,
               }}>
-                <div className="md:hidden" style={{
+                <div className="sm:hidden" style={{
                   padding: '16px 18px',
                   borderBottom: '1px solid var(--border)',
                   background: 'var(--gray-50)',

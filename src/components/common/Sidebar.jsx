@@ -59,50 +59,86 @@ const Sidebar = ({ isOpen, onClose }) => {
 
   return (
     <>
-      {/* Overlay móvil */}
-      {isOpen && (
-        <div
-          onClick={onClose}
-          className="lg:hidden"
-          style={{
-            position: 'fixed', inset: 0,
-            background: 'rgba(15,23,42,0.45)',
-            backdropFilter: 'blur(2px)',
-            zIndex: 39,
-            animation: 'fadeIn 150ms ease',
-          }}
-        />
-      )}
+      {/* Overlay — en todas las resoluciones */}
+      <div
+        onClick={onClose}
+        style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(15,23,42,0.45)',
+          backdropFilter: 'blur(2px)',
+          WebkitBackdropFilter: 'blur(2px)',
+          zIndex: 39,
+          transition: 'opacity 200ms ease',
+          opacity: isOpen ? 1 : 0,
+          pointerEvents: isOpen ? 'auto' : 'none',
+        }}
+      />
 
-      {/* Panel sidebar */}
-      <aside style={{
-        position: 'fixed',
-        top: '64px', left: 0, bottom: 0,
-        width: '256px',
-        background: 'var(--surface)',
-        borderRight: '1px solid var(--border)',
-        overflowY: 'auto',
-        zIndex: 40,
-        transition: 'transform 250ms cubic-bezier(0.4,0,0.2,1)',
-        transform: isOpen ? 'translateX(0)' : '',
-        display: 'flex',
-        flexDirection: 'column',
-      }}
-        className={!isOpen ? 'lg:translate-x-0 -translate-x-full' : ''}
+      {/* Panel sidebar — drawer en todas las resoluciones */}
+      <aside
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          bottom: 0,
+          width: '280px',
+          maxWidth: '85vw',
+          background: 'var(--surface)',
+          borderRight: '1px solid var(--border)',
+          overflowY: 'auto',
+          WebkitOverflowScrolling: 'touch',
+          zIndex: 40,
+          display: 'flex',
+          flexDirection: 'column',
+          boxShadow: isOpen ? '4px 0 24px rgba(0,0,0,0.12)' : 'none',
+          transition: 'transform 280ms cubic-bezier(0.4, 0, 0.2, 1)',
+          transform: isOpen ? 'translateX(0)' : 'translateX(-100%)',
+        }}
       >
-        {/* Botón cerrar móvil */}
-        <button
-          onClick={onClose}
-          className="lg:hidden"
+        {/* Header del sidebar — logo + botón cerrar */}
+        <div
           style={{
-            position: 'absolute', top: '12px', right: '12px',
-            padding: '6px', borderRadius: 'var(--radius-md)',
-            border: 'none', background: 'var(--gray-100)',
-            cursor: 'pointer', color: 'var(--gray-500)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '12px 16px',
+            borderBottom: '1px solid var(--border)',
+            minHeight: '64px',
+            flexShrink: 0,
           }}
         >
-          <X style={{ width: '16px', height: '16px' }} />
-        </button>
+          <Link to="/dashboard" onClick={onClose} style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
+            <img
+              src={LogoCapyme}
+              alt="CAPYME"
+              style={{
+                height: '34px',
+                width: 'auto',
+                objectFit: 'contain',
+              }}
+            />
+          </Link>
+          <button
+            onClick={onClose}
+            style={{
+              padding: '8px',
+              borderRadius: 'var(--radius-md)',
+              border: 'none',
+              background: 'var(--gray-100)',
+              cursor: 'pointer',
+              color: 'var(--gray-500)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'background 150ms ease',
+            }}
+            onMouseEnter={e => e.currentTarget.style.background = 'var(--gray-200)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'var(--gray-100)'}
+          >
+            <X style={{ width: '18px', height: '18px' }} />
+          </button>
+        </div>
 
         {/* Nav items */}
         <nav style={{ padding: '16px 0', flex: 1 }}>
@@ -176,8 +212,7 @@ const Sidebar = ({ isOpen, onClose }) => {
         </nav>
 
         {/* Footer Sidebar */}
-        <div style={{ padding: '16px 10px 20px' }}>
-          {/* Card de ayuda para clientes */}
+        <div style={{ padding: '16px 10px 20px', flexShrink: 0 }}>
           {user?.rol === 'cliente' && (
             <div style={{
               padding: '16px',
@@ -227,7 +262,6 @@ const Sidebar = ({ isOpen, onClose }) => {
             </div>
           )}
 
-          {/* Logo + versión en footer */}
           <div style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             padding: '8px 12px',
