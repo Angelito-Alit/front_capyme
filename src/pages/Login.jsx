@@ -1,29 +1,19 @@
 import { useState } from "react";
-import { Mail, Lock, ArrowRight, Eye, EyeOff, TrendingUp, Users, Award } from "lucide-react";
+import { useAuth } from "../hooks/useAuth";
+import { Mail, Lock, ArrowRight, Eye, EyeOff } from "lucide-react";
 
-export default function Login({ onLogin }) {
+export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const { login, loading, error } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
-    setError("");
-    try {
-      await onLogin(email, password);
-    } catch (err) {
-      setError("Credenciales incorrectas. Intente de nuevo.");
-    } finally {
-      setLoading(false);
-    }
+    await login(email, password);
   };
 
-  const stats = [
-    
-  ];
+  const stats = [];
 
   return (
     <>
@@ -41,7 +31,6 @@ export default function Login({ onLogin }) {
           background: #fff;
         }
 
-        /* ─── LEFT DECORATIVE PANEL ─── */
         .login-panel {
           display: none;
           position: relative;
@@ -130,7 +119,6 @@ export default function Login({ onLogin }) {
         }
         .stat-label { font-size: 11px; color: rgba(255,255,255,0.5); line-height: 1.3; }
 
-        /* ─── RIGHT / FORM SIDE ─── */
         .login-form-side {
           flex: 1;
           display: flex; align-items: center; justify-content: center;
@@ -142,7 +130,6 @@ export default function Login({ onLogin }) {
 
         .form-card { width: 100%; max-width: 420px; }
 
-        /* Mobile logo */
         .mobile-logo {
           display: flex; align-items: center; gap: 10px; margin-bottom: 36px;
         }
@@ -159,7 +146,6 @@ export default function Login({ onLogin }) {
           letter-spacing: 0.1em; color: #0F2A5A;
         }
 
-        /* Mobile stats */
         .mobile-stats {
           display: flex; justify-content: space-between;
           gap: 8px; margin-bottom: 36px;
@@ -269,7 +255,6 @@ export default function Login({ onLogin }) {
       `}</style>
 
       <div className="login-root">
-        {/* ── Left panel (desktop) ── */}
         <div className="login-panel">
           <div className="panel-circle-1" />
           <div className="panel-circle-2" />
@@ -306,11 +291,9 @@ export default function Login({ onLogin }) {
           </div>
         </div>
 
-        {/* ── Right form side ── */}
         <div className="login-form-side">
           <div className="form-card">
 
-            {/* Mobile-only logo */}
             <div className="mobile-logo">
               <div className="mobile-logo-mark">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -321,7 +304,6 @@ export default function Login({ onLogin }) {
               <span className="mobile-logo-text">CAPYME</span>
             </div>
 
-            {/* Mobile-only stats */}
             <div className="mobile-stats">
               {stats.map(({ value, label }) => (
                 <div className="ms-item" key={label}>
@@ -382,7 +364,6 @@ export default function Login({ onLogin }) {
             </form>
 
             <p className="form-footer">
-             
             </p>
             <p className="form-brand">
               CAPYME — Consultoría y Asesoría a la Pequeña y Mediana Empresa
