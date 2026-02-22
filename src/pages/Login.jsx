@@ -382,8 +382,7 @@ export default function Login({ onLogin }) {
             </form>
 
             <p className="form-footer">
-              ¿No tienes cuenta?{" "}
-              <a href="/register">Regístrate gratis</a>
+             
             </p>
             <p className="form-brand">
               CAPYME — Consultoría y Asesoría a la Pequeña y Mediana Empresa
