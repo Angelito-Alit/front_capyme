@@ -29,5 +29,9 @@ export const negociosService = {
   delete: async (id) => {
     const response = await api.delete(`/negocios/${id}`);
     return response.data;
-  }
+  },
+  toggleActivo: async (id) => {
+  const response = await api.patch(`/negocios/${id}/toggle-activo`);
+  return response.data;},
+
 };

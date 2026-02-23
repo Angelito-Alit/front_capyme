@@ -16,9 +16,11 @@ import {
   FileText,
   ChevronDown,
   Loader2,
-  AlertCircle
+  AlertCircle,
+  CheckCircle, PowerOff
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+
 
 const estadosMexico = [
   'Aguascalientes', 'Baja California', 'Baja California Sur', 'Campeche',
@@ -61,6 +63,8 @@ const Negocios = () => {
   const [filterEstado, setFilterEstado] = useState('');
   const [formData, setFormData] = useState(initialFormData);
   const [formErrors, setFormErrors] = useState({});
+  const authStorage = JSON.parse(localStorage.getItem('auth-storage') || '{}');
+  const user = authStorage?.state?.user || {};  
 
   useEffect(() => {
     cargarDatos();
@@ -145,44 +149,46 @@ const Negocios = () => {
     }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!validateForm()) return;
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  if (!validateForm()) return;
+  try {
+    setSubmitting(true);
+    const { activo, ...restFormData } = formData;
+    const dataToSend = {
+      ...restFormData,
+      categoriaId: parseInt(formData.categoriaId),
+      numeroEmpleados: parseInt(formData.numeroEmpleados) || 0,
+      anioFundacion: formData.anioFundacion ? parseInt(formData.anioFundacion) : null
+    };
+    if (modalMode === 'create') {
+      await negociosService.create(dataToSend);
+      toast.success('Negocio creado exitosamente');
+    } else {
+      await negociosService.update(selectedNegocio.id, dataToSend);
+      toast.success('Negocio actualizado exitosamente');
+    }
+    handleCloseModal();
+    cargarDatos();
+  } catch (error) {
+    toast.error(error.response?.data?.message || 'Error al guardar negocio');
+  } finally {
+    setSubmitting(false);
+  }
+};
+
+  const handleToggleActivo = async (negocio) => {
+  const accion = negocio.activo ? 'desactivar' : 'activar';
+  if (window.confirm(`¿Estás seguro de ${accion} el negocio "${negocio.nombreNegocio}"?`)) {
     try {
-      setSubmitting(true);
-      const dataToSend = {
-        ...formData,
-        categoriaId: parseInt(formData.categoriaId),
-        numeroEmpleados: parseInt(formData.numeroEmpleados) || 0,
-        anioFundacion: formData.anioFundacion ? parseInt(formData.anioFundacion) : null
-      };
-      if (modalMode === 'create') {
-        await negociosService.create(dataToSend);
-        toast.success('Negocio creado exitosamente');
-      } else {
-        await negociosService.update(selectedNegocio.id, dataToSend);
-        toast.success('Negocio actualizado exitosamente');
-      }
-      handleCloseModal();
+      await negociosService.toggleActivo(negocio.id);
+      toast.success(`Negocio ${negocio.activo ? 'desactivado' : 'activado'} exitosamente`);
       cargarDatos();
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Error al guardar negocio');
-    } finally {
-      setSubmitting(false);
+      toast.error('Error al cambiar estado del negocio');
     }
-  };
-
-  const handleDelete = async (id, nombre) => {
-    if (window.confirm(`¿Estás seguro de eliminar el negocio "${nombre}"? Esta acción no se puede deshacer.`)) {
-      try {
-        await negociosService.delete(id);
-        toast.success('Negocio eliminado exitosamente');
-        cargarDatos();
-      } catch (error) {
-        toast.error('Error al eliminar negocio');
-      }
-    }
-  };
+  }
+};
 
   const negociosFiltrados = negocios.filter(negocio =>
     negocio.nombreNegocio?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -370,7 +376,7 @@ const Negocios = () => {
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ background: 'var(--gray-50)' }}>
-                  {['Negocio', 'RFC', 'Categoría', 'Propietario', 'Estado', 'Acciones'].map((h, i) => (
+                  {['Negocio', 'RFC', 'Categoría', 'Registrado por', 'Estado', 'Acciones'].map((h, i) => (
                     <th key={h} style={{
                       padding: '14px 24px',
                       textAlign: i === 5 ? 'right' : i === 4 ? 'center' : 'left',
@@ -471,6 +477,7 @@ const Negocios = () => {
                       </td>
                       <td style={{ padding: '14px 24px', textAlign: 'right' }}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '4px' }}>
+                          {/* Editar */}
                           <button
                             onClick={() => handleOpenModal('edit', negocio)}
                             title="Editar"
@@ -481,38 +488,53 @@ const Negocios = () => {
                               background: 'transparent', cursor: 'pointer',
                               color: 'var(--gray-400)', transition: 'all 150ms ease',
                             }}
-                            onMouseEnter={e => {
-                              e.currentTarget.style.background = '#EEF4FF';
-                              e.currentTarget.style.color = 'var(--capyme-blue-mid)';
-                            }}
-                            onMouseLeave={e => {
-                              e.currentTarget.style.background = 'transparent';
-                              e.currentTarget.style.color = 'var(--gray-400)';
-                            }}
+                            onMouseEnter={e => { e.currentTarget.style.background = '#EEF4FF'; e.currentTarget.style.color = 'var(--capyme-blue-mid)'; }}
+                            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gray-400)'; }}
                           >
                             <Edit style={{ width: '16px', height: '16px' }} />
                           </button>
-                          <button
-                            onClick={() => handleDelete(negocio.id, negocio.nombreNegocio)}
-                            title="Eliminar"
-                            style={{
-                              width: '34px', height: '34px',
-                              display: 'flex', alignItems: 'center', justifyContent: 'center',
-                              border: 'none', borderRadius: 'var(--radius-sm)',
-                              background: 'transparent', cursor: 'pointer',
-                              color: 'var(--gray-400)', transition: 'all 150ms ease',
-                            }}
-                            onMouseEnter={e => {
-                              e.currentTarget.style.background = '#FEF2F2';
-                              e.currentTarget.style.color = '#DC2626';
-                            }}
-                            onMouseLeave={e => {
-                              e.currentTarget.style.background = 'transparent';
-                              e.currentTarget.style.color = 'var(--gray-400)';
-                            }}
-                          >
-                            <Trash2 style={{ width: '16px', height: '16px' }} />
-                          </button>
+
+                          {/* Console log corregido dentro de llaves */}
+                          {(() => {
+                            console.log(JSON.parse(localStorage.getItem('user')));
+                            return null;
+                          })()}
+
+                          {user.rol === 'admin' && !negocio.activo && (
+                            <button
+                              onClick={() => handleToggleActivo(negocio)}
+                              title="Activar negocio"
+                              style={{
+                                width: '34px', height: '34px',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                border: 'none', borderRadius: 'var(--radius-sm)',
+                                background: 'transparent', cursor: 'pointer',
+                                color: 'var(--gray-400)', transition: 'all 150ms ease',
+                              }}
+                              onMouseEnter={e => { e.currentTarget.style.background = '#ECFDF5'; e.currentTarget.style.color = '#065F46'; }}
+                              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gray-400)'; }}
+                            >
+                              <CheckCircle style={{ width: '16px', height: '16px' }} />
+                            </button>
+                          )}
+
+                          {user.rol === 'admin' && negocio.activo && (
+                            <button
+                              onClick={() => handleToggleActivo(negocio)}
+                              title="Desactivar negocio"
+                              style={{
+                                width: '34px', height: '34px',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                border: 'none', borderRadius: 'var(--radius-sm)',
+                                background: 'transparent', cursor: 'pointer',
+                                color: 'var(--gray-400)', transition: 'all 150ms ease',
+                              }}
+                              onMouseEnter={e => { e.currentTarget.style.background = '#FEF2F2'; e.currentTarget.style.color = '#DC2626'; }}
+                              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gray-400)'; }}
+                            >
+                              <Trash2 style={{ width: '16px', height: '16px' }} />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -764,14 +786,8 @@ const Negocios = () => {
                   </div>
                   <div>
                     <label style={labelStyle}>Estado del Negocio</label>
-                    <div style={{ position: 'relative' }}>
-                      <select value={formData.activo.toString()}
-                        onChange={(e) => handleChange('activo', e.target.value === 'true')}
-                        style={selectStyle}>
-                        <option value="true">Activo</option>
-                        <option value="false">Inactivo</option>
-                      </select>
-                      <ChevronDown style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', width: '16px', height: '16px', color: 'var(--gray-400)', pointerEvents: 'none' }} />
+                    <div style={selectStyle}>
+                      {formData.activo ? 'Activo' : 'Inactivo'}
                     </div>
                   </div>
                   <div style={{ gridColumn: '1 / -1' }}>

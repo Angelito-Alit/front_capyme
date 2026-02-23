@@ -16,8 +16,4 @@ export const usuariosService = {
     return response.data;
   },
 
-  delete: async (id) => {
-    const response = await api.delete(`/usuarios/${id}`);
-    return response.data;
-  }
 };

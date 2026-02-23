@@ -39,8 +39,10 @@ const Sidebar = ({ isOpen, onClose }) => {
       { path: '/programas',      icon: FileText,        label: 'Programas' },
       { path: '/postulaciones',  icon: ClipboardList,   label: 'Postulaciones' },
       { path: '/cursos',         icon: GraduationCap,   label: 'Cursos' },
+      { path: '/usuarios',       icon: Users,           label: 'Usuarios' },
       { path: '/avisos',         icon: BellRing,        label: 'Avisos' },
       { path: '/enlaces',        icon: Link2,           label: 'Recursos' },
+      { path: '/contacto',       icon: Phone,           label: 'Contacto' },
     ],
     cliente: [
       { path: '/cliente/dashboard',     icon: LayoutDashboard, label: 'Inicio' },
