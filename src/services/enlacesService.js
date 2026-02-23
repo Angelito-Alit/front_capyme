@@ -1,28 +1,9 @@
 import api from './axios';
 
 export const enlacesService = {
-  getAll: async (params = {}) => {
-    const response = await api.get('/enlaces', { params });
-    return response.data;
-  },
-
-  getById: async (id) => {
-    const response = await api.get(`/enlaces/${id}`);
-    return response.data;
-  },
-
-  create: async (enlaceData) => {
-    const response = await api.post('/enlaces', enlaceData);
-    return response.data;
-  },
-
-  update: async (id, enlaceData) => {
-    const response = await api.put(`/enlaces/${id}`, enlaceData);
-    return response.data;
-  },
-
-  delete: async (id) => {
-    const response = await api.delete(`/enlaces/${id}`);
-    return response.data;
-  }
+  getAll: async (params = {}) => (await api.get('/enlaces', { params })).data,
+  getById: async (id) => (await api.get(`/enlaces/${id}`)).data,
+  create: async (data) => (await api.post('/enlaces', data)).data,
+  update: async (id, data) => (await api.put(`/enlaces/${id}`, data)).data,
+  toggleActivo: async (id) => (await api.patch(`/enlaces/${id}/toggle-activo`)).data,
 };

@@ -1,438 +1,500 @@
 import { useState, useEffect } from 'react';
 import Layout from '../components/common/Layout';
-import api from '../services/axios';
-import { 
-  Link2, 
-  Plus, 
-  Search, 
-  Edit, 
-  Trash2,
+import { enlacesService } from '../services/enlacesService';
+import {
+  Link2,
+  Plus,
+  Search,
+  Edit,
+
   X,
   ExternalLink,
   Video,
   FileText,
-  DollarSign
+  DollarSign,
+  ChevronDown,
+  AlertCircle,
+  ShoppingBag,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
+const initialFormData = {
+  titulo: '',
+  descripcion: '',
+  url: '',
+  tipo: 'otro',
+  categoria: '',
+  visiblePara: 'todos',
+  activo: true,
+};
+
 const Enlaces = () => {
+  const authStorage = JSON.parse(localStorage.getItem('auth-storage') || '{}');
+  const currentUser = authStorage?.state?.user || {};
+
   const [enlaces, setEnlaces] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [modalMode, setModalMode] = useState('create');
   const [selectedEnlace, setSelectedEnlace] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterTipo, setFilterTipo] = useState('');
-  const [filterCategoria, setFilterCategoria] = useState('');
+  const [filterActivo, setFilterActivo] = useState('');
+  const [hoveredCard, setHoveredCard] = useState(null);
+  const [formData, setFormData] = useState(initialFormData);
+  const [formErrors, setFormErrors] = useState({});
 
-  const [formData, setFormData] = useState({
-    titulo: '',
-    descripcion: '',
-    url: '',
-    tipo: 'otro',
-    categoria: '',
-    visiblePara: 'todos',
-    activo: true
-  });
+  const inputBaseStyle = {
+    width: '100%', padding: '10px 12px',
+    border: '1px solid var(--border)', borderRadius: 'var(--radius-md)',
+    fontSize: '14px', fontFamily: "'DM Sans', sans-serif",
+    color: 'var(--gray-900)', background: '#fff',
+    outline: 'none', transition: 'all 200ms ease', boxSizing: 'border-box',
+  };
+  const inputWithIconStyle = { ...inputBaseStyle, paddingLeft: '38px' };
+  const inputErrorStyle = { borderColor: '#EF4444', boxShadow: '0 0 0 2px rgba(239,68,68,0.15)' };
+  const labelStyle = {
+    display: 'block', fontSize: '13px', fontWeight: 600,
+    color: 'var(--gray-600)', marginBottom: '6px', fontFamily: "'DM Sans', sans-serif",
+  };
+  const selectStyle = { ...inputBaseStyle, appearance: 'none', paddingRight: '36px', cursor: 'pointer' };
+  const textareaStyle = { ...inputBaseStyle, resize: 'vertical', minHeight: '80px' };
 
-  useEffect(() => {
-    cargarEnlaces();
-  }, [filterTipo, filterCategoria]);
+  useEffect(() => { cargarEnlaces(); }, [filterTipo, filterActivo]);
 
   const cargarEnlaces = async () => {
     try {
       setLoading(true);
       const params = {};
       if (filterTipo) params.tipo = filterTipo;
-      if (filterCategoria) params.categoria = filterCategoria;
+      if (filterActivo !== '') params.activo = filterActivo;
+      const res = await enlacesService.getAll(params);
+      setEnlaces(res.data);
+    } catch { toast.error('Error al cargar catálogos'); }
+    finally { setLoading(false); }
+  };
 
-      const response = await api.get('/enlaces', { params });
-      setEnlaces(response.data.data);
-    } catch (error) {
-      toast.error('Error al cargar enlaces');
-    } finally {
-      setLoading(false);
-    }
+  const validateForm = () => {
+    const errors = {};
+    if (!formData.titulo.trim()) errors.titulo = 'El título es requerido';
+    if (!formData.url.trim()) errors.url = 'La URL es requerida';
+    else if (!/^https?:\/\/.+/.test(formData.url)) errors.url = 'Ingresa una URL válida (https://...)';
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
   };
 
   const handleOpenModal = (mode, enlace = null) => {
     setModalMode(mode);
     setSelectedEnlace(enlace);
+    setFormErrors({});
     if (mode === 'edit' && enlace) {
       setFormData({
-        titulo: enlace.titulo,
+        titulo: enlace.titulo || '',
         descripcion: enlace.descripcion || '',
-        url: enlace.url,
-        tipo: enlace.tipo,
+        url: enlace.url || '',
+        tipo: enlace.tipo || 'otro',
         categoria: enlace.categoria || '',
-        visiblePara: enlace.visiblePara,
-        activo: enlace.activo
+        visiblePara: enlace.visiblePara || 'todos',
+        activo: enlace.activo ?? true,
       });
     } else {
-      setFormData({
-        titulo: '',
-        descripcion: '',
-        url: '',
-        tipo: 'otro',
-        categoria: '',
-        visiblePara: 'todos',
-        activo: true
-      });
+      setFormData(initialFormData);
     }
     setShowModal(true);
   };
 
-  const handleCloseModal = () => {
-    setShowModal(false);
-    setSelectedEnlace(null);
+  const handleCloseModal = () => { setShowModal(false); setSelectedEnlace(null); setFormErrors({}); };
+
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
+    if (formErrors[name]) setFormErrors((prev) => ({ ...prev, [name]: '' }));
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async () => {
+    if (!validateForm()) return;
+    setSubmitting(true);
     try {
+      const dataToSend = {
+        ...formData,
+        activo: formData.activo === true || formData.activo === 'true',
+        descripcion: formData.descripcion || null,
+        categoria: formData.categoria || null,
+      };
       if (modalMode === 'create') {
-        await api.post('/enlaces', formData);
-        toast.success('Enlace creado exitosamente');
+        await enlacesService.create(dataToSend);
+        toast.success('Catálogo creado exitosamente');
       } else {
-        await api.put(`/enlaces/${selectedEnlace.id}`, formData);
-        toast.success('Enlace actualizado exitosamente');
+        await enlacesService.update(selectedEnlace.id, dataToSend);
+        toast.success('Catálogo actualizado exitosamente');
       }
       handleCloseModal();
       cargarEnlaces();
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Error al guardar enlace');
-    }
+      toast.error(error.response?.data?.message || 'Error al guardar catálogo');
+    } finally { setSubmitting(false); }
   };
 
-  const handleDelete = async (id) => {
-    if (window.confirm('¿Estás seguro de eliminar este enlace?')) {
-      try {
-        await api.delete(`/enlaces/${id}`);
-        toast.success('Enlace eliminado exitosamente');
-        cargarEnlaces();
-      } catch (error) {
-        toast.error('Error al eliminar enlace');
-      }
-    }
+  const handleToggleActivo = async (enlace) => {
+    const accion = enlace.activo ? 'desactivar' : 'activar';
+    if (!window.confirm(`¿Estás seguro de ${accion} "${enlace.titulo}"?`)) return;
+    try {
+      await enlacesService.toggleActivo(enlace.id);
+      toast.success(`Catálogo ${accion === 'desactivar' ? 'desactivado' : 'activado'} exitosamente`);
+      cargarEnlaces();
+    } catch { toast.error('Error al cambiar estado del catálogo'); }
   };
 
-  const enlacesFiltrados = enlaces.filter(enlace =>
-    enlace.titulo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    enlace.descripcion?.toLowerCase().includes(searchTerm.toLowerCase())
+  const enlacesFiltrados = enlaces.filter((e) =>
+    e.titulo.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (e.descripcion || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (e.categoria || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const getTipoIcon = (tipo) => {
-    switch (tipo) {
-      case 'video':
-        return <Video className="w-5 h-5" />;
-      case 'financiamiento':
-        return <DollarSign className="w-5 h-5" />;
-      case 'documento':
-        return <FileText className="w-5 h-5" />;
-      default:
-        return <Link2 className="w-5 h-5" />;
-    }
-  };
+  const getTipoStyle = (tipo) => ({
+    video: { bg: '#FEF2F2', color: '#DC2626', icon: Video },
+    financiamiento: { bg: '#F0FDF4', color: '#16A34A', icon: DollarSign },
+    documento: { bg: '#EEF4FF', color: 'var(--capyme-blue-mid)', icon: FileText },
+    otro: { bg: 'var(--gray-100)', color: 'var(--gray-600)', icon: Link2 },
+  }[tipo] || { bg: 'var(--gray-100)', color: 'var(--gray-600)', icon: Link2 });
 
-  const getTipoColor = (tipo) => {
-    switch (tipo) {
-      case 'video':
-        return 'bg-red-100 text-red-800';
-      case 'financiamiento':
-        return 'bg-green-100 text-green-800';
-      case 'documento':
-        return 'bg-blue-100 text-blue-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
+  const getTipoLabel = (tipo) => ({ video: 'Video', financiamiento: 'Financiamiento', documento: 'Documento', otro: 'Otro' }[tipo] || tipo);
 
-  const getVisibilidadColor = (visible) => {
-    switch (visible) {
-      case 'todos':
-        return 'bg-purple-100 text-purple-800';
-      case 'clientes':
-        return 'bg-green-100 text-green-800';
-      case 'colaboradores':
-        return 'bg-blue-100 text-blue-800';
-      case 'admin':
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
+  const getVisibleStyle = (v) => ({
+    todos: { bg: '#F5F3FF', color: '#7C3AED' },
+    clientes: { bg: '#F0FDF4', color: '#16A34A' },
+    colaboradores: { bg: '#EEF4FF', color: 'var(--capyme-blue-mid)' },
+    admin: { bg: '#FEF2F2', color: '#DC2626' },
+  }[v] || { bg: 'var(--gray-100)', color: 'var(--gray-600)' });
 
-  if (loading) {
-    return (
-      <Layout>
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#2B5BA6]"></div>
-        </div>
-      </Layout>
-    );
-  }
+  const getVisibleLabel = (v) => ({ todos: 'Todos', clientes: 'Clientes', colaboradores: 'Colaboradores', admin: 'Admin' }[v] || v);
+
+  if (loading) return (
+    <Layout>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '300px', flexDirection: 'column', gap: '16px' }}>
+        <div style={{ width: '40px', height: '40px', border: '3px solid var(--gray-200)', borderTopColor: 'var(--capyme-blue-mid)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+        <span style={{ fontSize: '14px', color: 'var(--gray-500)', fontFamily: "'DM Sans', sans-serif" }}>Cargando catálogos...</span>
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      </div>
+    </Layout>
+  );
 
   return (
     <Layout>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Recursos y Enlaces</h1>
-            <p className="text-gray-600 mt-1">Gestiona enlaces a recursos externos</p>
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes modalIn { from { opacity: 0; transform: scale(0.96) translateY(8px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+        .enlace-card { animation: fadeInUp 0.3s ease both; transition: box-shadow 200ms ease, transform 200ms ease; }
+        .enlace-card:hover { box-shadow: 0 8px 24px rgba(31,78,158,0.10); transform: translateY(-2px); }
+        .enlace-modal { animation: modalIn 0.25s ease both; }
+        div:hover > .prohibido-icon { opacity: 1 !important; }
+      `}</style>
+
+      <div style={{ padding: '0 0 40px' }}>
+
+        {/* ── HEADER ── */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '28px', flexWrap: 'wrap', gap: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+            <div style={{ width: '46px', height: '46px', background: 'linear-gradient(135deg, var(--capyme-blue-mid), var(--capyme-blue))', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(31,78,158,0.25)' }}>
+              <ShoppingBag style={{ width: '22px', height: '22px', color: '#fff' }} />
+            </div>
+            <div>
+              <h1 style={{ fontSize: '22px', fontWeight: 800, color: 'var(--gray-900)', fontFamily: "'Plus Jakarta Sans', sans-serif", margin: 0, lineHeight: 1.2 }}>Catálogos y Recursos</h1>
+              <p style={{ fontSize: '13px', color: 'var(--gray-500)', margin: '3px 0 0', fontFamily: "'DM Sans', sans-serif" }}>
+                {enlaces.length} catálogo{enlaces.length !== 1 ? 's' : ''} registrado{enlaces.length !== 1 ? 's' : ''}
+              </p>
+            </div>
           </div>
           <button
             onClick={() => handleOpenModal('create')}
-            className="flex items-center gap-2 px-4 py-2 bg-[#2B5BA6] text-white rounded-lg hover:bg-[#1E3A5F] transition-colors"
+            style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 18px', background: 'linear-gradient(135deg, var(--capyme-blue-mid), var(--capyme-blue))', color: '#fff', border: 'none', borderRadius: 'var(--radius-md)', fontSize: '14px', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", cursor: 'pointer', boxShadow: '0 2px 8px rgba(31,78,158,0.28)', transition: 'all 150ms ease' }}
+            onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.9'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.transform = 'translateY(0)'; }}
           >
-            <Plus className="w-5 h-5" />
-            Nuevo Enlace
+            <Plus style={{ width: '16px', height: '16px' }} />
+            Nuevo Catálogo
           </button>
         </div>
 
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-            <div className="md:col-span-2">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                <input
-                  type="text"
-                  placeholder="Buscar enlace..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2B5BA6] focus:border-transparent"
-                />
-              </div>
+        {/* ── STATS ── */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '12px', marginBottom: '20px' }}>
+          {[
+            { label: 'Total', value: enlaces.length, color: 'var(--capyme-blue-mid)', bg: 'var(--capyme-blue-pale)' },
+            { label: 'Activos', value: enlaces.filter((e) => e.activo).length, color: '#16A34A', bg: '#F0FDF4' },
+            { label: 'Inactivos', value: enlaces.filter((e) => !e.activo).length, color: '#DC2626', bg: '#FEF2F2' },
+            { label: 'Visibles a todos', value: enlaces.filter((e) => e.visiblePara === 'todos').length, color: '#7C3AED', bg: '#F5F3FF' },
+          ].map((stat) => (
+            <div key={stat.label} style={{ background: stat.bg, borderRadius: 'var(--radius-md)', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span style={{ fontSize: '22px', fontWeight: 800, color: stat.color, fontFamily: "'Plus Jakarta Sans', sans-serif", lineHeight: 1 }}>{stat.value}</span>
+              <span style={{ fontSize: '12px', color: stat.color, fontFamily: "'DM Sans', sans-serif", fontWeight: 600, opacity: 0.75 }}>{stat.label}</span>
             </div>
-            <div>
-              <select
-                value={filterTipo}
-                onChange={(e) => setFilterTipo(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2B5BA6] focus:border-transparent"
-              >
-                <option value="">Todos los tipos</option>
-                <option value="video">Video</option>
-                <option value="financiamiento">Financiamiento</option>
-                <option value="documento">Documento</option>
-                <option value="otro">Otro</option>
-              </select>
-            </div>
-            <div>
-              <input
-                type="text"
-                placeholder="Filtrar por categoría"
-                value={filterCategoria}
-                onChange={(e) => setFilterCategoria(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2B5BA6] focus:border-transparent"
-              />
-            </div>
-          </div>
+          ))}
+        </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {enlacesFiltrados.length > 0 ? (
-              enlacesFiltrados.map((enlace) => (
-                <div key={enlace.id} className="bg-white border border-gray-200 rounded-lg hover:shadow-lg transition-shadow">
-                  <div className="p-6">
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex-1">
-                        <h3 className="text-lg font-semibold text-gray-900 mb-2">{enlace.titulo}</h3>
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className={`inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded ${getTipoColor(enlace.tipo)}`}>
-                            {getTipoIcon(enlace.tipo)}
-                            {enlace.tipo.charAt(0).toUpperCase() + enlace.tipo.slice(1)}
+        {/* ── FILTERS ── */}
+        <div style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '16px 20px', marginBottom: '20px', display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap', boxShadow: 'var(--shadow-sm)' }}>
+          <div style={{ position: 'relative', flex: '1', minWidth: '180px' }}>
+            <Search style={{ position: 'absolute', left: '11px', top: '50%', transform: 'translateY(-50%)', width: '15px', height: '15px', color: 'var(--gray-400)', pointerEvents: 'none' }} />
+            <input type="text" placeholder="Buscar catálogo, descripción o categoría…" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} style={inputWithIconStyle} />
+          </div>
+          <div style={{ position: 'relative', minWidth: '150px' }}>
+            <select value={filterTipo} onChange={(e) => setFilterTipo(e.target.value)} style={{ ...selectStyle, width: '100%' }}>
+              <option value="">Todos los tipos</option>
+              <option value="video">Video</option>
+              <option value="financiamiento">Financiamiento</option>
+              <option value="documento">Documento</option>
+              <option value="otro">Otro</option>
+            </select>
+            <ChevronDown style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', width: '14px', height: '14px', color: 'var(--gray-400)', pointerEvents: 'none' }} />
+          </div>
+          <div style={{ position: 'relative', minWidth: '140px' }}>
+            <select value={filterActivo} onChange={(e) => setFilterActivo(e.target.value)} style={{ ...selectStyle, width: '100%' }}>
+              <option value="">Activo / Inactivo</option>
+              <option value="true">Activos</option>
+              <option value="false">Inactivos</option>
+            </select>
+            <ChevronDown style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', width: '14px', height: '14px', color: 'var(--gray-400)', pointerEvents: 'none' }} />
+          </div>
+        </div>
+
+        {/* ── GRID ── */}
+        {enlacesFiltrados.length === 0 ? (
+          <div style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '60px 20px', textAlign: 'center', boxShadow: 'var(--shadow-sm)' }}>
+            <div style={{ width: '56px', height: '56px', background: 'var(--gray-100)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px' }}>
+              <ShoppingBag style={{ width: '24px', height: '24px', color: 'var(--gray-400)' }} />
+            </div>
+            <p style={{ fontSize: '15px', fontWeight: 600, color: 'var(--gray-700)', margin: '0 0 6px', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>No se encontraron catálogos</p>
+            <p style={{ fontSize: '13px', color: 'var(--gray-400)', margin: 0, fontFamily: "'DM Sans', sans-serif" }}>Intenta con otros filtros o agrega un nuevo catálogo</p>
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '16px' }}>
+            {enlacesFiltrados.map((enlace, idx) => {
+              const ts = getTipoStyle(enlace.tipo);
+              const vs = getVisibleStyle(enlace.visiblePara);
+              const TIcon = ts.icon;
+              return (
+                <div
+                  key={enlace.id}
+                  className="enlace-card"
+                  style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', overflow: 'hidden', animationDelay: `${idx * 40}ms`, opacity: enlace.activo ? 1 : 0.6 }}
+                  onMouseEnter={() => setHoveredCard(enlace.id)}
+                  onMouseLeave={() => setHoveredCard(null)}
+                >
+                  <div style={{ height: '4px', background: enlace.activo ? 'linear-gradient(90deg, var(--capyme-blue-mid), var(--capyme-blue))' : 'var(--gray-200)' }} />
+                  <div style={{ padding: '20px' }}>
+
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', marginBottom: '14px' }}>
+                      <div style={{ width: '40px', height: '40px', background: ts.bg, borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <TIcon style={{ width: '18px', height: '18px', color: ts.color }} />
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <h3 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--gray-900)', fontFamily: "'Plus Jakarta Sans', sans-serif", margin: '0 0 6px', lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{enlace.titulo}</h3>
+                        <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
+                          <span style={{ padding: '2px 8px', borderRadius: '20px', fontSize: '11px', fontWeight: 700, background: ts.bg, color: ts.color, fontFamily: "'Plus Jakarta Sans', sans-serif", textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+                            {getTipoLabel(enlace.tipo)}
                           </span>
-                          <span className={`inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded ${getVisibilidadColor(enlace.visiblePara)}`}>
-                            {enlace.visiblePara.charAt(0).toUpperCase() + enlace.visiblePara.slice(1)}
+                          <span style={{ padding: '2px 8px', borderRadius: '20px', fontSize: '11px', fontWeight: 700, background: vs.bg, color: vs.color, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                            {getVisibleLabel(enlace.visiblePara)}
+                          </span>
+                          <span style={{ padding: '2px 8px', borderRadius: '20px', fontSize: '11px', fontWeight: 700, background: enlace.activo ? '#ECFDF5' : '#FEF2F2', color: enlace.activo ? '#065F46' : '#DC2626', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                            {enlace.activo ? '● Activo' : '● Inactivo'}
                           </span>
                         </div>
                       </div>
                     </div>
 
-                    <p className="text-sm text-gray-600 mb-4 line-clamp-2">
-                      {enlace.descripcion || 'Sin descripción'}
-                    </p>
-
-                    {enlace.categoria && (
-                      <p className="text-sm text-gray-500 mb-4">
-                        Categoría: <span className="font-medium">{enlace.categoria}</span>
+                    {enlace.descripcion && (
+                      <p style={{ fontSize: '13px', color: 'var(--gray-500)', margin: '0 0 12px', fontFamily: "'DM Sans', sans-serif", lineHeight: 1.5, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                        {enlace.descripcion}
                       </p>
                     )}
 
-                    <div className="space-y-2">
+                    {enlace.categoria && (
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '3px 10px', background: 'var(--gray-100)', borderRadius: '20px', marginBottom: '14px' }}>
+                        <span style={{ fontSize: '12px', color: 'var(--gray-600)', fontFamily: "'DM Sans', sans-serif", fontWeight: 600 }}>{enlace.categoria}</span>
+                      </div>
+                    )}
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', paddingTop: '14px', borderTop: '1px solid var(--gray-100)' }}>
                       <a
                         href={enlace.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center justify-center gap-2 px-4 py-2 text-sm text-[#2B5BA6] bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
+                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '7px', padding: '8px 14px', background: 'var(--capyme-blue-pale)', color: 'var(--capyme-blue-mid)', border: 'none', borderRadius: 'var(--radius-md)', fontSize: '13px', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", textDecoration: 'none', transition: 'all 150ms ease' }}
+                        onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--capyme-blue-mid)'; e.currentTarget.style.color = '#fff'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--capyme-blue-pale)'; e.currentTarget.style.color = 'var(--capyme-blue-mid)'; }}
                       >
-                        <ExternalLink className="w-4 h-4" />
-                        Abrir Enlace
+                        <ExternalLink style={{ width: '14px', height: '14px' }} />
+                        Abrir catálogo
                       </a>
-                      <div className="flex items-center gap-2">
+                      <div style={{ display: 'flex', gap: '6px' }}>
                         <button
                           onClick={() => handleOpenModal('edit', enlace)}
-                          className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-sm text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
+                          style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '7px 12px', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', background: 'transparent', cursor: 'pointer', color: 'var(--gray-600)', fontSize: '12px', fontFamily: "'DM Sans', sans-serif", fontWeight: 600, transition: 'all 150ms ease' }}
+                          onMouseEnter={(e) => { e.currentTarget.style.background = '#EEF4FF'; e.currentTarget.style.color = 'var(--capyme-blue-mid)'; e.currentTarget.style.borderColor = 'var(--capyme-blue-mid)'; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gray-600)'; e.currentTarget.style.borderColor = 'var(--border)'; }}
                         >
-                          <Edit className="w-4 h-4" />
+                          <Edit style={{ width: '13px', height: '13px' }} />
                           Editar
                         </button>
-                        <button
-                          onClick={() => handleDelete(enlace.id)}
-                          className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-sm text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                          Eliminar
-                        </button>
+                        {currentUser.rol === 'admin' && (
+                          <button
+                            onClick={() => handleToggleActivo(enlace)}
+                            style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '7px 12px', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', background: 'transparent', cursor: 'pointer', color: 'var(--gray-600)', fontSize: '12px', fontFamily: "'DM Sans', sans-serif", fontWeight: 600, transition: 'all 150ms ease' }}
+                            onMouseEnter={(e) => { const c = enlace.activo; e.currentTarget.style.background = c ? '#FEF2F2' : '#ECFDF5'; e.currentTarget.style.color = c ? '#DC2626' : '#16A34A'; e.currentTarget.style.borderColor = c ? '#DC2626' : '#16A34A'; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gray-600)'; e.currentTarget.style.borderColor = 'var(--border)'; }}
+                          >
+                            {enlace.activo
+                              ? <><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>Desactivar</>
+                              : <><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Activar</>
+                            }
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
                 </div>
-              ))
-            ) : (
-              <div className="col-span-full text-center py-12">
-                <Link2 className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                <p className="text-gray-500">No se encontraron enlaces</p>
-              </div>
-            )}
+              );
+            })}
           </div>
-        </div>
+        )}
       </div>
 
+      {/* ═══════════════════ MODAL ═══════════════════ */}
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between p-6 border-b border-gray-200">
-              <h2 className="text-xl font-semibold text-gray-900">
-                {modalMode === 'create' ? 'Nuevo Enlace' : 'Editar Enlace'}
-              </h2>
-              <button onClick={handleCloseModal} className="text-gray-400 hover:text-gray-600">
-                <X className="w-6 h-6" />
+        <div onClick={handleCloseModal} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.42)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
+          <div className="enlace-modal" onClick={(e) => e.stopPropagation()} style={{ background: '#fff', borderRadius: 'var(--radius-lg)', width: '100%', maxWidth: '580px', maxHeight: '92vh', display: 'flex', flexDirection: 'column', boxShadow: '0 24px 64px rgba(0,0,0,0.18)', overflow: 'hidden' }}>
+
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 24px', background: 'var(--gray-50)', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{ width: '36px', height: '36px', background: 'linear-gradient(135deg, var(--capyme-blue-mid), var(--capyme-blue))', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <ShoppingBag style={{ width: '18px', height: '18px', color: '#fff' }} />
+                </div>
+                <h2 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--gray-900)', fontFamily: "'Plus Jakarta Sans', sans-serif", margin: 0 }}>
+                  {modalMode === 'create' ? 'Nuevo Catálogo' : 'Editar Catálogo'}
+                </h2>
+              </div>
+              <button onClick={handleCloseModal} style={{ width: '32px', height: '32px', border: 'none', borderRadius: 'var(--radius-sm)', background: 'transparent', cursor: 'pointer', color: 'var(--gray-400)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 150ms ease' }} onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--gray-200)'; e.currentTarget.style.color = 'var(--gray-700)'; }} onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gray-400)'; }}>
+                <X style={{ width: '18px', height: '18px' }} />
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
+            <div style={{ overflowY: 'auto', flex: 1, padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Título
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={formData.titulo}
-                  onChange={(e) => setFormData({ ...formData, titulo: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2B5BA6] focus:border-transparent"
-                />
+                <label style={labelStyle}>Título <span style={{ color: '#EF4444' }}>*</span></label>
+                <input name="titulo" type="text" value={formData.titulo} onChange={handleChange} placeholder="Ej. Catálogo de productos 2025" style={{ ...inputBaseStyle, ...(formErrors.titulo ? inputErrorStyle : {}) }} />
+                {formErrors.titulo && <ErrorMsg text={formErrors.titulo} />}
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  URL
-                </label>
-                <input
-                  type="url"
-                  required
-                  value={formData.url}
-                  onChange={(e) => setFormData({ ...formData, url: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2B5BA6] focus:border-transparent"
-                  placeholder="https://"
-                />
+                <label style={labelStyle}>URL del catálogo <span style={{ color: '#EF4444' }}>*</span></label>
+                <div style={{ position: 'relative' }}>
+                  <ExternalLink style={{ position: 'absolute', left: '11px', top: '50%', transform: 'translateY(-50%)', width: '14px', height: '14px', color: 'var(--gray-400)', pointerEvents: 'none' }} />
+                  <input name="url" type="text" value={formData.url} onChange={handleChange} placeholder="https://..." style={{ ...inputWithIconStyle, ...(formErrors.url ? inputErrorStyle : {}) }} />
+                </div>
+                {formErrors.url && <ErrorMsg text={formErrors.url} />}
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Descripción
-                </label>
-                <textarea
-                  rows="3"
-                  value={formData.descripcion}
-                  onChange={(e) => setFormData({ ...formData, descripcion: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2B5BA6] focus:border-transparent"
-                />
+                <label style={labelStyle}>Descripción</label>
+                <textarea name="descripcion" value={formData.descripcion} onChange={handleChange} placeholder="Describe brevemente este catálogo…" style={textareaStyle} />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Tipo
-                  </label>
-                  <select
-                    value={formData.tipo}
-                    onChange={(e) => setFormData({ ...formData, tipo: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2B5BA6] focus:border-transparent"
-                  >
-                    <option value="video">Video</option>
-                    <option value="financiamiento">Financiamiento</option>
-                    <option value="documento">Documento</option>
-                    <option value="otro">Otro</option>
-                  </select>
+                  <label style={labelStyle}>Tipo</label>
+                  <div style={{ position: 'relative' }}>
+                    <select name="tipo" value={formData.tipo} onChange={handleChange} style={selectStyle}>
+                      <option value="video">Video</option>
+                      <option value="financiamiento">Financiamiento</option>
+                      <option value="documento">Documento</option>
+                      <option value="otro">Otro</option>
+                    </select>
+                    <ChevronDown style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', width: '14px', height: '14px', color: 'var(--gray-400)', pointerEvents: 'none' }} />
+                  </div>
                 </div>
-
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Categoría
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.categoria}
-                    onChange={(e) => setFormData({ ...formData, categoria: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2B5BA6] focus:border-transparent"
-                    placeholder="Ej: Marketing, Finanzas"
-                  />
+                  <label style={labelStyle}>Categoría</label>
+                  <input name="categoria" type="text" value={formData.categoria} onChange={handleChange} placeholder="Ej: Marketing, Finanzas" style={inputBaseStyle} />
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Visible Para
-                  </label>
-                  <select
-                    value={formData.visiblePara}
-                    onChange={(e) => setFormData({ ...formData, visiblePara: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2B5BA6] focus:border-transparent"
-                  >
-                    <option value="todos">Todos</option>
-                    <option value="clientes">Clientes</option>
-                    <option value="colaboradores">Colaboradores</option>
-                    <option value="admin">Admin</option>
-                  </select>
+                  <label style={labelStyle}>Visible para</label>
+                  <div style={{ position: 'relative' }}>
+                    <select name="visiblePara" value={formData.visiblePara} onChange={handleChange} style={selectStyle}>
+                      <option value="todos">Todos</option>
+                      <option value="clientes">Clientes</option>
+                      <option value="colaboradores">Colaboradores</option>
+                      <option value="admin">Admin</option>
+                    </select>
+                    <ChevronDown style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', width: '14px', height: '14px', color: 'var(--gray-400)', pointerEvents: 'none' }} />
+                  </div>
                 </div>
-
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label style={{ ...labelStyle, display: 'flex', alignItems: 'center', gap: '6px' }}>
                     Estado
+                    {currentUser.rol === 'colaborador' && (
+                      <span title="Solo el administrador puede cambiar el estado" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '16px', height: '16px', borderRadius: '50%', background: '#FEF2F2', cursor: 'not-allowed', flexShrink: 0 }}>
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#DC2626" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
+                        </svg>
+                      </span>
+                    )}
                   </label>
-                  <select
-                    value={formData.activo}
-                    onChange={(e) => setFormData({ ...formData, activo: e.target.value === 'true' })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2B5BA6] focus:border-transparent"
-                  >
-                    <option value="true">Activo</option>
-                    <option value="false">Inactivo</option>
-                  </select>
+                  {currentUser.rol === 'colaborador' ? (
+                    <div
+                      title="Solo el administrador puede cambiar el estado"
+                      style={{ ...inputBaseStyle, display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--gray-50)', cursor: 'not-allowed', userSelect: 'none', color: 'var(--gray-500)' }}
+                    >
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
+                        <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: formData.activo === true || formData.activo === 'true' ? '#16A34A' : '#DC2626', flexShrink: 0, display: 'inline-block' }} />
+                        {formData.activo === true || formData.activo === 'true' ? 'Activo' : 'Inactivo'}
+                      </span>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#DC2626" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0, transition: 'opacity 150ms ease' }} className="prohibido-icon">
+                        <circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
+                      </svg>
+                    </div>
+                  ) : (
+                    <div style={{ position: 'relative' }}>
+                      <select name="activo" value={String(formData.activo)} onChange={(e) => setFormData((prev) => ({ ...prev, activo: e.target.value === 'true' }))} style={selectStyle}>
+                        <option value="true">Activo</option>
+                        <option value="false">Inactivo</option>
+                      </select>
+                      <ChevronDown style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', width: '14px', height: '14px', color: 'var(--gray-400)', pointerEvents: 'none' }} />
+                    </div>
+                  )}
                 </div>
               </div>
 
-              <div className="flex items-center justify-end gap-3 pt-4">
-                <button
-                  type="button"
-                  onClick={handleCloseModal}
-                  className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-[#2B5BA6] text-white rounded-lg hover:bg-[#1E3A5F] transition-colors"
-                >
-                  {modalMode === 'create' ? 'Crear Enlace' : 'Guardar Cambios'}
-                </button>
-              </div>
-            </form>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', padding: '16px 24px', background: 'var(--gray-50)', borderTop: '1px solid var(--border)', flexShrink: 0 }}>
+              <button onClick={handleCloseModal} disabled={submitting} style={{ padding: '9px 18px', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', background: '#fff', color: 'var(--gray-700)', fontSize: '14px', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", cursor: 'pointer', transition: 'all 150ms ease' }} onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--gray-100)'; }} onMouseLeave={(e) => { e.currentTarget.style.background = '#fff'; }}>
+                Cancelar
+              </button>
+              <button onClick={handleSubmit} disabled={submitting} style={{ padding: '9px 22px', border: 'none', borderRadius: 'var(--radius-md)', background: submitting ? 'var(--gray-300)' : 'linear-gradient(135deg, var(--capyme-blue-mid), var(--capyme-blue))', color: '#fff', fontSize: '14px', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", cursor: submitting ? 'not-allowed' : 'pointer', boxShadow: submitting ? 'none' : '0 2px 8px rgba(31,78,158,0.28)', transition: 'all 150ms ease', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                {submitting && <span style={{ width: '14px', height: '14px', border: '2px solid rgba(255,255,255,0.4)', borderTopColor: '#fff', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} />}
+                {submitting ? 'Guardando…' : modalMode === 'create' ? 'Crear Catálogo' : 'Guardar Cambios'}
+              </button>
+            </div>
           </div>
         </div>
       )}
     </Layout>
   );
 };
+
+const ErrorMsg = ({ text }) => (
+  <p style={{ marginTop: '4px', fontSize: '12px', color: '#EF4444', display: 'flex', alignItems: 'center', gap: '4px', fontFamily: "'DM Sans', sans-serif" }}>
+    <AlertCircle style={{ width: '12px', height: '12px' }} /> {text}
+  </p>
+);
 
 export default Enlaces;
