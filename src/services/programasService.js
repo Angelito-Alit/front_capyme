@@ -26,6 +26,11 @@ export const programasService = {
     return response.data;
   },
 
+  toggleActivo: async (id) => {
+    const response = await api.patch(`/programas/${id}/toggle-activo`);
+    return response.data;
+  },
+
   delete: async (id) => {
     const response = await api.delete(`/programas/${id}`);
     return response.data;
@@ -39,5 +44,5 @@ export const programasService = {
   desasignarPregunta: async (programaId, preguntaId) => {
     const response = await api.delete(`/programas/${programaId}/preguntas/${preguntaId}`);
     return response.data;
-  }
+  },
 };
