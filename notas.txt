@@ -1,0 +1,16 @@
+para generar el nuevo prisma:
+npx prisma db push
+npx prisma generate
+
+
+
+importante por hacer:
+me quedé en el flujo del pago despues de inscribirme, no lo hace asi que empieza por aqui para ya darle fin a curso ahora si
+
+
+quitar configuracion adebajo de perfil
+en pages me falta la incubacion de proyectos (pagina financiamiento) (en el cloude de paga)
+ir ahora a carpeta clientes y checa cosas
+
+un usuario puede inscribirse a muchos cursos diferentes, pero un curso solo puede estar inscrito a usuario totalmente diferentes, no se puede repetir la inscripcion de un usuario a un mismo curso
+

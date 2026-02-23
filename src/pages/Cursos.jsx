@@ -1,3 +1,4 @@
+//cursos vista admin
 import { useState, useEffect } from 'react';
 import Layout from '../components/common/Layout';
 import { cursosService } from '../services/cursosService';

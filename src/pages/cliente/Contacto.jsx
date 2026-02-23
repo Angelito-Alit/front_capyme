@@ -113,17 +113,7 @@ const ClienteContacto = () => {
                     <ArrowUpRight style={{ width: '14px', height: '14px' }} />
                   </a>
                 )}
-                {contacto.email && (
-                  <a
-                    href={`mailto:${contacto.email}`}
-                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', padding: '14px', background: '#fff', color: 'var(--capyme-blue-mid)', border: '1.5px solid var(--capyme-blue-mid)', borderRadius: 'var(--radius-lg)', textDecoration: 'none', fontWeight: 700, fontSize: '14px', fontFamily: "'DM Sans', sans-serif", transition: 'all 150ms ease', boxSizing: 'border-box' }}
-                    onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--capyme-blue-pale)'; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.background = '#fff'; }}
-                  >
-                    <Mail style={{ width: '18px', height: '18px' }} />
-                    Enviar un correo
-                  </a>
-                )}
+                
               </div>
             )}
 

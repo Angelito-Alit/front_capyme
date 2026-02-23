@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react';
 import Layout from '../../components/common/Layout';
 import { financiamientoService } from '../../services/financiamientoService';
 import { negociosService } from '../../services/negociosService';
-import { 
-  Briefcase, 
+import {
+  Briefcase,
   Plus,
   Search,
   X,
@@ -12,27 +12,45 @@ import {
   FileText,
   CheckCircle,
   Clock,
-  XCircle
+  XCircle,
+  AlertCircle,
+  Building2,
+  ChevronDown,
+  TrendingUp,
+  TrendingDown,
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
+const estadoBadge = {
+  enviado:     { bg: '#EFF6FF', color: '#1D4ED8', label: 'Enviado',     icon: Clock },
+  en_revision: { bg: '#FFFBEB', color: '#B45309', label: 'En Revisión', icon: Clock },
+  aprobado:    { bg: '#ECFDF5', color: '#065F46', label: 'Aprobado',    icon: CheckCircle },
+  rechazado:   { bg: '#FEF2F2', color: '#DC2626', label: 'Rechazado',   icon: XCircle },
+};
+
+const initialForm = {
+  negocioId: '',
+  montoSolicitado: '',
+  plazoMeses: '',
+  destinoCredito: '',
+  ingresosMensuales: '',
+  egresosMensuales: '',
+  tieneCreditosActivos: false,
+  detallesCreditos: '',
+};
+
 const ClienteFinanciamiento = () => {
+  const authStorage = JSON.parse(localStorage.getItem('auth-storage') || '{}');
+  const currentUser = authStorage?.state?.user || {};
+
   const [formularios, setFormularios] = useState([]);
   const [negocios, setNegocios] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-
-  const [formData, setFormData] = useState({
-    negocioId: '',
-    montoSolicitado: '',
-    plazoMeses: '',
-    destinoCredito: '',
-    ingresosMensuales: '',
-    egresosMensuales: '',
-    tieneCreditosActivos: false,
-    detallesCreditos: ''
-  });
+  const [formData, setFormData] = useState(initialForm);
+  const [formErrors, setFormErrors] = useState({});
 
   useEffect(() => {
     cargarDatos();
@@ -43,37 +61,56 @@ const ClienteFinanciamiento = () => {
       setLoading(true);
       const [formulariosRes, negociosRes] = await Promise.all([
         financiamientoService.getAll(),
-        negociosService.getMisNegocios()
+        negociosService.getMisNegocios(),
       ]);
       setFormularios(formulariosRes.data);
       setNegocios(negociosRes.data);
-    } catch (error) {
+    } catch {
       toast.error('Error al cargar información');
     } finally {
       setLoading(false);
     }
   };
 
+  const validateForm = () => {
+    const errors = {};
+    if (!formData.negocioId) errors.negocioId = 'Selecciona un negocio';
+    if (!formData.montoSolicitado || parseFloat(formData.montoSolicitado) <= 0)
+      errors.montoSolicitado = 'Ingresa un monto válido';
+    if (!formData.plazoMeses || parseInt(formData.plazoMeses) <= 0)
+      errors.plazoMeses = 'Ingresa un plazo válido';
+    if (!formData.destinoCredito.trim()) errors.destinoCredito = 'Describe el destino del crédito';
+    if (!formData.ingresosMensuales || parseFloat(formData.ingresosMensuales) < 0)
+      errors.ingresosMensuales = 'Ingresa tus ingresos mensuales';
+    if (!formData.egresosMensuales || parseFloat(formData.egresosMensuales) < 0)
+      errors.egresosMensuales = 'Ingresa tus egresos mensuales';
+    return errors;
+  };
+
   const handleOpenModal = () => {
-    setFormData({
-      negocioId: '',
-      montoSolicitado: '',
-      plazoMeses: '',
-      destinoCredito: '',
-      ingresosMensuales: '',
-      egresosMensuales: '',
-      tieneCreditosActivos: false,
-      detallesCreditos: ''
-    });
+    setFormData(initialForm);
+    setFormErrors({});
     setShowModal(true);
   };
 
   const handleCloseModal = () => {
     setShowModal(false);
+    setFormErrors({});
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setFormData(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
+    if (formErrors[name]) setFormErrors(prev => ({ ...prev, [name]: '' }));
+  };
+
+  const handleSubmit = async () => {
+    const errors = validateForm();
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
+      return;
+    }
+    setSubmitting(true);
     try {
       await financiamientoService.create({
         ...formData,
@@ -81,42 +118,66 @@ const ClienteFinanciamiento = () => {
         montoSolicitado: parseFloat(formData.montoSolicitado),
         plazoMeses: parseInt(formData.plazoMeses),
         ingresosMensuales: parseFloat(formData.ingresosMensuales),
-        egresosMensuales: parseFloat(formData.egresosMensuales)
+        egresosMensuales: parseFloat(formData.egresosMensuales),
       });
-      toast.success('Solicitud enviada exitosamente');
+      toast.success('¡Solicitud enviada exitosamente!');
       handleCloseModal();
       cargarDatos();
     } catch (error) {
       toast.error(error.response?.data?.message || 'Error al enviar solicitud');
+    } finally {
+      setSubmitting(false);
     }
   };
 
-  const formulariosFiltrados = formularios.filter(form =>
-    form.negocio?.nombreNegocio.toLowerCase().includes(searchTerm.toLowerCase())
+  const formatCurrency = (amount) =>
+    new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(amount);
+
+  const formatDate = (date) => {
+    if (!date) return '—';
+    return new Date(date).toLocaleDateString('es-MX', {
+      year: 'numeric', month: 'short', day: 'numeric',
+    });
+  };
+
+  const formulariosFiltrados = formularios.filter(f =>
+    f.negocio?.nombreNegocio?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const getEstadoBadge = (estado) => {
-    const badges = {
-      enviado: { color: 'bg-blue-100 text-blue-800', icon: Clock, texto: 'Enviado' },
-      en_revision: { color: 'bg-yellow-100 text-yellow-800', icon: Clock, texto: 'En Revisión' },
-      aprobado: { color: 'bg-green-100 text-green-800', icon: CheckCircle, texto: 'Aprobado' },
-      rechazado: { color: 'bg-red-100 text-red-800', icon: XCircle, texto: 'Rechazado' }
-    };
-    return badges[estado] || badges.enviado;
+  const inputBaseStyle = {
+    width: '100%', padding: '10px 12px',
+    border: '1px solid var(--border)',
+    borderRadius: 'var(--radius-md)',
+    fontSize: '14px', fontFamily: "'DM Sans', sans-serif",
+    color: 'var(--gray-900)', background: '#fff',
+    outline: 'none', transition: 'all 200ms ease',
+    boxSizing: 'border-box',
   };
-
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('es-MX', {
-      style: 'currency',
-      currency: 'MXN'
-    }).format(amount);
+  const inputErrorStyle = { borderColor: '#EF4444', boxShadow: '0 0 0 2px rgba(239,68,68,0.15)' };
+  const labelStyle = {
+    display: 'block', fontSize: '13px', fontWeight: 600,
+    color: 'var(--gray-600)', marginBottom: '6px',
+    fontFamily: "'DM Sans', sans-serif",
   };
+  const selectStyle = { ...inputBaseStyle, appearance: 'none', paddingRight: '36px', cursor: 'pointer' };
 
   if (loading) {
     return (
       <Layout>
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#2B5BA6]"></div>
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          height: '320px', flexDirection: 'column', gap: '16px',
+        }}>
+          <div style={{
+            width: '40px', height: '40px',
+            border: '3px solid var(--border)',
+            borderTopColor: 'var(--capyme-blue-mid)',
+            borderRadius: '50%',
+            animation: 'spin 700ms linear infinite',
+          }} />
+          <p style={{ fontSize: '14px', color: 'var(--gray-400)', fontFamily: "'DM Sans', sans-serif" }}>
+            Cargando solicitudes...
+          </p>
         </div>
       </Layout>
     );
@@ -124,245 +185,589 @@ const ClienteFinanciamiento = () => {
 
   return (
     <Layout>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' }}>
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Solicitudes de Financiamiento</h1>
-            <p className="text-gray-600 mt-1">Gestiona tus solicitudes de apoyo financiero</p>
+            <h1 style={{
+              fontFamily: "'Plus Jakarta Sans', sans-serif",
+              fontSize: '26px', fontWeight: 800,
+              color: 'var(--gray-900)', letterSpacing: '-0.02em', marginBottom: '4px',
+            }}>Solicitudes de Financiamiento</h1>
+            <p style={{ fontSize: '14px', color: 'var(--gray-500)', fontFamily: "'DM Sans', sans-serif" }}>
+              Gestiona tus solicitudes de apoyo financiero
+            </p>
           </div>
           <button
             onClick={handleOpenModal}
-            className="flex items-center gap-2 px-4 py-2 bg-[#2B5BA6] text-white rounded-lg hover:bg-[#1E3A5F] transition-colors"
+            style={{
+              display: 'flex', alignItems: 'center', gap: '8px',
+              padding: '10px 18px',
+              background: 'linear-gradient(135deg, var(--capyme-blue-mid), var(--capyme-blue))',
+              color: '#fff', border: 'none',
+              borderRadius: 'var(--radius-md)',
+              fontFamily: "'Plus Jakarta Sans', sans-serif",
+              fontSize: '14px', fontWeight: 600,
+              cursor: 'pointer',
+              boxShadow: '0 2px 8px rgba(31,78,158,0.28)',
+              transition: 'all 200ms ease',
+              whiteSpace: 'nowrap',
+            }}
+            onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-1px)'}
+            onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
           >
-            <Plus className="w-5 h-5" />
+            <Plus style={{ width: '16px', height: '16px' }} />
             Nueva Solicitud
           </button>
         </div>
 
-        <div className="bg-gradient-to-br from-[#2B5BA6] to-[#4A7BC8] rounded-lg shadow-lg p-6 text-white">
-          <Briefcase className="w-12 h-12 mb-4 opacity-80" />
-          <h2 className="text-2xl font-bold mb-2">Opciones de Financiamiento</h2>
-          <p className="text-blue-100 mb-4">
-            Solicita apoyo financiero para hacer crecer tu negocio. Completa el formulario con tu información y te contactaremos para evaluar tu solicitud.
-          </p>
+        <div style={{
+          background: 'linear-gradient(135deg, var(--capyme-blue), var(--capyme-blue-mid))',
+          borderRadius: 'var(--radius-lg)',
+          padding: '24px 28px',
+          color: '#fff',
+          position: 'relative', overflow: 'hidden',
+          boxShadow: '0 4px 20px rgba(31,78,158,0.22)',
+        }}>
+          <div style={{
+            position: 'absolute', top: '-30px', right: '-30px',
+            width: '140px', height: '140px',
+            background: 'rgba(255,255,255,0.06)', borderRadius: '50%',
+            pointerEvents: 'none',
+          }} />
+          <div style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <div style={{
+              width: '48px', height: '48px', flexShrink: 0,
+              borderRadius: 'var(--radius-md)',
+              background: 'rgba(255,255,255,0.15)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <Briefcase style={{ width: '22px', height: '22px' }} />
+            </div>
+            <div>
+              <h2 style={{
+                fontFamily: "'Plus Jakarta Sans', sans-serif",
+                fontSize: '17px', fontWeight: 800, color: '#fff', marginBottom: '4px',
+              }}>Opciones de Financiamiento</h2>
+              <p style={{
+                fontSize: '13px', color: 'rgba(255,255,255,0.78)',
+                fontFamily: "'DM Sans', sans-serif", lineHeight: 1.5,
+              }}>
+                Solicita apoyo financiero para hacer crecer tu negocio. Te contactaremos para evaluar tu solicitud.
+              </p>
+            </div>
+          </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="relative mb-6">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+        {formularios.length > 0 && (
+          <div style={{ position: 'relative', maxWidth: '360px' }}>
+            <Search style={{
+              position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)',
+              width: '15px', height: '15px', color: 'var(--gray-400)', pointerEvents: 'none',
+            }} />
             <input
               type="text"
               placeholder="Buscar por negocio..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2B5BA6] focus:border-transparent"
+              onChange={e => setSearchTerm(e.target.value)}
+              style={{ ...inputBaseStyle, paddingLeft: '38px' }}
             />
           </div>
+        )}
 
-          {formulariosFiltrados.length > 0 ? (
-            <div className="space-y-4">
-              {formulariosFiltrados.map((form) => {
-                const estadoInfo = getEstadoBadge(form.estado);
-                const IconEstado = estadoInfo.icon;
-                return (
-                  <div key={form.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <h3 className="text-lg font-semibold text-gray-900">
-                            {form.negocio?.nombreNegocio}
-                          </h3>
-                          <span className={`inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-full ${estadoInfo.color}`}>
-                            <IconEstado className="w-3 h-3" />
-                            {estadoInfo.texto}
-                          </span>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                          <div className="flex items-center gap-2 text-sm text-gray-600">
-                            <DollarSign className="w-4 h-4 text-gray-400" />
-                            Monto: {formatCurrency(form.montoSolicitado)}
-                          </div>
-                          <div className="flex items-center gap-2 text-sm text-gray-600">
-                            <Calendar className="w-4 h-4 text-gray-400" />
-                            Plazo: {form.plazoMeses} meses
-                          </div>
-                          <div className="flex items-center gap-2 text-sm text-gray-600">
-                            <FileText className="w-4 h-4 text-gray-400" />
-                            {new Date(form.fechaSolicitud).toLocaleDateString()}
-                          </div>
-                        </div>
-
-                        {form.destinoCredito && (
-                          <p className="text-sm text-gray-600 mt-2">
-                            <span className="font-medium">Destino: </span>
-                            {form.destinoCredito}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
+        {formulariosFiltrados.length > 0 ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {formulariosFiltrados.map(form => (
+              <SolicitudRow key={form.id} form={form} formatCurrency={formatCurrency} formatDate={formatDate} />
+            ))}
+          </div>
+        ) : (
+          <div style={{
+            background: '#fff',
+            border: '1px solid var(--border)',
+            borderRadius: 'var(--radius-lg)',
+            boxShadow: 'var(--shadow-sm)',
+            padding: '64px 32px',
+            display: 'flex', flexDirection: 'column',
+            alignItems: 'center', textAlign: 'center', gap: '12px',
+          }}>
+            <div style={{
+              width: '64px', height: '64px',
+              borderRadius: 'var(--radius-lg)',
+              background: '#ECFDF5',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              marginBottom: '4px',
+            }}>
+              <Briefcase style={{ width: '28px', height: '28px', color: '#059669' }} />
             </div>
-          ) : (
-            <div className="text-center py-12">
-              <Briefcase className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-              <p className="text-gray-500">No tienes solicitudes de financiamiento</p>
-            </div>
-          )}
-        </div>
+            <h3 style={{
+              fontFamily: "'Plus Jakarta Sans', sans-serif",
+              fontSize: '17px', fontWeight: 700, color: 'var(--gray-900)',
+            }}>
+              {searchTerm ? 'Sin resultados' : 'No tienes solicitudes de financiamiento'}
+            </h3>
+            <p style={{ fontSize: '14px', color: 'var(--gray-400)', fontFamily: "'DM Sans', sans-serif", maxWidth: '360px' }}>
+              {searchTerm
+                ? 'Intenta con otro término.'
+                : 'Crea tu primera solicitud para acceder a opciones de apoyo financiero.'}
+            </p>
+            {!searchTerm && (
+              <button
+                onClick={handleOpenModal}
+                style={{
+                  marginTop: '8px',
+                  display: 'inline-flex', alignItems: 'center', gap: '8px',
+                  padding: '10px 20px',
+                  background: 'linear-gradient(135deg, var(--capyme-blue-mid), var(--capyme-blue))',
+                  color: '#fff', border: 'none',
+                  borderRadius: 'var(--radius-md)',
+                  fontFamily: "'Plus Jakarta Sans', sans-serif",
+                  fontSize: '14px', fontWeight: 600,
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 8px rgba(31,78,158,0.28)',
+                }}
+              >
+                <Plus style={{ width: '15px', height: '15px' }} />
+                Nueva Solicitud
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between p-6 border-b border-gray-200">
-              <h2 className="text-xl font-semibold text-gray-900">Nueva Solicitud de Financiamiento</h2>
-              <button onClick={handleCloseModal} className="text-gray-400 hover:text-gray-600">
-                <X className="w-6 h-6" />
+        <div
+          onClick={handleCloseModal}
+          style={{
+            position: 'fixed', inset: 0,
+            background: 'rgba(0,0,0,0.4)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            zIndex: 1000, padding: '16px',
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              background: '#fff',
+              borderRadius: 'var(--radius-lg)',
+              width: '100%', maxWidth: '620px',
+              maxHeight: '90vh',
+              display: 'flex', flexDirection: 'column',
+              boxShadow: '0 20px 60px rgba(0,0,0,0.18)',
+            }}
+          >
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: '20px 24px',
+              background: 'var(--gray-50)',
+              borderBottom: '1px solid var(--border)',
+              borderRadius: 'var(--radius-lg) var(--radius-lg) 0 0',
+              flexShrink: 0,
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{
+                  width: '36px', height: '36px',
+                  borderRadius: 'var(--radius-md)',
+                  background: '#ECFDF5',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <Briefcase style={{ width: '18px', height: '18px', color: '#059669' }} />
+                </div>
+                <h2 style={{
+                  fontFamily: "'Plus Jakarta Sans', sans-serif",
+                  fontSize: '18px', fontWeight: 800, color: 'var(--gray-900)',
+                }}>
+                  Nueva Solicitud de Financiamiento
+                </h2>
+              </div>
+              <button
+                onClick={handleCloseModal}
+                style={{
+                  width: '32px', height: '32px', border: 'none',
+                  borderRadius: 'var(--radius-sm)', background: 'transparent',
+                  cursor: 'pointer', color: 'var(--gray-400)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  transition: 'all 150ms ease',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'var(--gray-200)'; e.currentTarget.style.color = 'var(--gray-700)'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gray-400)'; }}
+              >
+                <X style={{ width: '18px', height: '18px' }} />
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
+            <div style={{ overflowY: 'auto', flex: 1, padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Negocio
-                </label>
-                <select
-                  required
-                  value={formData.negocioId}
-                  onChange={(e) => setFormData({ ...formData, negocioId: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2B5BA6] focus:border-transparent"
-                >
-                  <option value="">Selecciona un negocio</option>
-                  {negocios.map(negocio => (
-                    <option key={negocio.id} value={negocio.id}>{negocio.nombreNegocio}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Monto Solicitado
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    required
-                    value={formData.montoSolicitado}
-                    onChange={(e) => setFormData({ ...formData, montoSolicitado: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2B5BA6] focus:border-transparent"
-                    placeholder="0.00"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Plazo (meses)
-                  </label>
-                  <input
-                    type="number"
-                    required
-                    value={formData.plazoMeses}
-                    onChange={(e) => setFormData({ ...formData, plazoMeses: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2B5BA6] focus:border-transparent"
-                  />
+                <SectionTitle icon={Building2} text="Negocio" />
+                <div style={{ marginTop: '12px' }}>
+                  {negocios.length === 0 ? (
+                    <div style={{
+                      padding: '14px 16px',
+                      background: '#FFF7ED',
+                      border: '1px solid #FED7AA',
+                      borderRadius: 'var(--radius-md)',
+                      display: 'flex', alignItems: 'center', gap: '8px',
+                    }}>
+                      <AlertCircle style={{ width: '16px', height: '16px', color: '#D97706', flexShrink: 0 }} />
+                      <p style={{ fontSize: '13px', color: '#92400E', fontFamily: "'DM Sans', sans-serif" }}>
+                        No tienes negocios registrados. Ve a <strong>Mis Negocios</strong> para agregar uno.
+                      </p>
+                    </div>
+                  ) : (
+                    <div style={{ position: 'relative' }}>
+                      <select
+                        name="negocioId"
+                        value={formData.negocioId}
+                        onChange={handleChange}
+                        style={{ ...selectStyle, ...(formErrors.negocioId ? inputErrorStyle : {}) }}
+                      >
+                        <option value="">Selecciona un negocio</option>
+                        {negocios.map(n => (
+                          <option key={n.id} value={n.id}>{n.nombreNegocio}</option>
+                        ))}
+                      </select>
+                      <ChevronDown style={{
+                        position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)',
+                        width: '14px', height: '14px', color: 'var(--gray-400)', pointerEvents: 'none',
+                      }} />
+                    </div>
+                  )}
+                  {formErrors.negocioId && <ErrorMsg text={formErrors.negocioId} />}
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Destino del Crédito
-                </label>
-                <textarea
-                  rows="3"
-                  required
-                  value={formData.destinoCredito}
-                  onChange={(e) => setFormData({ ...formData, destinoCredito: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2B5BA6] focus:border-transparent"
-                  placeholder="¿Para qué usarás el financiamiento?"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Ingresos Mensuales
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    required
-                    value={formData.ingresosMensuales}
-                    onChange={(e) => setFormData({ ...formData, ingresosMensuales: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2B5BA6] focus:border-transparent"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Egresos Mensuales
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    required
-                    value={formData.egresosMensuales}
-                    onChange={(e) => setFormData({ ...formData, egresosMensuales: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2B5BA6] focus:border-transparent"
-                  />
+                <SectionTitle icon={DollarSign} text="Datos del Crédito" />
+                <div style={{ marginTop: '12px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                  <div>
+                    <label style={labelStyle}>Monto Solicitado <span style={{ color: '#EF4444' }}>*</span></label>
+                    <input
+                      name="montoSolicitado"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      placeholder="0.00"
+                      value={formData.montoSolicitado}
+                      onChange={handleChange}
+                      style={{ ...inputBaseStyle, ...(formErrors.montoSolicitado ? inputErrorStyle : {}) }}
+                    />
+                    {formErrors.montoSolicitado && <ErrorMsg text={formErrors.montoSolicitado} />}
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Plazo (meses) <span style={{ color: '#EF4444' }}>*</span></label>
+                    <input
+                      name="plazoMeses"
+                      type="number"
+                      min="1"
+                      placeholder="12"
+                      value={formData.plazoMeses}
+                      onChange={handleChange}
+                      style={{ ...inputBaseStyle, ...(formErrors.plazoMeses ? inputErrorStyle : {}) }}
+                    />
+                    {formErrors.plazoMeses && <ErrorMsg text={formErrors.plazoMeses} />}
+                  </div>
+                  <div style={{ gridColumn: '1 / -1' }}>
+                    <label style={labelStyle}>Destino del Crédito <span style={{ color: '#EF4444' }}>*</span></label>
+                    <textarea
+                      name="destinoCredito"
+                      rows={3}
+                      placeholder="¿Para qué usarás el financiamiento?"
+                      value={formData.destinoCredito}
+                      onChange={handleChange}
+                      style={{
+                        ...inputBaseStyle, resize: 'vertical', minHeight: '80px',
+                        ...(formErrors.destinoCredito ? inputErrorStyle : {}),
+                      }}
+                    />
+                    {formErrors.destinoCredito && <ErrorMsg text={formErrors.destinoCredito} />}
+                  </div>
                 </div>
               </div>
 
               <div>
-                <label className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={formData.tieneCreditosActivos}
-                    onChange={(e) => setFormData({ ...formData, tieneCreditosActivos: e.target.checked })}
-                    className="rounded text-[#2B5BA6] focus:ring-[#2B5BA6]"
-                  />
-                  <span className="text-sm text-gray-700">Tengo créditos activos</span>
-                </label>
-              </div>
-
-              {formData.tieneCreditosActivos && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Detalles de Créditos Activos
-                  </label>
-                  <textarea
-                    rows="3"
-                    value={formData.detallesCreditos}
-                    onChange={(e) => setFormData({ ...formData, detallesCreditos: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2B5BA6] focus:border-transparent"
-                  />
+                <SectionTitle icon={TrendingUp} text="Situación Financiera" />
+                <div style={{ marginTop: '12px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                  <div>
+                    <label style={labelStyle}>Ingresos Mensuales <span style={{ color: '#EF4444' }}>*</span></label>
+                    <input
+                      name="ingresosMensuales"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      placeholder="0.00"
+                      value={formData.ingresosMensuales}
+                      onChange={handleChange}
+                      style={{ ...inputBaseStyle, ...(formErrors.ingresosMensuales ? inputErrorStyle : {}) }}
+                    />
+                    {formErrors.ingresosMensuales && <ErrorMsg text={formErrors.ingresosMensuales} />}
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Egresos Mensuales <span style={{ color: '#EF4444' }}>*</span></label>
+                    <input
+                      name="egresosMensuales"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      placeholder="0.00"
+                      value={formData.egresosMensuales}
+                      onChange={handleChange}
+                      style={{ ...inputBaseStyle, ...(formErrors.egresosMensuales ? inputErrorStyle : {}) }}
+                    />
+                    {formErrors.egresosMensuales && <ErrorMsg text={formErrors.egresosMensuales} />}
+                  </div>
                 </div>
-              )}
-
-              <div className="flex items-center justify-end gap-3 pt-4">
-                <button
-                  type="button"
-                  onClick={handleCloseModal}
-                  className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  className="px-6 py-2 bg-[#2B5BA6] text-white rounded-lg hover:bg-[#1E3A5F] transition-colors"
-                >
-                  Enviar Solicitud
-                </button>
               </div>
-            </form>
+
+              <div>
+                <SectionTitle icon={FileText} text="Créditos Actuales" />
+                <div style={{ marginTop: '12px' }}>
+                  <label style={{
+                    display: 'flex', alignItems: 'center', gap: '10px',
+                    cursor: 'pointer', userSelect: 'none',
+                  }}>
+                    <div
+                      onClick={() => {
+                        setFormData(prev => ({ ...prev, tieneCreditosActivos: !prev.tieneCreditosActivos }));
+                      }}
+                      style={{
+                        width: '18px', height: '18px', flexShrink: 0,
+                        borderRadius: '4px',
+                        border: formData.tieneCreditosActivos
+                          ? '2px solid var(--capyme-blue-mid)'
+                          : '2px solid var(--border)',
+                        background: formData.tieneCreditosActivos ? 'var(--capyme-blue-mid)' : '#fff',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        transition: 'all 150ms ease',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {formData.tieneCreditosActivos && (
+                        <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+                          <path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      )}
+                    </div>
+                    <span style={{ fontSize: '14px', color: 'var(--gray-700)', fontFamily: "'DM Sans', sans-serif" }}>
+                      Tengo créditos activos actualmente
+                    </span>
+                  </label>
+
+                  {formData.tieneCreditosActivos && (
+                    <div style={{ marginTop: '12px' }}>
+                      <label style={labelStyle}>Detalles de créditos activos</label>
+                      <textarea
+                        name="detallesCreditos"
+                        rows={3}
+                        placeholder="Describe los créditos que tienes actualmente (institución, monto, plazo restante)..."
+                        value={formData.detallesCreditos}
+                        onChange={handleChange}
+                        style={{ ...inputBaseStyle, resize: 'vertical', minHeight: '80px' }}
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+
+            </div>
+
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '10px',
+              padding: '16px 24px',
+              background: 'var(--gray-50)',
+              borderTop: '1px solid var(--border)',
+              borderRadius: '0 0 var(--radius-lg) var(--radius-lg)',
+              flexShrink: 0,
+            }}>
+              <button
+                onClick={handleCloseModal}
+                style={{
+                  padding: '9px 18px',
+                  background: '#fff',
+                  border: '1px solid var(--border)',
+                  borderRadius: 'var(--radius-md)',
+                  fontSize: '14px', fontWeight: 600,
+                  color: 'var(--gray-600)',
+                  cursor: 'pointer',
+                  fontFamily: "'DM Sans', sans-serif",
+                  transition: 'all 150ms ease',
+                }}
+                onMouseEnter={e => e.currentTarget.style.background = 'var(--gray-100)'}
+                onMouseLeave={e => e.currentTarget.style.background = '#fff'}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleSubmit}
+                disabled={submitting || negocios.length === 0}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '8px',
+                  padding: '9px 22px',
+                  background: (submitting || negocios.length === 0)
+                    ? 'var(--gray-300)'
+                    : 'linear-gradient(135deg, var(--capyme-blue-mid), var(--capyme-blue))',
+                  border: 'none',
+                  borderRadius: 'var(--radius-md)',
+                  fontSize: '14px', fontWeight: 600,
+                  color: '#fff',
+                  cursor: (submitting || negocios.length === 0) ? 'not-allowed' : 'pointer',
+                  fontFamily: "'Plus Jakarta Sans', sans-serif",
+                  boxShadow: (submitting || negocios.length === 0) ? 'none' : '0 2px 8px rgba(31,78,158,0.28)',
+                  transition: 'all 150ms ease',
+                }}
+              >
+                {submitting ? 'Enviando...' : 'Enviar Solicitud'}
+              </button>
+            </div>
           </div>
         </div>
       )}
     </Layout>
   );
 };
+
+const SolicitudRow = ({ form, formatCurrency, formatDate }) => {
+  const badge = estadoBadge[form.estado] || estadoBadge.enviado;
+  const Icon = badge.icon;
+  const [hovered, setHovered] = useState(false);
+
+  const flujo = form.ingresosMensuales && form.egresosMensuales
+    ? parseFloat(form.ingresosMensuales) - parseFloat(form.egresosMensuales)
+    : null;
+
+  return (
+    <div
+      style={{
+        background: '#fff',
+        border: '1px solid var(--border)',
+        borderRadius: 'var(--radius-lg)',
+        boxShadow: hovered ? '0 4px 16px rgba(0,0,0,0.08)' : 'var(--shadow-sm)',
+        transition: 'all 200ms ease',
+        overflow: 'hidden',
+      }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      <div style={{
+        height: '3px',
+        background: badge.color === '#065F46'
+          ? 'linear-gradient(90deg, #059669, #34D399)'
+          : badge.color === '#DC2626'
+            ? 'linear-gradient(90deg, #DC2626, #FCA5A5)'
+            : badge.color === '#B45309'
+              ? 'linear-gradient(90deg, #D97706, #FCD34D)'
+              : 'linear-gradient(90deg, #1D4ED8, #60A5FA)',
+      }} />
+
+      <div style={{ padding: '18px 20px' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px', marginBottom: '12px' }}>
+          <div style={{
+            width: '42px', height: '42px', flexShrink: 0,
+            borderRadius: 'var(--radius-md)',
+            background: badge.bg,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <Icon style={{ width: '20px', height: '20px', color: badge.color }} />
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '4px' }}>
+              <h3 style={{
+                fontFamily: "'Plus Jakarta Sans', sans-serif",
+                fontSize: '15px', fontWeight: 700, color: 'var(--gray-900)',
+              }}>
+                {form.negocio?.nombreNegocio}
+              </h3>
+              <span style={{
+                padding: '3px 10px',
+                background: badge.bg,
+                color: badge.color,
+                borderRadius: '99px',
+                fontSize: '11px', fontWeight: 700,
+                fontFamily: "'Plus Jakarta Sans', sans-serif",
+                whiteSpace: 'nowrap',
+              }}>
+                {badge.label}
+              </span>
+            </div>
+            {form.destinoCredito && (
+              <p style={{
+                fontSize: '13px', color: 'var(--gray-500)',
+                fontFamily: "'DM Sans', sans-serif",
+                lineHeight: 1.4,
+                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              }}>
+                {form.destinoCredito}
+              </p>
+            )}
+          </div>
+        </div>
+
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))',
+          gap: '10px',
+        }}>
+          <DataChip icon={DollarSign} label="Monto" value={formatCurrency(form.montoSolicitado)} highlight />
+          <DataChip icon={Calendar} label="Plazo" value={`${form.plazoMeses} meses`} />
+          <DataChip icon={FileText} label="Fecha" value={formatDate(form.fechaSolicitud)} />
+          {flujo !== null && (
+            <DataChip
+              icon={flujo >= 0 ? TrendingUp : TrendingDown}
+              label="Flujo mensual"
+              value={formatCurrency(Math.abs(flujo))}
+              color={flujo >= 0 ? '#059669' : '#DC2626'}
+            />
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const DataChip = ({ icon: Icon, label, value, highlight, color }) => (
+  <div style={{
+    padding: '10px 12px',
+    background: 'var(--gray-50)',
+    border: '1px solid var(--border)',
+    borderRadius: 'var(--radius-md)',
+  }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '4px' }}>
+      <Icon style={{ width: '12px', height: '12px', color: color || 'var(--gray-400)' }} />
+      <span style={{
+        fontSize: '11px', color: 'var(--gray-400)',
+        fontFamily: "'DM Sans', sans-serif", fontWeight: 500,
+      }}>{label}</span>
+    </div>
+    <p style={{
+      fontSize: '13px', fontWeight: 700,
+      color: color || (highlight ? 'var(--capyme-blue-mid)' : 'var(--gray-800)'),
+      fontFamily: "'Plus Jakarta Sans', sans-serif",
+    }}>
+      {value}
+    </p>
+  </div>
+);
+
+const SectionTitle = ({ icon: Icon, text }) => (
+  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', paddingBottom: '4px' }}>
+    <Icon style={{ width: '14px', height: '14px', color: 'var(--gray-400)' }} />
+    <span style={{
+      fontSize: '11px', fontWeight: 700, color: 'var(--gray-400)',
+      textTransform: 'uppercase', letterSpacing: '0.06em',
+      fontFamily: "'Plus Jakarta Sans', sans-serif",
+    }}>{text}</span>
+  </div>
+);
+
+const ErrorMsg = ({ text }) => (
+  <p style={{
+    marginTop: '4px', fontSize: '12px', color: '#EF4444',
+    display: 'flex', alignItems: 'center', gap: '4px',
+    fontFamily: "'DM Sans', sans-serif",
+  }}>
+    <AlertCircle style={{ width: '12px', height: '12px' }} /> {text}
+  </p>
+);
 
 export default ClienteFinanciamiento;

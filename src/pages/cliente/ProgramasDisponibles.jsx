@@ -3,51 +3,50 @@ import Layout from '../../components/common/Layout';
 import { programasService } from '../../services/programasService';
 import { postulacionesService } from '../../services/postulacionesService';
 import { negociosService } from '../../services/negociosService';
-import { 
-  FileText, 
-  Search, 
+import {
+  FileText,
+  Search,
   Calendar,
   DollarSign,
-  CheckCircle,
+  Send,
   X,
-  ExternalLink,
-  Send
+  AlertCircle,
+  Tag,
+  MapPin,
+  Building2,
+  ChevronDown,
+  ClipboardList,
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
 const ProgramasDisponibles = () => {
+  const authStorage = JSON.parse(localStorage.getItem('auth-storage') || '{}');
+  const currentUser = authStorage?.state?.user || {};
+
   const [programas, setProgramas] = useState([]);
   const [negocios, setNegocios] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [selectedPrograma, setSelectedPrograma] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterCategoria, setFilterCategoria] = useState('');
-
-  const [formData, setFormData] = useState({
-    negocioId: '',
-    programaId: '',
-    respuestas: []
-  });
+  const [formData, setFormData] = useState({ negocioId: '', programaId: '', respuestas: [] });
+  const [formErrors, setFormErrors] = useState({});
 
   useEffect(() => {
     cargarDatos();
-  }, [filterCategoria]);
+  }, []);
 
   const cargarDatos = async () => {
     try {
       setLoading(true);
-      const params = { activo: true };
-      if (filterCategoria) params.categoriaId = filterCategoria;
-
       const [programasRes, negociosRes] = await Promise.all([
-        programasService.getAll(params),
-        negociosService.getMisNegocios()
+        programasService.getAll({ activo: true }),
+        negociosService.getMisNegocios(),
       ]);
-
       setProgramas(programasRes.data);
       setNegocios(negociosRes.data);
-    } catch (error) {
+    } catch {
       toast.error('Error al cargar programas');
     } finally {
       setLoading(false);
@@ -57,7 +56,6 @@ const ProgramasDisponibles = () => {
   const handleOpenModal = async (programa) => {
     try {
       setSelectedPrograma(programa);
-      
       const preguntasRes = await programasService.getPreguntas(programa.id);
       const preguntasFormato = preguntasRes.data.map(pp => ({
         preguntaId: pp.pregunta.id,
@@ -65,16 +63,12 @@ const ProgramasDisponibles = () => {
         tipoRespuesta: pp.pregunta.tipoRespuesta,
         obligatoria: pp.pregunta.obligatoria,
         opciones: pp.pregunta.opcionesRespuesta,
-        respuesta: ''
+        respuesta: '',
       }));
-
-      setFormData({
-        negocioId: '',
-        programaId: programa.id,
-        respuestas: preguntasFormato
-      });
+      setFormData({ negocioId: '', programaId: programa.id, respuestas: preguntasFormato });
+      setFormErrors({});
       setShowModal(true);
-    } catch (error) {
+    } catch {
       toast.error('Error al cargar formulario');
     }
   };
@@ -82,73 +76,94 @@ const ProgramasDisponibles = () => {
   const handleCloseModal = () => {
     setShowModal(false);
     setSelectedPrograma(null);
+    setFormErrors({});
   };
 
   const handleRespuestaChange = (index, valor) => {
-    const nuevasRespuestas = [...formData.respuestas];
-    nuevasRespuestas[index].respuesta = valor;
-    setFormData({ ...formData, respuestas: nuevasRespuestas });
+    const nuevas = [...formData.respuestas];
+    nuevas[index].respuesta = valor;
+    setFormData(prev => ({ ...prev, respuestas: nuevas }));
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    if (!formData.negocioId) {
-      toast.error('Selecciona un negocio');
+  const handleSubmit = async () => {
+    const errors = {};
+    if (!formData.negocioId) errors.negocioId = 'Debes seleccionar un negocio';
+    formData.respuestas.forEach((r, i) => {
+      if (r.obligatoria && !r.respuesta) errors[`resp_${i}`] = 'Esta pregunta es obligatoria';
+    });
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
       return;
     }
-
-    const respuestasObligatorias = formData.respuestas.filter(r => r.obligatoria);
-    const respuestasIncompletas = respuestasObligatorias.filter(r => !r.respuesta);
-    
-    if (respuestasIncompletas.length > 0) {
-      toast.error('Por favor completa todas las preguntas obligatorias');
-      return;
-    }
-
+    setSubmitting(true);
     try {
       await postulacionesService.create({
         negocioId: parseInt(formData.negocioId),
         programaId: formData.programaId,
         respuestas: formData.respuestas.map(r => ({
           preguntaId: r.preguntaId,
-          respuesta: r.respuesta
-        }))
+          respuesta: r.respuesta,
+        })),
       });
-      
-      toast.success('Postulación enviada exitosamente');
+      toast.success('¡Postulación enviada exitosamente!');
       handleCloseModal();
     } catch (error) {
       toast.error(error.response?.data?.message || 'Error al enviar postulación');
+    } finally {
+      setSubmitting(false);
     }
   };
 
-  const programasFiltrados = programas.filter(programa =>
-    programa.nombre.toLowerCase().includes(searchTerm.toLowerCase())
+  const programasFiltrados = programas.filter(p =>
+    p.nombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    p.tipoPrograma?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    p.categoria?.nombre?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const formatCurrency = (amount) => {
-    if (!amount) return 'N/A';
-    return new Intl.NumberFormat('es-MX', {
-      style: 'currency',
-      currency: 'MXN'
-    }).format(amount);
+    if (!amount) return null;
+    return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(amount);
   };
 
   const formatDate = (date) => {
-    if (!date) return 'N/A';
-    return new Date(date).toLocaleDateString('es-MX', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
+    if (!date) return null;
+    return new Date(date).toLocaleDateString('es-MX', { year: 'numeric', month: 'short', day: 'numeric' });
   };
+
+  const inputBaseStyle = {
+    width: '100%', padding: '10px 12px',
+    border: '1px solid var(--border)',
+    borderRadius: 'var(--radius-md)',
+    fontSize: '14px', fontFamily: "'DM Sans', sans-serif",
+    color: 'var(--gray-900)', background: '#fff',
+    outline: 'none', transition: 'all 200ms ease',
+    boxSizing: 'border-box',
+  };
+  const inputErrorStyle = { borderColor: '#EF4444', boxShadow: '0 0 0 2px rgba(239,68,68,0.15)' };
+  const labelStyle = {
+    display: 'block', fontSize: '13px', fontWeight: 600,
+    color: 'var(--gray-600)', marginBottom: '6px',
+    fontFamily: "'DM Sans', sans-serif",
+  };
+  const selectStyle = { ...inputBaseStyle, appearance: 'none', paddingRight: '36px', cursor: 'pointer' };
 
   if (loading) {
     return (
       <Layout>
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#2B5BA6]"></div>
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          height: '320px', flexDirection: 'column', gap: '16px',
+        }}>
+          <div style={{
+            width: '40px', height: '40px',
+            border: '3px solid var(--border)',
+            borderTopColor: 'var(--capyme-blue-mid)',
+            borderRadius: '50%',
+            animation: 'spin 700ms linear infinite',
+          }} />
+          <p style={{ fontSize: '14px', color: 'var(--gray-400)', fontFamily: "'DM Sans', sans-serif" }}>
+            Cargando programas...
+          </p>
         </div>
       </Layout>
     );
@@ -156,205 +171,600 @@ const ProgramasDisponibles = () => {
 
   return (
     <Layout>
-      <div className="space-y-6">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Programas Disponibles</h1>
-          <p className="text-gray-600 mt-1">Explora programas gubernamentales para tu negocio</p>
+          <h1 style={{
+            fontFamily: "'Plus Jakarta Sans', sans-serif",
+            fontSize: '26px', fontWeight: 800,
+            color: 'var(--gray-900)', letterSpacing: '-0.02em', marginBottom: '4px',
+          }}>Programas Disponibles</h1>
+          <p style={{ fontSize: '14px', color: 'var(--gray-500)', fontFamily: "'DM Sans', sans-serif" }}>
+            Explora programas gubernamentales y postula tu negocio
+          </p>
         </div>
 
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="relative mb-6">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-            <input
-              type="text"
-              placeholder="Buscar programa..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2B5BA6] focus:border-transparent"
-            />
+        <div style={{ position: 'relative', maxWidth: '400px' }}>
+          <Search style={{
+            position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)',
+            width: '15px', height: '15px', color: 'var(--gray-400)', pointerEvents: 'none',
+          }} />
+          <input
+            type="text"
+            placeholder="Buscar por nombre, tipo o categoría..."
+            value={searchTerm}
+            onChange={e => setSearchTerm(e.target.value)}
+            style={{ ...inputBaseStyle, paddingLeft: '38px' }}
+          />
+        </div>
+
+        {programasFiltrados.length > 0 ? (
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
+            gap: '18px',
+          }}>
+            {programasFiltrados.map(programa => (
+              <ProgramaCard
+                key={programa.id}
+                programa={programa}
+                formatCurrency={formatCurrency}
+                formatDate={formatDate}
+                onPostular={() => handleOpenModal(programa)}
+              />
+            ))}
           </div>
-
-          {programasFiltrados.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {programasFiltrados.map((programa) => (
-                <div key={programa.id} className="bg-white border border-gray-200 rounded-lg hover:shadow-lg transition-shadow">
-                  <div className="p-6">
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex-1">
-                        <h3 className="text-lg font-semibold text-gray-900 mb-2">{programa.nombre}</h3>
-                        {programa.tipoPrograma && (
-                          <span className="inline-block px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded">
-                            {programa.tipoPrograma}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    <p className="text-sm text-gray-600 mb-4 line-clamp-3">
-                      {programa.descripcion || 'Sin descripción'}
-                    </p>
-
-                    <div className="space-y-2 mb-4">
-                      {programa.montoApoyo && (
-                        <div className="flex items-center gap-2 text-sm">
-                          <DollarSign className="w-4 h-4 text-gray-400" />
-                          <span className="text-gray-700 font-semibold">
-                            {formatCurrency(programa.montoApoyo)}
-                          </span>
-                        </div>
-                      )}
-
-                      {programa.fechaCierre && (
-                        <div className="flex items-center gap-2 text-sm">
-                          <Calendar className="w-4 h-4 text-gray-400" />
-                          <span className="text-gray-700">
-                            Cierra: {formatDate(programa.fechaCierre)}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-
-                    {programa.linkInformacion && (
-                      <a
-                        href={programa.linkInformacion}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-2 text-sm text-[#2B5BA6] hover:underline mb-4"
-                      >
-                        <ExternalLink className="w-4 h-4" />
-                        Más información
-                      </a>
-                    )}
-
-                    <button
-                      onClick={() => handleOpenModal(programa)}
-                      className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-[#2B5BA6] text-white rounded-lg hover:bg-[#1E3A5F] transition-colors"
-                    >
-                      <Send className="w-4 h-4" />
-                      Postularme
-                    </button>
-                  </div>
-                </div>
-              ))}
+        ) : (
+          <div style={{
+            background: '#fff',
+            border: '1px solid var(--border)',
+            borderRadius: 'var(--radius-lg)',
+            boxShadow: 'var(--shadow-sm)',
+            padding: '64px 32px',
+            display: 'flex', flexDirection: 'column',
+            alignItems: 'center', textAlign: 'center', gap: '12px',
+          }}>
+            <div style={{
+              width: '64px', height: '64px',
+              borderRadius: 'var(--radius-lg)',
+              background: '#EEF4FF',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              marginBottom: '4px',
+            }}>
+              <FileText style={{ width: '28px', height: '28px', color: 'var(--capyme-blue-mid)' }} />
             </div>
-          ) : (
-            <div className="text-center py-12">
-              <FileText className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-              <p className="text-gray-500">No se encontraron programas disponibles</p>
-            </div>
-          )}
-        </div>
+            <h3 style={{
+              fontFamily: "'Plus Jakarta Sans', sans-serif",
+              fontSize: '17px', fontWeight: 700, color: 'var(--gray-900)',
+            }}>
+              {searchTerm ? 'Sin resultados' : 'No hay programas disponibles'}
+            </h3>
+            <p style={{ fontSize: '14px', color: 'var(--gray-400)', fontFamily: "'DM Sans', sans-serif" }}>
+              {searchTerm ? 'Intenta con otro término.' : 'Vuelve pronto, se publicarán nuevos programas.'}
+            </p>
+          </div>
+        )}
       </div>
 
       {showModal && selectedPrograma && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between p-6 border-b border-gray-200">
-              <h2 className="text-xl font-semibold text-gray-900">
-                Postular a {selectedPrograma.nombre}
-              </h2>
-              <button onClick={handleCloseModal} className="text-gray-400 hover:text-gray-600">
-                <X className="w-6 h-6" />
+        <div
+          onClick={handleCloseModal}
+          style={{
+            position: 'fixed', inset: 0,
+            background: 'rgba(0,0,0,0.4)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            zIndex: 1000, padding: '16px',
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              background: '#fff',
+              borderRadius: 'var(--radius-lg)',
+              width: '100%', maxWidth: '660px',
+              maxHeight: '90vh',
+              display: 'flex', flexDirection: 'column',
+              boxShadow: '0 20px 60px rgba(0,0,0,0.18)',
+            }}
+          >
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: '20px 24px',
+              background: 'var(--gray-50)',
+              borderBottom: '1px solid var(--border)',
+              borderRadius: 'var(--radius-lg) var(--radius-lg) 0 0',
+              flexShrink: 0,
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{
+                  width: '36px', height: '36px',
+                  borderRadius: 'var(--radius-md)',
+                  background: '#EEF4FF',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <Send style={{ width: '16px', height: '16px', color: 'var(--capyme-blue-mid)' }} />
+                </div>
+                <div>
+                  <h2 style={{
+                    fontFamily: "'Plus Jakarta Sans', sans-serif",
+                    fontSize: '16px', fontWeight: 800, color: 'var(--gray-900)',
+                    lineHeight: 1.2,
+                  }}>
+                    Postular a programa
+                  </h2>
+                  <p style={{
+                    fontSize: '12px', color: 'var(--gray-400)',
+                    fontFamily: "'DM Sans', sans-serif",
+                    marginTop: '2px',
+                  }}>
+                    {selectedPrograma.nombre}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={handleCloseModal}
+                style={{
+                  width: '32px', height: '32px', border: 'none',
+                  borderRadius: 'var(--radius-sm)', background: 'transparent',
+                  cursor: 'pointer', color: 'var(--gray-400)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  transition: 'all 150ms ease',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'var(--gray-200)'; e.currentTarget.style.color = 'var(--gray-700)'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gray-400)'; }}
+              >
+                <X style={{ width: '18px', height: '18px' }} />
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-6 space-y-6">
+            <div style={{ overflowY: 'auto', flex: 1, padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Selecciona el negocio
-                </label>
-                <select
-                  required
-                  value={formData.negocioId}
-                  onChange={(e) => setFormData({ ...formData, negocioId: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2B5BA6] focus:border-transparent"
-                >
-                  <option value="">Selecciona un negocio</option>
-                  {negocios.map(negocio => (
-                    <option key={negocio.id} value={negocio.id}>
-                      {negocio.nombreNegocio}
-                    </option>
-                  ))}
-                </select>
+                <SectionTitle icon={Building2} text="Negocio a Postular" />
+                <div style={{ marginTop: '12px' }}>
+                  <label style={labelStyle}>Selecciona el negocio <span style={{ color: '#EF4444' }}>*</span></label>
+                  {negocios.length === 0 ? (
+                    <div style={{
+                      padding: '14px 16px',
+                      background: '#FFF7ED',
+                      border: '1px solid #FED7AA',
+                      borderRadius: 'var(--radius-md)',
+                      display: 'flex', alignItems: 'center', gap: '8px',
+                    }}>
+                      <AlertCircle style={{ width: '16px', height: '16px', color: '#D97706', flexShrink: 0 }} />
+                      <p style={{ fontSize: '13px', color: '#92400E', fontFamily: "'DM Sans', sans-serif" }}>
+                        No tienes negocios registrados. Ve a <strong>Mis Negocios</strong> para agregar uno.
+                      </p>
+                    </div>
+                  ) : (
+                    <div style={{ position: 'relative' }}>
+                      <select
+                        value={formData.negocioId}
+                        onChange={e => {
+                          setFormData(prev => ({ ...prev, negocioId: e.target.value }));
+                          if (formErrors.negocioId) setFormErrors(prev => ({ ...prev, negocioId: '' }));
+                        }}
+                        style={{ ...selectStyle, ...(formErrors.negocioId ? inputErrorStyle : {}) }}
+                      >
+                        <option value="">Selecciona un negocio</option>
+                        {negocios.map(n => (
+                          <option key={n.id} value={n.id}>{n.nombreNegocio}</option>
+                        ))}
+                      </select>
+                      <ChevronDown style={{
+                        position: 'absolute', right: '12px', top: '50%',
+                        transform: 'translateY(-50%)',
+                        width: '14px', height: '14px', color: 'var(--gray-400)', pointerEvents: 'none',
+                      }} />
+                    </div>
+                  )}
+                  {formErrors.negocioId && <ErrorMsg text={formErrors.negocioId} />}
+                </div>
               </div>
 
               {formData.respuestas.length > 0 && (
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold text-gray-900">Formulario de postulación</h3>
-                  {formData.respuestas.map((resp, index) => (
-                    <div key={index}>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        {resp.pregunta} {resp.obligatoria && <span className="text-red-500">*</span>}
-                      </label>
-                      
-                      {resp.tipoRespuesta === 'texto_corto' && (
-                        <input
-                          type="text"
-                          required={resp.obligatoria}
-                          value={resp.respuesta}
-                          onChange={(e) => handleRespuestaChange(index, e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2B5BA6] focus:border-transparent"
+                <div>
+                  <SectionTitle icon={ClipboardList} text="Formulario de Postulación" />
+                  <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    {formData.respuestas.map((resp, index) => (
+                      <div key={index}>
+                        <label style={labelStyle}>
+                          {resp.pregunta}
+                          {resp.obligatoria && <span style={{ color: '#EF4444', marginLeft: '2px' }}>*</span>}
+                        </label>
+                        <RespuestaInput
+                          resp={resp}
+                          index={index}
+                          onChange={handleRespuestaChange}
+                          inputBaseStyle={inputBaseStyle}
+                          error={formErrors[`resp_${index}`]}
+                          inputErrorStyle={inputErrorStyle}
+                          selectStyle={selectStyle}
                         />
-                      )}
-
-                      {resp.tipoRespuesta === 'texto_largo' && (
-                        <textarea
-                          rows="3"
-                          required={resp.obligatoria}
-                          value={resp.respuesta}
-                          onChange={(e) => handleRespuestaChange(index, e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2B5BA6] focus:border-transparent"
-                        />
-                      )}
-
-                      {resp.tipoRespuesta === 'numero' && (
-                        <input
-                          type="number"
-                          required={resp.obligatoria}
-                          value={resp.respuesta}
-                          onChange={(e) => handleRespuestaChange(index, e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2B5BA6] focus:border-transparent"
-                        />
-                      )}
-
-                      {resp.tipoRespuesta === 'si_no' && (
-                        <select
-                          required={resp.obligatoria}
-                          value={resp.respuesta}
-                          onChange={(e) => handleRespuestaChange(index, e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2B5BA6] focus:border-transparent"
-                        >
-                          <option value="">Seleccionar</option>
-                          <option value="si">Sí</option>
-                          <option value="no">No</option>
-                        </select>
-                      )}
-                    </div>
-                  ))}
+                        {formErrors[`resp_${index}`] && <ErrorMsg text={formErrors[`resp_${index}`]} />}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
+            </div>
 
-              <div className="flex items-center justify-end gap-3 pt-4">
-                <button
-                  type="button"
-                  onClick={handleCloseModal}
-                  className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  className="px-6 py-2 bg-[#2B5BA6] text-white rounded-lg hover:bg-[#1E3A5F] transition-colors"
-                >
-                  Enviar Postulación
-                </button>
-              </div>
-            </form>
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '10px',
+              padding: '16px 24px',
+              background: 'var(--gray-50)',
+              borderTop: '1px solid var(--border)',
+              borderRadius: '0 0 var(--radius-lg) var(--radius-lg)',
+              flexShrink: 0,
+            }}>
+              <button
+                onClick={handleCloseModal}
+                style={{
+                  padding: '9px 18px',
+                  background: '#fff',
+                  border: '1px solid var(--border)',
+                  borderRadius: 'var(--radius-md)',
+                  fontSize: '14px', fontWeight: 600,
+                  color: 'var(--gray-600)',
+                  cursor: 'pointer',
+                  fontFamily: "'DM Sans', sans-serif",
+                  transition: 'all 150ms ease',
+                }}
+                onMouseEnter={e => e.currentTarget.style.background = 'var(--gray-100)'}
+                onMouseLeave={e => e.currentTarget.style.background = '#fff'}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleSubmit}
+                disabled={submitting || negocios.length === 0}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '8px',
+                  padding: '9px 22px',
+                  background: (submitting || negocios.length === 0)
+                    ? 'var(--gray-300)'
+                    : 'linear-gradient(135deg, var(--capyme-blue-mid), var(--capyme-blue))',
+                  border: 'none',
+                  borderRadius: 'var(--radius-md)',
+                  fontSize: '14px', fontWeight: 600,
+                  color: '#fff',
+                  cursor: (submitting || negocios.length === 0) ? 'not-allowed' : 'pointer',
+                  fontFamily: "'Plus Jakarta Sans', sans-serif",
+                  boxShadow: (submitting || negocios.length === 0) ? 'none' : '0 2px 8px rgba(31,78,158,0.28)',
+                  transition: 'all 150ms ease',
+                }}
+              >
+                <Send style={{ width: '14px', height: '14px' }} />
+                {submitting ? 'Enviando...' : 'Enviar Postulación'}
+              </button>
+            </div>
           </div>
         </div>
       )}
     </Layout>
   );
 };
+
+const ProgramaCard = ({ programa, formatCurrency, formatDate, onPostular }) => {
+  const monto = formatCurrency(programa.montoApoyo);
+  const cierre = formatDate(programa.fechaCierre);
+  const inicio = formatDate(programa.fechaInicio);
+
+  const diasRestantes = programa.fechaCierre
+    ? Math.ceil((new Date(programa.fechaCierre) - new Date()) / (1000 * 60 * 60 * 24))
+    : null;
+
+  const urgente = diasRestantes !== null && diasRestantes <= 7 && diasRestantes >= 0;
+  const cerrado = diasRestantes !== null && diasRestantes < 0;
+
+  return (
+    <div
+      style={{
+        background: '#fff',
+        border: '1px solid var(--border)',
+        borderRadius: 'var(--radius-lg)',
+        boxShadow: 'var(--shadow-sm)',
+        overflow: 'hidden',
+        transition: 'all 200ms ease',
+        display: 'flex', flexDirection: 'column',
+      }}
+      onMouseEnter={e => {
+        e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.10)';
+        e.currentTarget.style.transform = 'translateY(-2px)';
+      }}
+      onMouseLeave={e => {
+        e.currentTarget.style.boxShadow = 'var(--shadow-sm)';
+        e.currentTarget.style.transform = 'translateY(0)';
+      }}
+    >
+      <div style={{
+        height: '4px',
+        background: cerrado
+          ? 'var(--gray-200)'
+          : urgente
+            ? 'linear-gradient(90deg, #D97706, #FCD34D)'
+            : 'linear-gradient(90deg, var(--capyme-blue-mid), var(--capyme-blue))',
+      }} />
+
+      <div style={{ padding: '20px', flex: 1, display: 'flex', flexDirection: 'column', gap: '12px' }}>
+
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px' }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <h3 style={{
+              fontFamily: "'Plus Jakarta Sans', sans-serif",
+              fontSize: '15px', fontWeight: 700,
+              color: 'var(--gray-900)', marginBottom: '6px',
+              lineHeight: 1.3,
+            }}>
+              {programa.nombre}
+            </h3>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+              {programa.tipoPrograma && (
+                <span style={{
+                  padding: '2px 8px',
+                  background: '#EEF4FF',
+                  color: 'var(--capyme-blue-mid)',
+                  borderRadius: '99px',
+                  fontSize: '11px', fontWeight: 600,
+                  fontFamily: "'Plus Jakarta Sans', sans-serif",
+                }}>
+                  {programa.tipoPrograma}
+                </span>
+              )}
+              {programa.categoria?.nombre && (
+                <span style={{
+                  padding: '2px 8px',
+                  background: 'var(--gray-100)',
+                  color: 'var(--gray-600)',
+                  borderRadius: '99px',
+                  fontSize: '11px', fontWeight: 600,
+                  fontFamily: "'Plus Jakarta Sans', sans-serif",
+                }}>
+                  {programa.categoria.nombre}
+                </span>
+              )}
+            </div>
+          </div>
+          {urgente && !cerrado && (
+            <span style={{
+              padding: '3px 8px',
+              background: '#FFF7ED',
+              color: '#D97706',
+              borderRadius: '99px',
+              fontSize: '10px', fontWeight: 700,
+              fontFamily: "'Plus Jakarta Sans', sans-serif",
+              whiteSpace: 'nowrap', flexShrink: 0,
+            }}>
+              ⚡ {diasRestantes}d restantes
+            </span>
+          )}
+          {cerrado && (
+            <span style={{
+              padding: '3px 8px',
+              background: '#FEF2F2',
+              color: '#DC2626',
+              borderRadius: '99px',
+              fontSize: '10px', fontWeight: 700,
+              fontFamily: "'Plus Jakarta Sans', sans-serif",
+              whiteSpace: 'nowrap', flexShrink: 0,
+            }}>
+              Cerrado
+            </span>
+          )}
+        </div>
+
+        {programa.descripcion && (
+          <p style={{
+            fontSize: '13px', color: 'var(--gray-500)',
+            fontFamily: "'DM Sans', sans-serif",
+            lineHeight: 1.5,
+            display: '-webkit-box',
+            WebkitLineClamp: 3,
+            WebkitBoxOrient: 'vertical',
+            overflow: 'hidden',
+          }}>
+            {programa.descripcion}
+          </p>
+        )}
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          {monto && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <DollarSign style={{ width: '13px', height: '13px', color: '#059669', flexShrink: 0 }} />
+              <span style={{
+                fontSize: '13px', fontWeight: 700,
+                color: '#059669',
+                fontFamily: "'Plus Jakarta Sans', sans-serif",
+              }}>
+                {monto}
+              </span>
+            </div>
+          )}
+          {inicio && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Calendar style={{ width: '13px', height: '13px', color: 'var(--gray-400)', flexShrink: 0 }} />
+              <span style={{ fontSize: '12px', color: 'var(--gray-500)', fontFamily: "'DM Sans', sans-serif" }}>
+                Inicio: {inicio}
+              </span>
+            </div>
+          )}
+          {cierre && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Calendar style={{ width: '13px', height: '13px', color: urgente ? '#D97706' : 'var(--gray-400)', flexShrink: 0 }} />
+              <span style={{
+                fontSize: '12px',
+                color: urgente ? '#D97706' : 'var(--gray-500)',
+                fontWeight: urgente ? 600 : 400,
+                fontFamily: "'DM Sans', sans-serif",
+              }}>
+                Cierre: {cierre}
+              </span>
+            </div>
+          )}
+          {(programa.estado || programa.municipio) && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <MapPin style={{ width: '13px', height: '13px', color: 'var(--gray-400)', flexShrink: 0 }} />
+              <span style={{ fontSize: '12px', color: 'var(--gray-500)', fontFamily: "'DM Sans', sans-serif" }}>
+                {[programa.municipio, programa.estado].filter(Boolean).join(', ')}
+              </span>
+            </div>
+          )}
+        </div>
+
+        <div style={{ marginTop: 'auto', paddingTop: '4px' }}>
+          <button
+            onClick={onPostular}
+            disabled={cerrado}
+            style={{
+              width: '100%',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+              padding: '9px 0',
+              background: cerrado
+                ? 'var(--gray-100)'
+                : 'linear-gradient(135deg, var(--capyme-blue-mid), var(--capyme-blue))',
+              border: 'none',
+              borderRadius: 'var(--radius-md)',
+              color: cerrado ? 'var(--gray-400)' : '#fff',
+              fontSize: '13px', fontWeight: 600,
+              fontFamily: "'Plus Jakarta Sans', sans-serif",
+              cursor: cerrado ? 'not-allowed' : 'pointer',
+              boxShadow: cerrado ? 'none' : '0 2px 8px rgba(31,78,158,0.20)',
+              transition: 'all 150ms ease',
+            }}
+            onMouseEnter={e => { if (!cerrado) e.currentTarget.style.transform = 'translateY(-1px)'; }}
+            onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
+          >
+            <Send style={{ width: '13px', height: '13px' }} />
+            {cerrado ? 'Convocatoria cerrada' : 'Postularme'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const RespuestaInput = ({ resp, index, onChange, inputBaseStyle, error, inputErrorStyle, selectStyle }) => {
+  const style = { ...inputBaseStyle, ...(error ? inputErrorStyle : {}) };
+
+  if (resp.tipoRespuesta === 'texto_largo') {
+    return (
+      <textarea
+        rows={3}
+        value={resp.respuesta}
+        onChange={e => onChange(index, e.target.value)}
+        style={{ ...style, resize: 'vertical', minHeight: '80px' }}
+      />
+    );
+  }
+  if (resp.tipoRespuesta === 'numero') {
+    return (
+      <input
+        type="number"
+        value={resp.respuesta}
+        onChange={e => onChange(index, e.target.value)}
+        style={style}
+      />
+    );
+  }
+  if (resp.tipoRespuesta === 'fecha') {
+    return (
+      <input
+        type="date"
+        value={resp.respuesta}
+        onChange={e => onChange(index, e.target.value)}
+        style={style}
+      />
+    );
+  }
+  if (resp.tipoRespuesta === 'si_no') {
+    return (
+      <div style={{ position: 'relative' }}>
+        <select
+          value={resp.respuesta}
+          onChange={e => onChange(index, e.target.value)}
+          style={{ ...selectStyle, ...(error ? inputErrorStyle : {}) }}
+        >
+          <option value="">Seleccionar</option>
+          <option value="si">Sí</option>
+          <option value="no">No</option>
+        </select>
+        <ChevronDown style={{
+          position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)',
+          width: '14px', height: '14px', color: 'var(--gray-400)', pointerEvents: 'none',
+        }} />
+      </div>
+    );
+  }
+  if (resp.tipoRespuesta === 'seleccion_unica' && resp.opciones) {
+    return (
+      <div style={{ position: 'relative' }}>
+        <select
+          value={resp.respuesta}
+          onChange={e => onChange(index, e.target.value)}
+          style={{ ...selectStyle, ...(error ? inputErrorStyle : {}) }}
+        >
+          <option value="">Seleccionar opción</option>
+          {(Array.isArray(resp.opciones) ? resp.opciones : []).map((op, i) => (
+            <option key={i} value={op}>{op}</option>
+          ))}
+        </select>
+        <ChevronDown style={{
+          position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)',
+          width: '14px', height: '14px', color: 'var(--gray-400)', pointerEvents: 'none',
+        }} />
+      </div>
+    );
+  }
+  if (resp.tipoRespuesta === 'email') {
+    return (
+      <input
+        type="email"
+        value={resp.respuesta}
+        onChange={e => onChange(index, e.target.value)}
+        style={style}
+      />
+    );
+  }
+  if (resp.tipoRespuesta === 'telefono') {
+    return (
+      <input
+        type="tel"
+        value={resp.respuesta}
+        onChange={e => onChange(index, e.target.value)}
+        style={style}
+      />
+    );
+  }
+  return (
+    <input
+      type="text"
+      value={resp.respuesta}
+      onChange={e => onChange(index, e.target.value)}
+      style={style}
+    />
+  );
+};
+
+const SectionTitle = ({ icon: Icon, text }) => (
+  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', paddingBottom: '4px' }}>
+    <Icon style={{ width: '14px', height: '14px', color: 'var(--gray-400)' }} />
+    <span style={{
+      fontSize: '11px', fontWeight: 700, color: 'var(--gray-400)',
+      textTransform: 'uppercase', letterSpacing: '0.06em',
+      fontFamily: "'Plus Jakarta Sans', sans-serif",
+    }}>{text}</span>
+  </div>
+);
+
+const ErrorMsg = ({ text }) => (
+  <p style={{
+    marginTop: '4px', fontSize: '12px', color: '#EF4444',
+    display: 'flex', alignItems: 'center', gap: '4px',
+    fontFamily: "'DM Sans', sans-serif",
+  }}>
+    <AlertCircle style={{ width: '12px', height: '12px' }} /> {text}
+  </p>
+);
 
 export default ProgramasDisponibles;

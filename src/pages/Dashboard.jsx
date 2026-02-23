@@ -1,3 +1,4 @@
+//dashboard admin y colaborador
 import { useState, useEffect } from 'react';
 import Layout from '../components/common/Layout';
 import { dashboardService } from '../services/dashboardService';
