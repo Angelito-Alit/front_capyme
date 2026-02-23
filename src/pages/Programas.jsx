@@ -19,14 +19,52 @@ import {
   List,
   Building2,
   Clock,
+  MapPin,
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+
+const ESTADOS_MEXICO = [
+  { nombre: 'Aguascalientes', municipios: ['Aguascalientes','Asientos','Calvillo','Cosío','Jesús María','Pabellón de Arteaga','Rincón de Romos','San José de Gracia','Tepezalá','El Llano','San Francisco de los Romo'] },
+  { nombre: 'Baja California', municipios: ['Ensenada','Mexicali','Tecate','Tijuana','Playas de Rosarito','San Quintín'] },
+  { nombre: 'Baja California Sur', municipios: ['Comondú','Mulegé','La Paz','Los Cabos','Loreto'] },
+  { nombre: 'Campeche', municipios: ['Calkiní','Campeche','Carmen','Champotón','Hecelchakán','Hopelchén','Palizada','Tenabo','Escárcega','Calakmul','Candelaria'] },
+  { nombre: 'Chiapas', municipios: ['Comitán de Domínguez','San Cristóbal de las Casas','Tapachula','Tuxtla Gutiérrez','Chiapa de Corzo','Ocosingo','Palenque','Tonalá','Villaflores'] },
+  { nombre: 'Chihuahua', municipios: ['Chihuahua','Ciudad Juárez','Delicias','Cuauhtémoc','Hidalgo del Parral','Ojinaga','Camargo'] },
+  { nombre: 'Ciudad de México', municipios: ['Álvaro Obregón','Azcapotzalco','Benito Juárez','Coyoacán','Cuajimalpa','Cuauhtémoc','GAM','Iztacalco','Iztapalapa','Magdalena Contreras','Miguel Hidalgo','Milpa Alta','Tláhuac','Tlalpan','Venustiano Carranza','Xochimilco'] },
+  { nombre: 'Coahuila', municipios: ['Saltillo','Torreón','Monclova','Piedras Negras','Acuña','Ramos Arizpe','San Pedro'] },
+  { nombre: 'Colima', municipios: ['Colima','Coquimatlán','Comala','Cuauhtémoc','Ixtlahuacán','Manzanillo','Minatitlán','Tecomán','Villa de Álvarez','Armería','Aquila'] },
+  { nombre: 'Durango', municipios: ['Durango','Gómez Palacio','Lerdo','Santiago Papasquiaro','El Salto'] },
+  { nombre: 'Estado de México', municipios: ['Toluca','Ecatepec','Naucalpan','Nezahualcóyotl','Tlalnepantla','Chimalhuacán','Ixtapaluca','Puebla','Texcoco','Valle de Chalco','Metepec','Cuautitlán Izcalli','Tultitlán'] },
+  { nombre: 'Guanajuato', municipios: ['Guanajuato','León','Irapuato','Celaya','Salamanca','Silao','San Miguel de Allende','Dolores Hidalgo','Pénjamo','Acámbaro'] },
+  { nombre: 'Guerrero', municipios: ['Acapulco','Chilpancingo','Iguala','Zihuatanejo-Ixtapa','Taxco','Chilapa de Álvarez','Tlapa de Comonfort'] },
+  { nombre: 'Hidalgo', municipios: ['Pachuca','Tulancingo','Tula de Allende','Actopan','Huejutla','Apan','Ixmiquilpan','Tizayuca'] },
+  { nombre: 'Jalisco', municipios: ['Guadalajara','Zapopan','Tlaquepaque','Tonalá','Puerto Vallarta','Tlajomulco de Zúñiga','Lagos de Moreno','Ocotlán','Tepatitlán','Autlán'] },
+  { nombre: 'Michoacán', municipios: ['Morelia','Uruapan','Lázaro Cárdenas','Apatzingán','Zamora','Zitácuaro','Pátzcuaro','Sahuayo'] },
+  { nombre: 'Morelos', municipios: ['Cuernavaca','Jiutepec','Temixco','Cuautla','Jojutla','Yautepec','Tlanepantla','Ayala','Emiliano Zapata'] },
+  { nombre: 'Nayarit', municipios: ['Tepic','Bahía de Banderas','Compostela','Santiago Ixcuintla','Ixtlán del Río','Acaponeta','Tecuala'] },
+  { nombre: 'Nuevo León', municipios: ['Monterrey','Guadalupe','San Nicolás de los Garza','Apodaca','General Escobedo','Santa Catarina','San Pedro Garza García','Juárez','Linares','Montemorelos'] },
+  { nombre: 'Oaxaca', municipios: ['Oaxaca de Juárez','San Juan Bautista Tuxtepec','Juchitán de Zaragoza','Salina Cruz','Huajuapan de León','Miahuatlán de Porfirio Díaz','Tlaxiaco'] },
+  { nombre: 'Puebla', municipios: ['Puebla','Tehuacán','San Martín Texmelucan','Atlixco','Cholula','Huauchinango','Teziutlán','Izúcar de Matamoros'] },
+  { nombre: 'Querétaro', municipios: ['Querétaro','San Juan del Río','El Marqués','Corregidora','Tequisquiapan','Amealco','Jalpan de Serra','Cadereyta de Montes'] },
+  { nombre: 'Quintana Roo', municipios: ['Cancún','Playa del Carmen','Chetumal','Cozumel','Tulum','Felipe Carrillo Puerto','Isla Mujeres','Bacalar'] },
+  { nombre: 'San Luis Potosí', municipios: ['San Luis Potosí','Ciudad Valles','Matehuala','Rioverde','Tamazunchale','Soledad de Graciano Sánchez','Cárdenas','Tamuín'] },
+  { nombre: 'Sinaloa', municipios: ['Culiacán','Mazatlán','Los Mochis','Guasave','Guamúchil','Navolato','El Fuerte'] },
+  { nombre: 'Sonora', municipios: ['Hermosillo','Ciudad Obregón','Nogales','San Luis Río Colorado','Navojoa','Guaymas','Cajeme','Caborca'] },
+  { nombre: 'Tabasco', municipios: ['Villahermosa','Cárdenas','Comalcalco','Cunduacán','Huimanguillo','Macuspana','Nacajuca','Paraíso'] },
+  { nombre: 'Tamaulipas', municipios: ['Tampico','Reynosa','Matamoros','Nuevo Laredo','Ciudad Victoria','Altamira','Madero','Mante'] },
+  { nombre: 'Tlaxcala', municipios: ['Tlaxcala','Apizaco','Chiautempan','Huamantla','Calpulalpan','Zacatelco','Contla de Juan Cuamatzi'] },
+  { nombre: 'Veracruz', municipios: ['Veracruz','Xalapa','Coatzacoalcos','Córdoba','Orizaba','Poza Rica','Tuxpan','Minatitlán','Boca del Río','Acayucan'] },
+  { nombre: 'Yucatán', municipios: ['Mérida','Valladolid','Tizimín','Progreso','Motul','Ticul','Izamal','Tekax'] },
+  { nombre: 'Zacatecas', municipios: ['Zacatecas','Fresnillo','Guadalupe','Jerez','Calera','Sombrerete','Tlaltenango'] },
+];
 
 const initialFormData = {
   nombre: '',
   descripcion: '',
   tipoPrograma: '',
   categoriaNegocioId: null,
+  estado: '',
+  municipio: '',
   requisitos: '',
   beneficios: '',
   fechaInicio: '',
@@ -48,6 +86,8 @@ const Programas = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategoria, setFilterCategoria] = useState('');
   const [filterEstado, setFilterEstado] = useState('');
+  const [filterEstadoGeo, setFilterEstadoGeo] = useState('');
+  const [filterMunicipio, setFilterMunicipio] = useState('');
   const [viewMode, setViewMode] = useState('grid');
   const [formData, setFormData] = useState(initialFormData);
   const [formErrors, setFormErrors] = useState({});
@@ -93,7 +133,7 @@ const Programas = () => {
 
   useEffect(() => {
     cargarDatos();
-  }, [filterCategoria, filterEstado]);
+  }, [filterCategoria, filterEstado, filterEstadoGeo, filterMunicipio]);
 
   const cargarDatos = async () => {
     try {
@@ -101,6 +141,8 @@ const Programas = () => {
       const params = {};
       if (filterCategoria) params.categoriaId = filterCategoria;
       if (filterEstado !== '') params.activo = filterEstado;
+      if (filterEstadoGeo) params.estado = filterEstadoGeo;
+      if (filterMunicipio) params.municipio = filterMunicipio;
 
       const [programasRes, categoriasRes] = await Promise.all([
         programasService.getAll(params),
@@ -139,6 +181,8 @@ const Programas = () => {
         descripcion: programa.descripcion || '',
         tipoPrograma: programa.tipoPrograma || '',
         categoriaNegocioId: programa.categoriaNegocioId || null,
+        estado: programa.estado || '',
+        municipio: programa.municipio || '',
         requisitos: programa.requisitos || '',
         beneficios: programa.beneficios || '',
         fechaInicio: programa.fechaInicio ? programa.fechaInicio.split('T')[0] : '',
@@ -159,7 +203,11 @@ const Programas = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    if (name === 'estado') {
+      setFormData((prev) => ({ ...prev, estado: value, municipio: '' }));
+    } else {
+      setFormData((prev) => ({ ...prev, [name]: value }));
+    }
     if (formErrors[name]) setFormErrors((prev) => ({ ...prev, [name]: '' }));
   };
 
@@ -447,110 +495,81 @@ const Programas = () => {
           }}
         >
           {/* Search */}
-          <div style={{ position: 'relative', flex: '1', minWidth: '200px' }}>
-            <Search
-              style={{
-                position: 'absolute',
-                left: '11px',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                width: '15px',
-                height: '15px',
-                color: 'var(--gray-400)',
-                pointerEvents: 'none',
-              }}
-            />
+          <div style={{ position: 'relative', flex: '1', minWidth: '180px' }}>
+            <Search style={{ position: 'absolute', left: '11px', top: '50%', transform: 'translateY(-50%)', width: '15px', height: '15px', color: 'var(--gray-400)', pointerEvents: 'none' }} />
             <input
               type="text"
-              placeholder="Buscar programa o tipo…"
+              placeholder="Buscar programa…"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               style={inputWithIconStyle}
             />
           </div>
 
-          {/* Categoria filter */}
-          <div style={{ position: 'relative', minWidth: '180px' }}>
-            <select
-              value={filterCategoria}
-              onChange={(e) => setFilterCategoria(e.target.value)}
-              style={{ ...selectStyle, width: '100%' }}
-            >
+          {/* Categoria */}
+          <div style={{ position: 'relative', minWidth: '160px' }}>
+            <select value={filterCategoria} onChange={(e) => setFilterCategoria(e.target.value)} style={{ ...selectStyle, width: '100%' }}>
               <option value="">Todas las categorías</option>
               {categorias.map((cat) => (
                 <option key={cat.id} value={cat.id}>{cat.nombre}</option>
               ))}
             </select>
-            <ChevronDown
-              style={{
-                position: 'absolute',
-                right: '10px',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                width: '14px',
-                height: '14px',
-                color: 'var(--gray-400)',
-                pointerEvents: 'none',
-              }}
-            />
+            <ChevronDown style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', width: '14px', height: '14px', color: 'var(--gray-400)', pointerEvents: 'none' }} />
           </div>
 
-          {/* Estado filter */}
-          <div style={{ position: 'relative', minWidth: '140px' }}>
+          {/* Estado geográfico */}
+          <div style={{ position: 'relative', minWidth: '160px' }}>
             <select
-              value={filterEstado}
-              onChange={(e) => setFilterEstado(e.target.value)}
+              value={filterEstadoGeo}
+              onChange={(e) => { setFilterEstadoGeo(e.target.value); setFilterMunicipio(''); }}
               style={{ ...selectStyle, width: '100%' }}
             >
               <option value="">Todos los estados</option>
+              {ESTADOS_MEXICO.map((e) => (
+                <option key={e.nombre} value={e.nombre}>{e.nombre}</option>
+              ))}
+            </select>
+            <ChevronDown style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', width: '14px', height: '14px', color: 'var(--gray-400)', pointerEvents: 'none' }} />
+          </div>
+
+          {/* Municipio (dependiente del estado geo) */}
+          <div style={{ position: 'relative', minWidth: '160px' }}>
+            <select
+              value={filterMunicipio}
+              onChange={(e) => setFilterMunicipio(e.target.value)}
+              style={{ ...selectStyle, width: '100%' }}
+              disabled={!filterEstadoGeo}
+            >
+              <option value="">Todos los municipios</option>
+              {filterEstadoGeo && ESTADOS_MEXICO.find(e => e.nombre === filterEstadoGeo)?.municipios.map((m) => (
+                <option key={m} value={m}>{m}</option>
+              ))}
+            </select>
+            <ChevronDown style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', width: '14px', height: '14px', color: 'var(--gray-400)', pointerEvents: 'none' }} />
+          </div>
+
+          {/* Activo filter */}
+          <div style={{ position: 'relative', minWidth: '130px' }}>
+            <select value={filterEstado} onChange={(e) => setFilterEstado(e.target.value)} style={{ ...selectStyle, width: '100%' }}>
+              <option value="">Activo / Inactivo</option>
               <option value="true">Activos</option>
               <option value="false">Inactivos</option>
             </select>
-            <ChevronDown
-              style={{
-                position: 'absolute',
-                right: '10px',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                width: '14px',
-                height: '14px',
-                color: 'var(--gray-400)',
-                pointerEvents: 'none',
-              }}
-            />
+            <ChevronDown style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', width: '14px', height: '14px', color: 'var(--gray-400)', pointerEvents: 'none' }} />
           </div>
 
           {/* View Toggle */}
-          <div
-            style={{
-              display: 'flex',
-              gap: '4px',
-              background: 'var(--gray-100)',
-              borderRadius: 'var(--radius-sm)',
-              padding: '3px',
-              marginLeft: 'auto',
-            }}
-          >
-            {[
-              { mode: 'grid', Icon: LayoutGrid },
-              { mode: 'list', Icon: List },
-            ].map(({ mode, Icon }) => (
+          <div style={{ display: 'flex', gap: '4px', background: 'var(--gray-100)', borderRadius: 'var(--radius-sm)', padding: '3px', marginLeft: 'auto' }}>
+            {[{ mode: 'grid', Icon: LayoutGrid }, { mode: 'list', Icon: List }].map(({ mode, Icon }) => (
               <button
                 key={mode}
                 onClick={() => setViewMode(mode)}
                 style={{
-                  width: '32px',
-                  height: '32px',
-                  border: 'none',
-                  borderRadius: 'var(--radius-sm)',
+                  width: '32px', height: '32px', border: 'none', borderRadius: 'var(--radius-sm)',
                   background: viewMode === mode ? '#fff' : 'transparent',
                   color: viewMode === mode ? 'var(--capyme-blue-mid)' : 'var(--gray-400)',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  boxShadow: viewMode === mode ? 'var(--shadow-sm)' : 'none',
-                  transition: 'all 150ms ease',
+                  cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  boxShadow: viewMode === mode ? 'var(--shadow-sm)' : 'none', transition: 'all 150ms ease',
                 }}
               >
                 <Icon style={{ width: '15px', height: '15px' }} />
@@ -718,6 +737,14 @@ const Programas = () => {
                           <Calendar style={{ width: '13px', height: '13px', color: 'var(--gray-400)', flexShrink: 0 }} />
                           <span style={{ fontSize: '12px', color: 'var(--gray-500)', fontFamily: "'DM Sans', sans-serif" }}>
                             {formatDate(programa.fechaInicio)} {programa.fechaCierre ? `→ ${formatDate(programa.fechaCierre)}` : ''}
+                          </span>
+                        </div>
+                      )}
+                      {(programa.estado || programa.municipio) && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
+                          <MapPin style={{ width: '13px', height: '13px', color: 'var(--gray-400)', flexShrink: 0 }} />
+                          <span style={{ fontSize: '12px', color: 'var(--gray-500)', fontFamily: "'DM Sans', sans-serif" }}>
+                            {[programa.municipio, programa.estado].filter(Boolean).join(', ')}
                           </span>
                         </div>
                       )}
@@ -1145,6 +1172,48 @@ const Programas = () => {
                     placeholder="Descripción breve del programa..."
                     style={textareaStyle}
                   />
+                </div>
+              </div>
+
+              {/* SECTION: Ubicación */}
+              <div style={{ marginTop: '24px' }}>
+                <SectionTitle icon={MapPin} text="Ubicación geográfica" />
+                <div style={{ marginTop: '14px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+                  <div>
+                    <label style={labelStyle}>Estado</label>
+                    <div style={{ position: 'relative' }}>
+                      <select
+                        name="estado"
+                        value={formData.estado}
+                        onChange={handleChange}
+                        style={selectStyle}
+                      >
+                        <option value="">Aplica a todos los estados</option>
+                        {ESTADOS_MEXICO.map((e) => (
+                          <option key={e.nombre} value={e.nombre}>{e.nombre}</option>
+                        ))}
+                      </select>
+                      <ChevronDown style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', width: '14px', height: '14px', color: 'var(--gray-400)', pointerEvents: 'none' }} />
+                    </div>
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Municipio</label>
+                    <div style={{ position: 'relative' }}>
+                      <select
+                        name="municipio"
+                        value={formData.municipio}
+                        onChange={handleChange}
+                        style={{ ...selectStyle, opacity: formData.estado ? 1 : 0.5 }}
+                        disabled={!formData.estado}
+                      >
+                        <option value="">Todos los municipios</option>
+                        {formData.estado && ESTADOS_MEXICO.find(e => e.nombre === formData.estado)?.municipios.map((m) => (
+                          <option key={m} value={m}>{m}</option>
+                        ))}
+                      </select>
+                      <ChevronDown style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', width: '14px', height: '14px', color: 'var(--gray-400)', pointerEvents: 'none' }} />
+                    </div>
+                  </div>
                 </div>
               </div>
 
