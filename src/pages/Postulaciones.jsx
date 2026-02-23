@@ -266,9 +266,7 @@ const Postulaciones = () => {
     const errors = {};
     if (!formData.negocioId) errors.negocioId = 'Selecciona un negocio';
     if (!formData.programaId) errors.programaId = 'Selecciona un programa';
-    if (modalMode === 'create' && ['admin', 'colaborador'].includes(currentUser.rol) && !formData.usuarioId) {
-      errors.usuarioId = 'Selecciona el usuario responsable';
-    }
+    // usuarioId ya no es un campo manual - se toma del propietario del negocio
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -277,6 +275,14 @@ const Postulaciones = () => {
     const { name, value } = e.target;
     if (name === 'estadoGeo') {
       setFormData(prev => ({ ...prev, estadoGeo: value, municipio: '' }));
+    } else if (name === 'negocioId') {
+      // Al seleccionar negocio → auto-llenar usuarioId con el propietario del negocio
+      const negocioSeleccionado = negocios.find(n => n.id === parseInt(value));
+      setFormData(prev => ({
+        ...prev,
+        negocioId: value,
+        usuarioId: negocioSeleccionado?.usuarioId || negocioSeleccionado?.usuario?.id || '',
+      }));
     } else {
       setFormData(prev => ({ ...prev, [name]: value }));
     }
@@ -288,24 +294,37 @@ const Postulaciones = () => {
     if (!validateForm()) return;
     setSubmitting(true);
     try {
-      const dataToSend = {
-        negocioId: parseInt(formData.negocioId),
-        programaId: parseInt(formData.programaId),
-        estadoGeo: formData.estadoGeo || null,
-        municipio: formData.municipio || null,
-      };
-      if ((['admin', 'colaborador'].includes(currentUser.rol)) && formData.usuarioId) {
-        dataToSend.usuarioId = parseInt(formData.usuarioId);
-      }
-
       if (modalMode === 'create') {
+        // Al crear: usuarioId es el propietario del negocio seleccionado
+        const negocioSeleccionado = negocios.find(n => n.id === parseInt(formData.negocioId));
+        const propietarioId = negocioSeleccionado?.usuarioId || negocioSeleccionado?.usuario?.id;
+
+        const dataToSend = {
+          negocioId: parseInt(formData.negocioId),
+          programaId: parseInt(formData.programaId),
+          usuarioId: propietarioId ? parseInt(propietarioId) : undefined,
+          estadoGeo: formData.estadoGeo || null,
+          municipio: formData.municipio || null,
+        };
         await postulacionesService.create(dataToSend);
         toast.success('Postulación creada exitosamente');
       } else {
-        await postulacionesService.update(selectedPost.id, {
-          estadoGeo: dataToSend.estadoGeo,
-          municipio: dataToSend.municipio,
-        });
+        // Al editar: admin puede cambiar negocio y programa también
+        const dataToSend = {
+          estadoGeo: formData.estadoGeo || null,
+          municipio: formData.municipio || null,
+        };
+        if (currentUser.rol === 'admin') {
+          if (formData.negocioId) dataToSend.negocioId = parseInt(formData.negocioId);
+          if (formData.programaId) dataToSend.programaId = parseInt(formData.programaId);
+          // Si cambió el negocio, actualizar también el usuarioId al propietario del nuevo negocio
+          if (formData.negocioId && formData.negocioId !== String(selectedPost.negocioId)) {
+            const negocioNuevo = negocios.find(n => n.id === parseInt(formData.negocioId));
+            const nuevoPropietario = negocioNuevo?.usuarioId || negocioNuevo?.usuario?.id;
+            if (nuevoPropietario) dataToSend.usuarioId = parseInt(nuevoPropietario);
+          }
+        }
+        await postulacionesService.update(selectedPost.id, dataToSend);
         toast.success('Postulación actualizada exitosamente');
       }
       handleCloseAll();
@@ -781,7 +800,7 @@ const Postulaciones = () => {
                 <SectionTitle icon={Building2} text="Negocio y Programa" />
                 <div style={{ marginTop: '14px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
 
-                  {/* Negocio */}
+                  {/* Negocio — editable en crear siempre; en editar solo admin */}
                   <div>
                     <label style={labelStyle}>Negocio <span style={{ color: '#EF4444' }}>*</span></label>
                     <div style={{ position: 'relative' }}>
@@ -789,18 +808,27 @@ const Postulaciones = () => {
                         name="negocioId"
                         value={formData.negocioId}
                         onChange={handleChange}
-                        disabled={modalMode === 'edit'}
-                        style={{ ...selectStyle, ...(formErrors.negocioId ? inputErrorStyle : {}), opacity: modalMode === 'edit' ? 0.6 : 1 }}
+                        disabled={modalMode === 'edit' && currentUser.rol !== 'admin'}
+                        style={{
+                          ...selectStyle,
+                          ...(formErrors.negocioId ? inputErrorStyle : {}),
+                          opacity: (modalMode === 'edit' && currentUser.rol !== 'admin') ? 0.6 : 1,
+                        }}
                       >
                         <option value="">Selecciona un negocio</option>
                         {negocios.map(n => <option key={n.id} value={n.id}>{n.nombreNegocio}</option>)}
                       </select>
                       <ChevronDown style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', width: '14px', height: '14px', color: 'var(--gray-400)', pointerEvents: 'none' }} />
                     </div>
+                    {modalMode === 'edit' && currentUser.rol !== 'admin' && (
+                      <p style={{ fontSize: '11px', color: 'var(--gray-400)', marginTop: '4px', fontFamily: "'DM Sans', sans-serif" }}>
+                        Solo el admin puede reasignar el negocio
+                      </p>
+                    )}
                     <ErrorMsg msg={formErrors.negocioId} />
                   </div>
 
-                  {/* Programa */}
+                  {/* Programa — editable en crear siempre; en editar solo admin */}
                   <div>
                     <label style={labelStyle}>Programa <span style={{ color: '#EF4444' }}>*</span></label>
                     <div style={{ position: 'relative' }}>
@@ -808,41 +836,63 @@ const Postulaciones = () => {
                         name="programaId"
                         value={formData.programaId}
                         onChange={handleChange}
-                        disabled={modalMode === 'edit'}
-                        style={{ ...selectStyle, ...(formErrors.programaId ? inputErrorStyle : {}), opacity: modalMode === 'edit' ? 0.6 : 1 }}
+                        disabled={modalMode === 'edit' && currentUser.rol !== 'admin'}
+                        style={{
+                          ...selectStyle,
+                          ...(formErrors.programaId ? inputErrorStyle : {}),
+                          opacity: (modalMode === 'edit' && currentUser.rol !== 'admin') ? 0.6 : 1,
+                        }}
                       >
                         <option value="">Selecciona un programa</option>
                         {programas.filter(p => p.activo).map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
                       </select>
                       <ChevronDown style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', width: '14px', height: '14px', color: 'var(--gray-400)', pointerEvents: 'none' }} />
                     </div>
+                    {modalMode === 'edit' && currentUser.rol !== 'admin' && (
+                      <p style={{ fontSize: '11px', color: 'var(--gray-400)', marginTop: '4px', fontFamily: "'DM Sans', sans-serif" }}>
+                        Solo el admin puede reasignar el programa
+                      </p>
+                    )}
                     <ErrorMsg msg={formErrors.programaId} />
                   </div>
                 </div>
 
-                {/* Usuario responsable (admin y colaborador, solo en crear) */}
-                {modalMode === 'create' && ['admin', 'colaborador'].includes(currentUser.rol) && (
-                  <div style={{ marginTop: '14px' }}>
-                    <label style={labelStyle}>Usuario responsable <span style={{ color: '#EF4444' }}>*</span></label>
-                    <div style={{ position: 'relative' }}>
-                      <select
-                        name="usuarioId"
-                        value={formData.usuarioId}
-                        onChange={handleChange}
-                        style={{ ...selectStyle, ...(formErrors.usuarioId ? inputErrorStyle : {}) }}
-                      >
-                        <option value="">Selecciona el usuario / cliente</option>
-                        {usuarios.map(u => (
-                          <option key={u.id} value={u.id}>
-                            {u.nombre} {u.apellido} — {u.email} {u.rol === 'cliente' ? '(cliente)' : `(${u.rol})`}
-                          </option>
-                        ))}
-                      </select>
-                      <ChevronDown style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', width: '14px', height: '14px', color: 'var(--gray-400)', pointerEvents: 'none' }} />
+                {/* Usuario responsable: se auto-llena al seleccionar negocio, solo lectura */}
+                {formData.negocioId && (() => {
+                  const negSel = negocios.find(n => n.id === parseInt(formData.negocioId));
+                  const propietario = negSel?.usuario;
+                  if (!propietario && !negSel?.usuarioId) return null;
+                  const nombre = propietario
+                    ? `${propietario.nombre} ${propietario.apellido}`
+                    : `Usuario #${negSel.usuarioId}`;
+                  const email = propietario?.email || '';
+                  return (
+                    <div style={{ marginTop: '14px' }}>
+                      <label style={labelStyle}>
+                        Usuario responsable del negocio
+                        <span style={{ marginLeft: '6px', fontSize: '11px', fontWeight: 400, color: 'var(--gray-400)' }}>(se asigna automáticamente)</span>
+                      </label>
+                      <div style={{
+                        display: 'flex', alignItems: 'center', gap: '10px',
+                        padding: '10px 14px',
+                        background: '#F8FAFC',
+                        border: '1px solid var(--border)',
+                        borderRadius: 'var(--radius-md)',
+                      }}>
+                        <div style={{ width: '30px', height: '30px', borderRadius: '50%', background: '#EEF4FF', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          <User style={{ width: '14px', height: '14px', color: 'var(--capyme-blue-mid)' }} />
+                        </div>
+                        <div>
+                          <p style={{ margin: 0, fontSize: '13px', fontWeight: 600, color: 'var(--gray-900)', fontFamily: "'DM Sans', sans-serif" }}>{nombre}</p>
+                          {email && <p style={{ margin: 0, fontSize: '11px', color: 'var(--gray-500)', fontFamily: "'DM Sans', sans-serif" }}>{email}</p>}
+                        </div>
+                        <span style={{ marginLeft: 'auto', fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '99px', background: '#EEF4FF', color: 'var(--capyme-blue-mid)', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                          PROPIETARIO
+                        </span>
+                      </div>
                     </div>
-                    <ErrorMsg msg={formErrors.usuarioId} />
-                  </div>
-                )}
+                  );
+                })()}
               </div>
 
               {/* SECCIÓN: Ubicación */}
