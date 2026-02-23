@@ -2,9 +2,11 @@ import { useState, useEffect } from 'react';
 import Layout from '../components/common/Layout';
 import { postulacionesService } from '../services/postulacionesService';
 import api from '../services/axios';
-import { 
-  ClipboardList, 
-  Search, 
+import {
+  ClipboardList,
+  Plus,
+  Search,
+  Edit,
   Eye,
   X,
   Building2,
@@ -14,428 +16,1119 @@ import {
   CheckCircle,
   XCircle,
   Clock,
-  AlertCircle
+  AlertCircle,
+  ChevronDown,
+  LayoutGrid,
+  List,
+  MapPin,
+  Tag,
+  ToggleLeft,
+  ToggleRight,
+  Trash2,
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
+// ─── Datos geográficos ────────────────────────────────────────────────────────
+const ESTADOS_MEXICO = [
+  { nombre: 'Aguascalientes', municipios: ['Aguascalientes','Asientos','Calvillo','Cosío','Jesús María','Pabellón de Arteaga','Rincón de Romos','San José de Gracia','Tepezalá','El Llano','San Francisco de los Romo'] },
+  { nombre: 'Baja California', municipios: ['Ensenada','Mexicali','Tecate','Tijuana','Playas de Rosarito','San Quintín'] },
+  { nombre: 'Baja California Sur', municipios: ['Comondú','Mulegé','La Paz','Los Cabos','Loreto'] },
+  { nombre: 'Campeche', municipios: ['Calkiní','Campeche','Carmen','Champotón','Hecelchakán','Hopelchén','Palizada','Tenabo','Escárcega','Calakmul','Candelaria'] },
+  { nombre: 'Chiapas', municipios: ['Comitán de Domínguez','San Cristóbal de las Casas','Tapachula','Tuxtla Gutiérrez','Chiapa de Corzo','Ocosingo','Palenque','Tonalá','Villaflores'] },
+  { nombre: 'Chihuahua', municipios: ['Chihuahua','Ciudad Juárez','Delicias','Cuauhtémoc','Hidalgo del Parral','Ojinaga','Camargo'] },
+  { nombre: 'Ciudad de México', municipios: ['Álvaro Obregón','Azcapotzalco','Benito Juárez','Coyoacán','Cuajimalpa','Cuauhtémoc','GAM','Iztacalco','Iztapalapa','Magdalena Contreras','Miguel Hidalgo','Milpa Alta','Tláhuac','Tlalpan','Venustiano Carranza','Xochimilco'] },
+  { nombre: 'Coahuila', municipios: ['Saltillo','Torreón','Monclova','Piedras Negras','Acuña','Ramos Arizpe','San Pedro'] },
+  { nombre: 'Colima', municipios: ['Colima','Coquimatlán','Comala','Cuauhtémoc','Ixtlahuacán','Manzanillo','Minatitlán','Tecomán','Villa de Álvarez','Armería','Aquila'] },
+  { nombre: 'Durango', municipios: ['Durango','Gómez Palacio','Lerdo','Santiago Papasquiaro','El Salto'] },
+  { nombre: 'Estado de México', municipios: ['Toluca','Ecatepec','Naucalpan','Nezahualcóyotl','Tlalnepantla','Chimalhuacán','Ixtapaluca','Texcoco','Valle de Chalco','Metepec','Cuautitlán Izcalli','Tultitlán'] },
+  { nombre: 'Guanajuato', municipios: ['Guanajuato','León','Irapuato','Celaya','Salamanca','Silao','San Miguel de Allende','Dolores Hidalgo','Pénjamo','Acámbaro'] },
+  { nombre: 'Guerrero', municipios: ['Acapulco','Chilpancingo','Iguala','Zihuatanejo-Ixtapa','Taxco','Chilapa de Álvarez','Tlapa de Comonfort'] },
+  { nombre: 'Hidalgo', municipios: ['Pachuca','Tulancingo','Tula de Allende','Actopan','Huejutla','Apan','Ixmiquilpan','Tizayuca'] },
+  { nombre: 'Jalisco', municipios: ['Guadalajara','Zapopan','Tlaquepaque','Tonalá','Puerto Vallarta','Tlajomulco de Zúñiga','Lagos de Moreno','Ocotlán','Tepatitlán','Autlán'] },
+  { nombre: 'Michoacán', municipios: ['Morelia','Uruapan','Lázaro Cárdenas','Apatzingán','Zamora','Zitácuaro','Pátzcuaro','Sahuayo'] },
+  { nombre: 'Morelos', municipios: ['Cuernavaca','Jiutepec','Temixco','Cuautla','Jojutla','Yautepec','Tlanepantla','Ayala','Emiliano Zapata'] },
+  { nombre: 'Nayarit', municipios: ['Tepic','Bahía de Banderas','Compostela','Santiago Ixcuintla','Ixtlán del Río','Acaponeta','Tecuala'] },
+  { nombre: 'Nuevo León', municipios: ['Monterrey','Guadalupe','San Nicolás de los Garza','Apodaca','General Escobedo','Santa Catarina','San Pedro Garza García','Juárez','Linares','Montemorelos'] },
+  { nombre: 'Oaxaca', municipios: ['Oaxaca de Juárez','San Juan Bautista Tuxtepec','Juchitán de Zaragoza','Salina Cruz','Huajuapan de León','Miahuatlán de Porfirio Díaz','Tlaxiaco'] },
+  { nombre: 'Puebla', municipios: ['Puebla','Tehuacán','San Martín Texmelucan','Atlixco','Cholula','Huauchinango','Teziutlán','Izúcar de Matamoros'] },
+  { nombre: 'Querétaro', municipios: ['Querétaro','San Juan del Río','El Marqués','Corregidora','Tequisquiapan','Amealco','Jalpan de Serra','Cadereyta de Montes'] },
+  { nombre: 'Quintana Roo', municipios: ['Cancún','Playa del Carmen','Chetumal','Cozumel','Tulum','Felipe Carrillo Puerto','Isla Mujeres','Bacalar'] },
+  { nombre: 'San Luis Potosí', municipios: ['San Luis Potosí','Ciudad Valles','Matehuala','Rioverde','Tamazunchale','Soledad de Graciano Sánchez','Cárdenas','Tamuín'] },
+  { nombre: 'Sinaloa', municipios: ['Culiacán','Mazatlán','Los Mochis','Guasave','Guamúchil','Navolato','El Fuerte'] },
+  { nombre: 'Sonora', municipios: ['Hermosillo','Ciudad Obregón','Nogales','San Luis Río Colorado','Navojoa','Guaymas','Cajeme','Caborca'] },
+  { nombre: 'Tabasco', municipios: ['Villahermosa','Cárdenas','Comalcalco','Cunduacán','Huimanguillo','Macuspana','Nacajuca','Paraíso'] },
+  { nombre: 'Tamaulipas', municipios: ['Tampico','Reynosa','Matamoros','Nuevo Laredo','Ciudad Victoria','Altamira','Madero','Mante'] },
+  { nombre: 'Tlaxcala', municipios: ['Tlaxcala','Apizaco','Chiautempan','Huamantla','Calpulalpan','Zacatelco','Contla de Juan Cuamatzi'] },
+  { nombre: 'Veracruz', municipios: ['Veracruz','Xalapa','Coatzacoalcos','Córdoba','Orizaba','Poza Rica','Tuxpan','Minatitlán','Boca del Río','Acayucan'] },
+  { nombre: 'Yucatán', municipios: ['Mérida','Valladolid','Tizimín','Progreso','Motul','Ticul','Izamal','Tekax'] },
+  { nombre: 'Zacatecas', municipios: ['Zacatecas','Fresnillo','Guadalupe','Jerez','Calera','Sombrerete','Tlaltenango'] },
+];
+
+// ─── Configuración de estados de postulación ──────────────────────────────────
+const ESTADOS_CONFIG = {
+  pendiente:    { label: 'Pendiente',    bg: '#FEF3C7', color: '#92400E', Icon: Clock },
+  en_revision:  { label: 'En Revisión',  bg: '#DBEAFE', color: '#1E40AF', Icon: AlertCircle },
+  aprobada:     { label: 'Aprobada',     bg: '#D1FAE5', color: '#065F46', Icon: CheckCircle },
+  rechazada:    { label: 'Rechazada',    bg: '#FEE2E2', color: '#991B1B', Icon: XCircle },
+  completada:   { label: 'Completada',   bg: '#EDE9FE', color: '#5B21B6', Icon: CheckCircle },
+};
+
+// ─── Form data inicial ────────────────────────────────────────────────────────
+const initialFormData = {
+  negocioId: '',
+  programaId: '',
+  usuarioId: '',
+  estadoGeo: '',
+  municipio: '',
+};
+
+const initialEstadoData = {
+  estado: 'pendiente',
+  notasAdmin: '',
+};
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+const SectionTitle = ({ icon: Icon, text }) => (
+  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
+    <Icon style={{ width: '15px', height: '15px', color: 'var(--capyme-blue-mid)' }} />
+    <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--capyme-blue-mid)', textTransform: 'uppercase', letterSpacing: '0.05em', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+      {text}
+    </span>
+    <div style={{ flex: 1, height: '1px', background: 'var(--border)', marginLeft: '4px' }} />
+  </div>
+);
+
+const ErrorMsg = ({ msg }) => msg
+  ? <p style={{ fontSize: '12px', color: '#EF4444', marginTop: '4px', fontFamily: "'DM Sans', sans-serif" }}>{msg}</p>
+  : null;
+
+const formatDate = (date) => {
+  if (!date) return 'N/A';
+  return new Date(date).toLocaleDateString('es-MX', { year: 'numeric', month: 'short', day: 'numeric' });
+};
+
+// ─── Componente principal ─────────────────────────────────────────────────────
 const Postulaciones = () => {
+  const authStorage = JSON.parse(localStorage.getItem('auth-storage') || '{}');
+  const currentUser = authStorage?.state?.user || {};
+
+  // ── Estado principal ──────────────────────────────────────────────────────
   const [postulaciones, setPostulaciones] = useState([]);
   const [programas, setProgramas] = useState([]);
+  const [negocios, setNegocios] = useState([]);
+  const [usuarios, setUsuarios] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [showDetalleModal, setShowDetalleModal] = useState(false);
-  const [showEstadoModal, setShowEstadoModal] = useState(false);
-  const [selectedPostulacion, setSelectedPostulacion] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  // ── Modales ───────────────────────────────────────────────────────────────
+  const [showModal, setShowModal] = useState(false);       // crear / editar
+  const [showDetalle, setShowDetalle] = useState(false);   // ver detalle
+  const [showEstado, setShowEstado] = useState(false);     // cambiar estado
+  const [modalMode, setModalMode] = useState('create');
+  const [selectedPost, setSelectedPost] = useState(null);
+
+  // ── Filtros ───────────────────────────────────────────────────────────────
   const [searchTerm, setSearchTerm] = useState('');
   const [filterPrograma, setFilterPrograma] = useState('');
-  const [filterEstado, setFilterEstado] = useState('');
+  const [filterEstadoPost, setFilterEstadoPost] = useState('');
+  const [filterEstadoGeo, setFilterEstadoGeo] = useState('');
+  const [filterMunicipio, setFilterMunicipio] = useState('');
+  const [viewMode, setViewMode] = useState('list');
 
-  const [estadoData, setEstadoData] = useState({
-    estado: '',
-    notasAdmin: ''
-  });
+  // ── Formularios ───────────────────────────────────────────────────────────
+  const [formData, setFormData] = useState(initialFormData);
+  const [formErrors, setFormErrors] = useState({});
+  const [estadoData, setEstadoData] = useState(initialEstadoData);
+  const [hoveredRow, setHoveredRow] = useState(null);
 
-  useEffect(() => {
-    cargarDatos();
-  }, [filterPrograma, filterEstado]);
+  // ─── Estilos base ──────────────────────────────────────────────────────────
+  const inputBaseStyle = {
+    width: '100%', padding: '10px 12px',
+    border: '1px solid var(--border)', borderRadius: 'var(--radius-md)',
+    fontSize: '14px', fontFamily: "'DM Sans', sans-serif",
+    color: 'var(--gray-900)', background: '#fff',
+    outline: 'none', transition: 'all 200ms ease', boxSizing: 'border-box',
+  };
+  const inputWithIconStyle = { ...inputBaseStyle, paddingLeft: '38px' };
+  const inputErrorStyle = { borderColor: '#EF4444', boxShadow: '0 0 0 2px rgba(239,68,68,0.15)' };
+  const labelStyle = {
+    display: 'block', fontSize: '13px', fontWeight: 600,
+    color: 'var(--gray-600)', marginBottom: '6px',
+    fontFamily: "'DM Sans', sans-serif",
+  };
+  const selectStyle = { ...inputBaseStyle, appearance: 'none', paddingRight: '36px', cursor: 'pointer' };
+  const textareaStyle = { ...inputBaseStyle, resize: 'vertical', minHeight: '90px' };
+
+  // ─── Carga de datos ────────────────────────────────────────────────────────
+  useEffect(() => { cargarDatos(); }, [filterPrograma, filterEstadoPost, filterEstadoGeo, filterMunicipio]);
 
   const cargarDatos = async () => {
     try {
       setLoading(true);
       const params = {};
       if (filterPrograma) params.programaId = filterPrograma;
-      if (filterEstado) params.estado = filterEstado;
+      if (filterEstadoPost) params.estado = filterEstadoPost;
+      if (filterEstadoGeo) params.estadoGeo = filterEstadoGeo;
+      if (filterMunicipio) params.municipio = filterMunicipio;
 
-      const [postulacionesRes, programasRes] = await Promise.all([
+      const requests = [
         postulacionesService.getAll(params),
-        api.get('/programas')
-      ]);
+        api.get('/programas'),
+      ];
+      if (['admin', 'colaborador'].includes(currentUser.rol)) {
+        requests.push(api.get('/negocios'));
+        requests.push(api.get('/usuarios'));
+      }
 
-      setPostulaciones(postulacionesRes.data);
-      setProgramas(programasRes.data.data);
-    } catch (error) {
+      const [postRes, progRes, negRes, usrRes] = await Promise.all(requests);
+      setPostulaciones(postRes.data);
+      setProgramas(progRes.data.data || []);
+      if (negRes) setNegocios(negRes.data.data || []);
+      if (usrRes) setUsuarios(usrRes.data.data || []);
+    } catch {
       toast.error('Error al cargar postulaciones');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleVerDetalle = async (postulacionId) => {
+  // ─── Filtrado local (búsqueda por texto) ──────────────────────────────────
+  const postulacionesFiltradas = postulaciones.filter(p => {
+    const texto = searchTerm.toLowerCase();
+    return (
+      p.negocio?.nombreNegocio?.toLowerCase().includes(texto) ||
+      p.programa?.nombre?.toLowerCase().includes(texto) ||
+      p.usuario?.nombre?.toLowerCase().includes(texto) ||
+      p.usuario?.apellido?.toLowerCase().includes(texto) ||
+      (p.estadoGeo || '').toLowerCase().includes(texto) ||
+      (p.municipio || '').toLowerCase().includes(texto)
+    );
+  });
+
+  // ─── Estadísticas ─────────────────────────────────────────────────────────
+  const stats = [
+    { label: 'Total', value: postulaciones.length, color: 'var(--capyme-blue-mid)' },
+    { label: 'Pendientes', value: postulaciones.filter(p => p.estado === 'pendiente').length, color: '#92400E' },
+    { label: 'En Revisión', value: postulaciones.filter(p => p.estado === 'en_revision').length, color: '#1E40AF' },
+    { label: 'Aprobadas', value: postulaciones.filter(p => p.estado === 'aprobada').length, color: '#065F46' },
+    { label: 'Completadas', value: postulaciones.filter(p => p.estado === 'completada').length, color: '#5B21B6' },
+  ];
+
+  // ─── Handlers modales ────────────────────────────────────────────────────
+  const handleOpenCreate = () => {
+    setModalMode('create');
+    setSelectedPost(null);
+    setFormData(initialFormData);
+    setFormErrors({});
+    setShowModal(true);
+  };
+
+  const handleOpenEdit = (post) => {
+    setModalMode('edit');
+    setSelectedPost(post);
+    setFormData({
+      negocioId: post.negocioId || '',
+      programaId: post.programaId || '',
+      usuarioId: post.usuarioId || '',
+      estadoGeo: post.estadoGeo || '',
+      municipio: post.municipio || '',
+    });
+    setFormErrors({});
+    setShowModal(true);
+  };
+
+  const handleOpenDetalle = async (id) => {
     try {
-      const response = await postulacionesService.getById(postulacionId);
-      setSelectedPostulacion(response.data);
-      setShowDetalleModal(true);
-    } catch (error) {
+      const res = await postulacionesService.getById(id);
+      setSelectedPost(res.data);
+      setShowDetalle(true);
+    } catch {
       toast.error('Error al cargar detalles');
     }
   };
 
-  const handleOpenEstadoModal = (postulacion) => {
-    setSelectedPostulacion(postulacion);
-    setEstadoData({
-      estado: postulacion.estado,
-      notasAdmin: postulacion.notasAdmin || ''
-    });
-    setShowEstadoModal(true);
+  const handleOpenEstado = (post) => {
+    setSelectedPost(post);
+    setEstadoData({ estado: post.estado || 'pendiente', notasAdmin: post.notasAdmin || '' });
+    setShowEstado(true);
   };
 
-  const handleCloseModals = () => {
-    setShowDetalleModal(false);
-    setShowEstadoModal(false);
-    setSelectedPostulacion(null);
-    setEstadoData({ estado: '', notasAdmin: '' });
+  const handleCloseAll = () => {
+    setShowModal(false);
+    setShowDetalle(false);
+    setShowEstado(false);
+    setSelectedPost(null);
+    setFormErrors({});
   };
 
+  // ─── Validación ──────────────────────────────────────────────────────────
+  const validateForm = () => {
+    const errors = {};
+    if (!formData.negocioId) errors.negocioId = 'Selecciona un negocio';
+    if (!formData.programaId) errors.programaId = 'Selecciona un programa';
+    if (modalMode === 'create' && ['admin', 'colaborador'].includes(currentUser.rol) && !formData.usuarioId) {
+      errors.usuarioId = 'Selecciona el usuario responsable';
+    }
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    if (name === 'estadoGeo') {
+      setFormData(prev => ({ ...prev, estadoGeo: value, municipio: '' }));
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }));
+    }
+    if (formErrors[name]) setFormErrors(prev => ({ ...prev, [name]: '' }));
+  };
+
+  // ─── Submit crear / editar ────────────────────────────────────────────────
+  const handleSubmit = async () => {
+    if (!validateForm()) return;
+    setSubmitting(true);
+    try {
+      const dataToSend = {
+        negocioId: parseInt(formData.negocioId),
+        programaId: parseInt(formData.programaId),
+        estadoGeo: formData.estadoGeo || null,
+        municipio: formData.municipio || null,
+      };
+      if ((['admin', 'colaborador'].includes(currentUser.rol)) && formData.usuarioId) {
+        dataToSend.usuarioId = parseInt(formData.usuarioId);
+      }
+
+      if (modalMode === 'create') {
+        await postulacionesService.create(dataToSend);
+        toast.success('Postulación creada exitosamente');
+      } else {
+        await postulacionesService.update(selectedPost.id, {
+          estadoGeo: dataToSend.estadoGeo,
+          municipio: dataToSend.municipio,
+        });
+        toast.success('Postulación actualizada exitosamente');
+      }
+      handleCloseAll();
+      cargarDatos();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Error al guardar');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // ─── Cambiar estado ───────────────────────────────────────────────────────
   const handleActualizarEstado = async () => {
     try {
-      await postulacionesService.updateEstado(
-        selectedPostulacion.id,
-        estadoData.estado,
-        estadoData.notasAdmin
-      );
-      toast.success('Estado actualizado exitosamente');
-      handleCloseModals();
+      await postulacionesService.updateEstado(selectedPost.id, estadoData.estado, estadoData.notasAdmin);
+      toast.success('Estado actualizado');
+      handleCloseAll();
       cargarDatos();
-    } catch (error) {
+    } catch {
       toast.error('Error al actualizar estado');
     }
   };
 
-  const postulacionesFiltradas = postulaciones.filter(postulacion =>
-    postulacion.negocio?.nombreNegocio.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    postulacion.programa?.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    postulacion.usuario?.nombre.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const getEstadoBadge = (estado) => {
-    const badges = {
-      pendiente: { color: 'bg-yellow-100 text-yellow-800', icon: Clock },
-      en_revision: { color: 'bg-blue-100 text-blue-800', icon: AlertCircle },
-      aprobada: { color: 'bg-green-100 text-green-800', icon: CheckCircle },
-      rechazada: { color: 'bg-red-100 text-red-800', icon: XCircle },
-      completada: { color: 'bg-purple-100 text-purple-800', icon: CheckCircle }
-    };
-    return badges[estado] || badges.pendiente;
+  // ─── Toggle activo (admin) ────────────────────────────────────────────────
+  const handleToggleActivo = async (post) => {
+    const nuevoEstado = post.estado === 'completada' ? 'pendiente' : 'completada';
+    const accion = post.estado === 'completada' ? 'marcar como pendiente' : 'marcar como completada';
+    if (!window.confirm(`¿Seguro que deseas ${accion} esta postulación?`)) return;
+    try {
+      await postulacionesService.toggleActivo(post.id);
+      toast.success('Estado cambiado exitosamente');
+      cargarDatos();
+    } catch {
+      toast.error('Error al cambiar estado');
+    }
   };
 
-  const getEstadoNombre = (estado) => {
-    const nombres = {
-      pendiente: 'Pendiente',
-      en_revision: 'En Revisión',
-      aprobada: 'Aprobada',
-      rechazada: 'Rechazada',
-      completada: 'Completada'
-    };
-    return nombres[estado] || estado;
+  // ─── Render estado badge ──────────────────────────────────────────────────
+  const EstadoBadge = ({ estado }) => {
+    const cfg = ESTADOS_CONFIG[estado] || ESTADOS_CONFIG.pendiente;
+    const { Icon } = cfg;
+    return (
+      <span style={{
+        display: 'inline-flex', alignItems: 'center', gap: '5px',
+        padding: '3px 10px', borderRadius: '20px',
+        background: cfg.bg, color: cfg.color,
+        fontSize: '12px', fontWeight: 700,
+        fontFamily: "'DM Sans', sans-serif",
+      }}>
+        <Icon style={{ width: '11px', height: '11px' }} />
+        {cfg.label}
+      </span>
+    );
   };
 
-  const formatDate = (date) => {
-    if (!date) return 'N/A';
-    return new Date(date).toLocaleDateString('es-MX', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
-
+  // ─── Loading ──────────────────────────────────────────────────────────────
   if (loading) {
     return (
       <Layout>
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#2B5BA6]"></div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '260px' }}>
+          <div style={{ width: '40px', height: '40px', border: '3px solid var(--border)', borderTopColor: 'var(--capyme-blue-mid)', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
         </div>
       </Layout>
     );
   }
 
+  // ─── Render ───────────────────────────────────────────────────────────────
   return (
     <Layout>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Gestión de Postulaciones</h1>
-            <p className="text-gray-600 mt-1">Administra todas las postulaciones a programas</p>
+      <style>{`
+        @keyframes fadeInUp { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+        @keyframes modalIn  { from { opacity:0; transform:scale(0.96) translateY(8px); } to { opacity:1; transform:scale(1) translateY(0); } }
+        @keyframes spin     { to { transform:rotate(360deg); } }
+        .post-card { animation: fadeInUp 0.3s ease both; }
+        .post-card:hover { box-shadow: 0 8px 24px rgba(31,78,158,0.10) !important; transform: translateY(-2px) !important; }
+        .post-modal { animation: modalIn 0.25s ease both; }
+      `}</style>
+
+      <div style={{ padding: '0 0 40px' }}>
+
+        {/* ── HEADER ── */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '28px', flexWrap: 'wrap', gap: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+            <div style={{
+              width: '46px', height: '46px',
+              background: 'linear-gradient(135deg, var(--capyme-blue-mid), var(--capyme-blue))',
+              borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: '0 4px 12px rgba(31,78,158,0.25)',
+            }}>
+              <ClipboardList style={{ width: '22px', height: '22px', color: '#fff' }} />
+            </div>
+            <div>
+              <h1 style={{ fontSize: '22px', fontWeight: 800, color: 'var(--gray-900)', fontFamily: "'Plus Jakarta Sans', sans-serif", margin: 0, lineHeight: 1.2 }}>
+                Postulaciones
+              </h1>
+              <p style={{ fontSize: '13px', color: 'var(--gray-500)', margin: '3px 0 0', fontFamily: "'DM Sans', sans-serif" }}>
+                {postulaciones.length} postulación{postulaciones.length !== 1 ? 'es' : ''} registrada{postulaciones.length !== 1 ? 's' : ''}
+              </p>
+            </div>
+          </div>
+
+          {['admin', 'colaborador'].includes(currentUser.rol) && (
+            <button
+              onClick={handleOpenCreate}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 18px',
+                background: 'linear-gradient(135deg, var(--capyme-blue-mid), var(--capyme-blue))',
+                color: '#fff', border: 'none', borderRadius: 'var(--radius-md)',
+                fontSize: '14px', fontWeight: 600, fontFamily: "'DM Sans', sans-serif",
+                cursor: 'pointer', boxShadow: '0 2px 8px rgba(31,78,158,0.28)', transition: 'all 150ms ease',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.opacity = '0.9'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
+              onMouseLeave={e => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.transform = 'translateY(0)'; }}
+            >
+              <Plus style={{ width: '16px', height: '16px' }} />
+              Nueva Postulación
+            </button>
+          )}
+        </div>
+
+        {/* ── STATS ── */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '12px', marginBottom: '20px' }}>
+          {stats.map((stat, i) => (
+            <div key={i} style={{
+              background: '#fff', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)',
+              padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '4px',
+              boxShadow: 'var(--shadow-sm)', borderLeft: `3px solid ${stat.color}`,
+            }}>
+              <span style={{ fontSize: '22px', fontWeight: 800, color: stat.color, fontFamily: "'Plus Jakarta Sans', sans-serif", lineHeight: 1 }}>{stat.value}</span>
+              <span style={{ fontSize: '12px', color: stat.color, fontFamily: "'DM Sans', sans-serif", fontWeight: 600, opacity: 0.75 }}>{stat.label}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* ── FILTROS ── */}
+        <div style={{
+          background: '#fff', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)',
+          padding: '16px 20px', marginBottom: '20px',
+          display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap',
+          boxShadow: 'var(--shadow-sm)',
+        }}>
+          {/* Buscar */}
+          <div style={{ position: 'relative', flex: '1', minWidth: '180px' }}>
+            <Search style={{ position: 'absolute', left: '11px', top: '50%', transform: 'translateY(-50%)', width: '15px', height: '15px', color: 'var(--gray-400)', pointerEvents: 'none' }} />
+            <input type="text" placeholder="Buscar negocio, programa, cliente…" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} style={inputWithIconStyle} />
+          </div>
+
+          {/* Programa */}
+          <div style={{ position: 'relative', minWidth: '160px' }}>
+            <select value={filterPrograma} onChange={e => setFilterPrograma(e.target.value)} style={{ ...selectStyle, width: '100%' }}>
+              <option value="">Todos los programas</option>
+              {programas.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
+            </select>
+            <ChevronDown style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', width: '14px', height: '14px', color: 'var(--gray-400)', pointerEvents: 'none' }} />
+          </div>
+
+          {/* Estado geográfico */}
+          <div style={{ position: 'relative', minWidth: '155px' }}>
+            <select
+              value={filterEstadoGeo}
+              onChange={e => { setFilterEstadoGeo(e.target.value); setFilterMunicipio(''); }}
+              style={{ ...selectStyle, width: '100%' }}
+            >
+              <option value="">Todos los estados</option>
+              {ESTADOS_MEXICO.map(e => <option key={e.nombre} value={e.nombre}>{e.nombre}</option>)}
+            </select>
+            <ChevronDown style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', width: '14px', height: '14px', color: 'var(--gray-400)', pointerEvents: 'none' }} />
+          </div>
+
+          {/* Municipio */}
+          <div style={{ position: 'relative', minWidth: '155px' }}>
+            <select value={filterMunicipio} onChange={e => setFilterMunicipio(e.target.value)} style={{ ...selectStyle, width: '100%', opacity: filterEstadoGeo ? 1 : 0.5 }} disabled={!filterEstadoGeo}>
+              <option value="">Todos los municipios</option>
+              {filterEstadoGeo && ESTADOS_MEXICO.find(e => e.nombre === filterEstadoGeo)?.municipios.map(m => <option key={m} value={m}>{m}</option>)}
+            </select>
+            <ChevronDown style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', width: '14px', height: '14px', color: 'var(--gray-400)', pointerEvents: 'none' }} />
+          </div>
+
+          {/* Estado postulación */}
+          <div style={{ position: 'relative', minWidth: '145px' }}>
+            <select value={filterEstadoPost} onChange={e => setFilterEstadoPost(e.target.value)} style={{ ...selectStyle, width: '100%' }}>
+              <option value="">Todos los estados</option>
+              {Object.entries(ESTADOS_CONFIG).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+            </select>
+            <ChevronDown style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', width: '14px', height: '14px', color: 'var(--gray-400)', pointerEvents: 'none' }} />
+          </div>
+
+          {/* View toggle */}
+          <div style={{ display: 'flex', gap: '4px', background: 'var(--gray-100)', borderRadius: 'var(--radius-sm)', padding: '3px', marginLeft: 'auto' }}>
+            {[{ mode: 'grid', Icon: LayoutGrid }, { mode: 'list', Icon: List }].map(({ mode, Icon }) => (
+              <button key={mode} onClick={() => setViewMode(mode)} style={{
+                width: '32px', height: '32px', border: 'none', borderRadius: 'var(--radius-sm)',
+                background: viewMode === mode ? '#fff' : 'transparent',
+                color: viewMode === mode ? 'var(--capyme-blue-mid)' : 'var(--gray-400)',
+                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxShadow: viewMode === mode ? 'var(--shadow-sm)' : 'none', transition: 'all 150ms ease',
+              }}>
+                <Icon style={{ width: '15px', height: '15px' }} />
+              </button>
+            ))}
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-            <div className="md:col-span-2">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                <input
-                  type="text"
-                  placeholder="Buscar por negocio, programa o cliente..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2B5BA6] focus:border-transparent"
-                />
+        {/* ── CONTENIDO ── */}
+        {postulacionesFiltradas.length === 0 ? (
+          <div style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '60px 20px', textAlign: 'center', boxShadow: 'var(--shadow-sm)' }}>
+            <ClipboardList style={{ width: '48px', height: '48px', color: 'var(--gray-300)', margin: '0 auto 12px' }} />
+            <p style={{ fontSize: '15px', fontWeight: 600, color: 'var(--gray-500)', fontFamily: "'DM Sans', sans-serif" }}>No se encontraron postulaciones</p>
+            <p style={{ fontSize: '13px', color: 'var(--gray-400)', fontFamily: "'DM Sans', sans-serif", marginTop: '4px' }}>Ajusta los filtros o crea una nueva postulación</p>
+          </div>
+        ) : viewMode === 'grid' ? (
+
+          // ── GRID VIEW ────────────────────────────────────────────────────
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '16px' }}>
+            {postulacionesFiltradas.map((post, idx) => (
+              <div
+                key={post.id}
+                className="post-card"
+                style={{
+                  background: '#fff', border: '1px solid var(--border)',
+                  borderRadius: 'var(--radius-lg)', padding: '18px 20px',
+                  boxShadow: 'var(--shadow-sm)', transition: 'all 200ms ease',
+                  animationDelay: `${idx * 0.04}s`,
+                }}
+              >
+                {/* Card header */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+                  <EstadoBadge estado={post.estado} />
+                  <span style={{ fontSize: '11px', color: 'var(--gray-400)', fontFamily: "'DM Sans', sans-serif" }}>
+                    #{post.id}
+                  </span>
+                </div>
+
+                {/* Negocio */}
+                <div style={{ marginBottom: '8px' }}>
+                  <p style={{ fontSize: '15px', fontWeight: 700, color: 'var(--gray-900)', fontFamily: "'Plus Jakarta Sans', sans-serif", margin: 0, lineHeight: 1.3 }}>
+                    {post.negocio?.nombreNegocio}
+                  </p>
+                  {post.negocio?.categoria && (
+                    <p style={{ fontSize: '12px', color: 'var(--gray-500)', fontFamily: "'DM Sans', sans-serif", margin: '2px 0 0' }}>
+                      {post.negocio.categoria.nombre}
+                    </p>
+                  )}
+                </div>
+
+                {/* Info rows */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '14px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
+                    <FileText style={{ width: '13px', height: '13px', color: 'var(--capyme-blue-mid)', flexShrink: 0 }} />
+                    <span style={{ fontSize: '12px', color: 'var(--gray-700)', fontFamily: "'DM Sans', sans-serif", fontWeight: 500 }}>
+                      {post.programa?.nombre}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
+                    <User style={{ width: '13px', height: '13px', color: 'var(--gray-400)', flexShrink: 0 }} />
+                    <span style={{ fontSize: '12px', color: 'var(--gray-500)', fontFamily: "'DM Sans', sans-serif" }}>
+                      {post.usuario?.nombre} {post.usuario?.apellido}
+                    </span>
+                  </div>
+                  {(post.estadoGeo || post.municipio) && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
+                      <MapPin style={{ width: '13px', height: '13px', color: 'var(--gray-400)', flexShrink: 0 }} />
+                      <span style={{ fontSize: '12px', color: 'var(--gray-500)', fontFamily: "'DM Sans', sans-serif" }}>
+                        {[post.municipio, post.estadoGeo].filter(Boolean).join(', ')}
+                      </span>
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
+                    <Calendar style={{ width: '13px', height: '13px', color: 'var(--gray-400)', flexShrink: 0 }} />
+                    <span style={{ fontSize: '12px', color: 'var(--gray-500)', fontFamily: "'DM Sans', sans-serif" }}>
+                      {formatDate(post.fechaPostulacion)}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Acciones */}
+                <div style={{ display: 'flex', gap: '6px', paddingTop: '12px', borderTop: '1px solid var(--gray-100)' }}>
+                  {/* Ver */}
+                  <button onClick={() => handleOpenDetalle(post.id)} title="Ver detalle" style={{ width: '32px', height: '32px', border: 'none', borderRadius: 'var(--radius-sm)', background: 'transparent', cursor: 'pointer', color: 'var(--gray-400)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 150ms ease' }}
+                    onMouseEnter={e => { e.currentTarget.style.background = '#EEF4FF'; e.currentTarget.style.color = 'var(--capyme-blue-mid)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gray-400)'; }}>
+                    <Eye style={{ width: '14px', height: '14px' }} />
+                  </button>
+
+                  {/* Editar (admin y colaborador) */}
+                  {['admin', 'colaborador'].includes(currentUser.rol) && (
+                    <button onClick={() => handleOpenEdit(post)} title="Editar" style={{ width: '32px', height: '32px', border: 'none', borderRadius: 'var(--radius-sm)', background: 'transparent', cursor: 'pointer', color: 'var(--gray-400)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 150ms ease' }}
+                      onMouseEnter={e => { e.currentTarget.style.background = '#EEF4FF'; e.currentTarget.style.color = 'var(--capyme-blue-mid)'; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gray-400)'; }}>
+                      <Edit style={{ width: '14px', height: '14px' }} />
+                    </button>
+                  )}
+
+                  {/* Cambiar estado (admin y colaborador) */}
+                  {['admin', 'colaborador'].includes(currentUser.rol) && (
+                    <button onClick={() => handleOpenEstado(post)} style={{
+                      flex: 1, padding: '6px 10px', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)',
+                      background: '#fff', color: 'var(--gray-600)', fontSize: '12px', fontWeight: 600,
+                      fontFamily: "'DM Sans', sans-serif", cursor: 'pointer', transition: 'all 150ms ease',
+                    }}
+                      onMouseEnter={e => { e.currentTarget.style.background = '#EEF4FF'; e.currentTarget.style.borderColor = 'var(--capyme-blue-mid)'; e.currentTarget.style.color = 'var(--capyme-blue-mid)'; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--gray-600)'; }}>
+                      Cambiar estado
+                    </button>
+                  )}
+
+                  {/* Toggle / activar-desactivar (solo admin) */}
+                  {currentUser.rol === 'admin' && (
+                    <button onClick={() => handleToggleActivo(post)} title={post.estado === 'completada' ? 'Marcar pendiente' : 'Marcar completada'}
+                      style={{ width: '32px', height: '32px', border: 'none', borderRadius: 'var(--radius-sm)', background: 'transparent', cursor: 'pointer', color: post.estado === 'completada' ? '#5B21B6' : 'var(--gray-400)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 150ms ease' }}
+                      onMouseEnter={e => { e.currentTarget.style.background = '#EDE9FE'; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}>
+                      {post.estado === 'completada' ? <ToggleRight style={{ width: '16px', height: '16px' }} /> : <ToggleLeft style={{ width: '16px', height: '16px' }} />}
+                    </button>
+                  )}
+                </div>
               </div>
-            </div>
-            <div>
-              <select
-                value={filterPrograma}
-                onChange={(e) => setFilterPrograma(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2B5BA6] focus:border-transparent"
-              >
-                <option value="">Todos los programas</option>
-                {programas.map(prog => (
-                  <option key={prog.id} value={prog.id}>{prog.nombre}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <select
-                value={filterEstado}
-                onChange={(e) => setFilterEstado(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2B5BA6] focus:border-transparent"
-              >
-                <option value="">Todos los estados</option>
-                <option value="pendiente">Pendiente</option>
-                <option value="en_revision">En Revisión</option>
-                <option value="aprobada">Aprobada</option>
-                <option value="rechazada">Rechazada</option>
-                <option value="completada">Completada</option>
-              </select>
-            </div>
+            ))}
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Negocio</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Programa</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cliente</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha</th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+        ) : (
+
+          // ── LIST / TABLE VIEW ─────────────────────────────────────────────
+          <div style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', overflow: 'hidden', boxShadow: 'var(--shadow-sm)' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ background: 'var(--gray-50)', borderBottom: '1px solid var(--border)' }}>
+                  {['Negocio', 'Programa', 'Cliente', 'Ubicación', 'Estado', 'Fecha', 'Acciones'].map(h => (
+                    <th key={h} style={{ padding: '11px 16px', textAlign: h === 'Acciones' ? 'right' : 'left', fontSize: '11px', fontWeight: 700, color: 'var(--gray-500)', textTransform: 'uppercase', letterSpacing: '0.05em', fontFamily: "'Plus Jakarta Sans', sans-serif", whiteSpace: 'nowrap' }}>{h}</th>
+                  ))}
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {postulacionesFiltradas.length > 0 ? (
-                  postulacionesFiltradas.map((postulacion) => {
-                    const estadoInfo = getEstadoBadge(postulacion.estado);
-                    const IconEstado = estadoInfo.icon;
-                    return (
-                      <tr key={postulacion.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4">
-                          <div className="flex items-center">
-                            <Building2 className="w-5 h-5 text-gray-400 mr-3" />
-                            <div>
-                              <div className="text-sm font-medium text-gray-900">
-                                {postulacion.negocio?.nombreNegocio}
-                              </div>
-                              <div className="text-sm text-gray-500">
-                                {postulacion.negocio?.categoria?.nombre}
-                              </div>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="flex items-center">
-                            <FileText className="w-5 h-5 text-gray-400 mr-3" />
-                            <div className="text-sm text-gray-900">
-                              {postulacion.programa?.nombre}
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="flex items-center">
-                            <User className="w-5 h-5 text-gray-400 mr-3" />
-                            <div>
-                              <div className="text-sm font-medium text-gray-900">
-                                {postulacion.usuario?.nombre} {postulacion.usuario?.apellido}
-                              </div>
-                              <div className="text-sm text-gray-500">
-                                {postulacion.usuario?.email}
-                              </div>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className={`inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-full ${estadoInfo.color}`}>
-                            <IconEstado className="w-3 h-3" />
-                            {getEstadoNombre(postulacion.estado)}
+              <tbody>
+                {postulacionesFiltradas.map(post => (
+                  <tr
+                    key={post.id}
+                    onMouseEnter={() => setHoveredRow(post.id)}
+                    onMouseLeave={() => setHoveredRow(null)}
+                    style={{ borderBottom: '1px solid var(--gray-100)', background: hoveredRow === post.id ? 'var(--gray-50)' : '#fff', transition: 'background 150ms ease' }}
+                  >
+                    {/* Negocio */}
+                    <td style={{ padding: '12px 16px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <div style={{ width: '30px', height: '30px', background: '#EEF4FF', borderRadius: 'var(--radius-sm)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          <Building2 style={{ width: '14px', height: '14px', color: 'var(--capyme-blue-mid)' }} />
+                        </div>
+                        <div>
+                          <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--gray-900)', margin: 0, fontFamily: "'DM Sans', sans-serif" }}>{post.negocio?.nombreNegocio}</p>
+                          <p style={{ fontSize: '11px', color: 'var(--gray-400)', margin: 0, fontFamily: "'DM Sans', sans-serif" }}>{post.negocio?.categoria?.nombre}</p>
+                        </div>
+                      </div>
+                    </td>
+
+                    {/* Programa */}
+                    <td style={{ padding: '12px 16px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
+                        <FileText style={{ width: '13px', height: '13px', color: 'var(--gray-400)', flexShrink: 0 }} />
+                        <span style={{ fontSize: '13px', color: 'var(--gray-700)', fontFamily: "'DM Sans', sans-serif", maxWidth: '160px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {post.programa?.nombre}
+                        </span>
+                      </div>
+                    </td>
+
+                    {/* Cliente */}
+                    <td style={{ padding: '12px 16px' }}>
+                      <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--gray-900)', margin: 0, fontFamily: "'DM Sans', sans-serif" }}>{post.usuario?.nombre} {post.usuario?.apellido}</p>
+                      <p style={{ fontSize: '11px', color: 'var(--gray-400)', margin: 0, fontFamily: "'DM Sans', sans-serif" }}>{post.usuario?.email}</p>
+                    </td>
+
+                    {/* Ubicación */}
+                    <td style={{ padding: '12px 16px' }}>
+                      {(post.estadoGeo || post.municipio) ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                          <MapPin style={{ width: '12px', height: '12px', color: 'var(--gray-400)', flexShrink: 0 }} />
+                          <span style={{ fontSize: '12px', color: 'var(--gray-600)', fontFamily: "'DM Sans', sans-serif" }}>
+                            {[post.municipio, post.estadoGeo].filter(Boolean).join(', ')}
                           </span>
-                        </td>
-                        <td className="px-6 py-4 text-sm text-gray-500">
-                          {formatDate(postulacion.fechaPostulacion)}
-                        </td>
-                        <td className="px-6 py-4 text-right text-sm font-medium">
-                          <div className="flex items-center justify-end gap-2">
-                            <button
-                              onClick={() => handleVerDetalle(postulacion.id)}
-                              className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                              title="Ver detalles"
-                            >
-                              <Eye className="w-5 h-5" />
+                        </div>
+                      ) : (
+                        <span style={{ fontSize: '12px', color: 'var(--gray-300)', fontFamily: "'DM Sans', sans-serif" }}>—</span>
+                      )}
+                    </td>
+
+                    {/* Estado */}
+                    <td style={{ padding: '12px 16px' }}>
+                      <EstadoBadge estado={post.estado} />
+                    </td>
+
+                    {/* Fecha */}
+                    <td style={{ padding: '12px 16px' }}>
+                      <span style={{ fontSize: '12px', color: 'var(--gray-500)', fontFamily: "'DM Sans', sans-serif" }}>{formatDate(post.fechaPostulacion)}</span>
+                    </td>
+
+                    {/* Acciones */}
+                    <td style={{ padding: '12px 16px', textAlign: 'right' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '4px' }}>
+                        <button onClick={() => handleOpenDetalle(post.id)} title="Ver" style={{ width: '30px', height: '30px', border: 'none', borderRadius: 'var(--radius-sm)', background: 'transparent', cursor: 'pointer', color: 'var(--gray-400)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 150ms ease' }}
+                          onMouseEnter={e => { e.currentTarget.style.background = '#EEF4FF'; e.currentTarget.style.color = 'var(--capyme-blue-mid)'; }}
+                          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gray-400)'; }}>
+                          <Eye style={{ width: '14px', height: '14px' }} />
+                        </button>
+
+                        {['admin', 'colaborador'].includes(currentUser.rol) && (
+                          <>
+                            <button onClick={() => handleOpenEdit(post)} title="Editar" style={{ width: '30px', height: '30px', border: 'none', borderRadius: 'var(--radius-sm)', background: 'transparent', cursor: 'pointer', color: 'var(--gray-400)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 150ms ease' }}
+                              onMouseEnter={e => { e.currentTarget.style.background = '#EEF4FF'; e.currentTarget.style.color = 'var(--capyme-blue-mid)'; }}
+                              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gray-400)'; }}>
+                              <Edit style={{ width: '14px', height: '14px' }} />
                             </button>
-                            <button
-                              onClick={() => handleOpenEstadoModal(postulacion)}
-                              className="px-3 py-1 text-sm text-[#2B5BA6] bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
-                            >
-                              Cambiar Estado
+                            <button onClick={() => handleOpenEstado(post)} style={{
+                              padding: '4px 10px', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)',
+                              background: '#fff', color: 'var(--gray-600)', fontSize: '11px', fontWeight: 600,
+                              fontFamily: "'DM Sans', sans-serif", cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all 150ms ease',
+                            }}
+                              onMouseEnter={e => { e.currentTarget.style.background = '#EEF4FF'; e.currentTarget.style.borderColor = 'var(--capyme-blue-mid)'; e.currentTarget.style.color = 'var(--capyme-blue-mid)'; }}
+                              onMouseLeave={e => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--gray-600)'; }}>
+                              Estado
                             </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })
-                ) : (
-                  <tr>
-                    <td colSpan="6" className="px-6 py-8 text-center">
-                      <ClipboardList className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                      <p className="text-gray-500">No se encontraron postulaciones</p>
+                          </>
+                        )}
+
+                        {currentUser.rol === 'admin' && (
+                          <button onClick={() => handleToggleActivo(post)} title={post.estado === 'completada' ? 'Marcar pendiente' : 'Marcar completada'}
+                            style={{ width: '30px', height: '30px', border: 'none', borderRadius: 'var(--radius-sm)', background: 'transparent', cursor: 'pointer', color: post.estado === 'completada' ? '#5B21B6' : 'var(--gray-400)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 150ms ease' }}
+                            onMouseEnter={e => { e.currentTarget.style.background = '#EDE9FE'; }}
+                            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}>
+                            {post.estado === 'completada' ? <ToggleRight style={{ width: '15px', height: '15px' }} /> : <ToggleLeft style={{ width: '15px', height: '15px' }} />}
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
-                )}
+                ))}
               </tbody>
             </table>
           </div>
-        </div>
+        )}
       </div>
 
-      {showDetalleModal && selectedPostulacion && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between p-6 border-b border-gray-200">
-              <h2 className="text-xl font-semibold text-gray-900">Detalle de Postulación</h2>
-              <button onClick={handleCloseModals} className="text-gray-400 hover:text-gray-600">
-                <X className="w-6 h-6" />
+      {/* ════════════════════════════════════════════════════════════
+          MODAL CREAR / EDITAR
+      ════════════════════════════════════════════════════════════ */}
+      {showModal && (
+        <div
+          onClick={handleCloseAll}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}
+        >
+          <div
+            className="post-modal"
+            onClick={e => e.stopPropagation()}
+            style={{ background: '#fff', borderRadius: 'var(--radius-xl)', width: '100%', maxWidth: '580px', maxHeight: '90vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 24px 64px rgba(0,0,0,0.18)' }}
+          >
+            {/* Header */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 24px', background: 'var(--gray-50)', borderBottom: '1px solid var(--border)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ width: '34px', height: '34px', background: 'linear-gradient(135deg, var(--capyme-blue-mid), var(--capyme-blue))', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <ClipboardList style={{ width: '16px', height: '16px', color: '#fff' }} />
+                </div>
+                <h2 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--gray-900)', margin: 0, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                  {modalMode === 'create' ? 'Nueva Postulación' : 'Editar Postulación'}
+                </h2>
+              </div>
+              <button onClick={handleCloseAll} style={{ width: '30px', height: '30px', border: 'none', borderRadius: 'var(--radius-sm)', background: 'transparent', cursor: 'pointer', color: 'var(--gray-400)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <X style={{ width: '16px', height: '16px' }} />
               </button>
             </div>
 
-            <div className="p-6 space-y-6">
-              <div className="grid grid-cols-2 gap-6">
-                <div>
-                  <h3 className="text-sm font-medium text-gray-500 mb-2">Negocio</h3>
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <p className="font-semibold text-gray-900">{selectedPostulacion.negocio?.nombreNegocio}</p>
-                    <p className="text-sm text-gray-600 mt-1">{selectedPostulacion.negocio?.rfc}</p>
-                    <p className="text-sm text-gray-600">{selectedPostulacion.negocio?.categoria?.nombre}</p>
+            {/* Body */}
+            <div style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
+
+              {/* SECCIÓN: Negocio y Programa */}
+              <div>
+                <SectionTitle icon={Building2} text="Negocio y Programa" />
+                <div style={{ marginTop: '14px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+
+                  {/* Negocio */}
+                  <div>
+                    <label style={labelStyle}>Negocio <span style={{ color: '#EF4444' }}>*</span></label>
+                    <div style={{ position: 'relative' }}>
+                      <select
+                        name="negocioId"
+                        value={formData.negocioId}
+                        onChange={handleChange}
+                        disabled={modalMode === 'edit'}
+                        style={{ ...selectStyle, ...(formErrors.negocioId ? inputErrorStyle : {}), opacity: modalMode === 'edit' ? 0.6 : 1 }}
+                      >
+                        <option value="">Selecciona un negocio</option>
+                        {negocios.map(n => <option key={n.id} value={n.id}>{n.nombreNegocio}</option>)}
+                      </select>
+                      <ChevronDown style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', width: '14px', height: '14px', color: 'var(--gray-400)', pointerEvents: 'none' }} />
+                    </div>
+                    <ErrorMsg msg={formErrors.negocioId} />
+                  </div>
+
+                  {/* Programa */}
+                  <div>
+                    <label style={labelStyle}>Programa <span style={{ color: '#EF4444' }}>*</span></label>
+                    <div style={{ position: 'relative' }}>
+                      <select
+                        name="programaId"
+                        value={formData.programaId}
+                        onChange={handleChange}
+                        disabled={modalMode === 'edit'}
+                        style={{ ...selectStyle, ...(formErrors.programaId ? inputErrorStyle : {}), opacity: modalMode === 'edit' ? 0.6 : 1 }}
+                      >
+                        <option value="">Selecciona un programa</option>
+                        {programas.filter(p => p.activo).map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
+                      </select>
+                      <ChevronDown style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', width: '14px', height: '14px', color: 'var(--gray-400)', pointerEvents: 'none' }} />
+                    </div>
+                    <ErrorMsg msg={formErrors.programaId} />
                   </div>
                 </div>
 
-                <div>
-                  <h3 className="text-sm font-medium text-gray-500 mb-2">Programa</h3>
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <p className="font-semibold text-gray-900">{selectedPostulacion.programa?.nombre}</p>
-                    <p className="text-sm text-gray-600 mt-1">{selectedPostulacion.programa?.tipoPrograma}</p>
+                {/* Usuario responsable (admin y colaborador, solo en crear) */}
+                {modalMode === 'create' && ['admin', 'colaborador'].includes(currentUser.rol) && (
+                  <div style={{ marginTop: '14px' }}>
+                    <label style={labelStyle}>Usuario responsable <span style={{ color: '#EF4444' }}>*</span></label>
+                    <div style={{ position: 'relative' }}>
+                      <select
+                        name="usuarioId"
+                        value={formData.usuarioId}
+                        onChange={handleChange}
+                        style={{ ...selectStyle, ...(formErrors.usuarioId ? inputErrorStyle : {}) }}
+                      >
+                        <option value="">Selecciona el usuario / cliente</option>
+                        {usuarios.map(u => (
+                          <option key={u.id} value={u.id}>
+                            {u.nombre} {u.apellido} — {u.email} {u.rol === 'cliente' ? '(cliente)' : `(${u.rol})`}
+                          </option>
+                        ))}
+                      </select>
+                      <ChevronDown style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', width: '14px', height: '14px', color: 'var(--gray-400)', pointerEvents: 'none' }} />
+                    </div>
+                    <ErrorMsg msg={formErrors.usuarioId} />
                   </div>
-                </div>
+                )}
+              </div>
 
-                <div>
-                  <h3 className="text-sm font-medium text-gray-500 mb-2">Cliente</h3>
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <p className="font-semibold text-gray-900">
-                      {selectedPostulacion.usuario?.nombre} {selectedPostulacion.usuario?.apellido}
-                    </p>
-                    <p className="text-sm text-gray-600 mt-1">{selectedPostulacion.usuario?.email}</p>
-                    <p className="text-sm text-gray-600">{selectedPostulacion.usuario?.telefono}</p>
+              {/* SECCIÓN: Ubicación */}
+              <div style={{ marginTop: '24px' }}>
+                <SectionTitle icon={MapPin} text="Ubicación geográfica" />
+                <div style={{ marginTop: '14px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+                  <div>
+                    <label style={labelStyle}>Estado</label>
+                    <div style={{ position: 'relative' }}>
+                      <select name="estadoGeo" value={formData.estadoGeo} onChange={handleChange} style={selectStyle}>
+                        <option value="">Aplica a todos los estados</option>
+                        {ESTADOS_MEXICO.map(e => <option key={e.nombre} value={e.nombre}>{e.nombre}</option>)}
+                      </select>
+                      <ChevronDown style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', width: '14px', height: '14px', color: 'var(--gray-400)', pointerEvents: 'none' }} />
+                    </div>
                   </div>
-                </div>
-
-                <div>
-                  <h3 className="text-sm font-medium text-gray-500 mb-2">Estado Actual</h3>
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <span className={`inline-flex items-center gap-1 px-3 py-1 text-sm font-semibold rounded-full ${getEstadoBadge(selectedPostulacion.estado).color}`}>
-                      {getEstadoNombre(selectedPostulacion.estado)}
-                    </span>
-                    <p className="text-sm text-gray-600 mt-2">
-                      {formatDate(selectedPostulacion.fechaPostulacion)}
-                    </p>
+                  <div>
+                    <label style={labelStyle}>Municipio</label>
+                    <div style={{ position: 'relative' }}>
+                      <select
+                        name="municipio"
+                        value={formData.municipio}
+                        onChange={handleChange}
+                        disabled={!formData.estadoGeo}
+                        style={{ ...selectStyle, opacity: formData.estadoGeo ? 1 : 0.5 }}
+                      >
+                        <option value="">Todos los municipios</option>
+                        {formData.estadoGeo && ESTADOS_MEXICO.find(e => e.nombre === formData.estadoGeo)?.municipios.map(m => (
+                          <option key={m} value={m}>{m}</option>
+                        ))}
+                      </select>
+                      <ChevronDown style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', width: '14px', height: '14px', color: 'var(--gray-400)', pointerEvents: 'none' }} />
+                    </div>
                   </div>
                 </div>
               </div>
 
-              {selectedPostulacion.respuestas && selectedPostulacion.respuestas.length > 0 && (
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Respuestas del Formulario</h3>
-                  <div className="space-y-4">
-                    {selectedPostulacion.respuestas.map((respuesta) => (
-                      <div key={respuesta.id} className="bg-gray-50 p-4 rounded-lg">
-                        <p className="text-sm font-medium text-gray-700 mb-2">
-                          {respuesta.pregunta?.pregunta}
+              {/* Info del programa seleccionado */}
+              {formData.programaId && (() => {
+                const prog = programas.find(p => p.id === parseInt(formData.programaId));
+                if (!prog) return null;
+                return (
+                  <div style={{ marginTop: '24px' }}>
+                    <SectionTitle icon={FileText} text="Información del programa" />
+                    <div style={{ marginTop: '14px', background: '#F0F7FF', border: '1px solid #BFDBFE', borderRadius: 'var(--radius-md)', padding: '14px 16px' }}>
+                      <p style={{ fontSize: '14px', fontWeight: 700, color: 'var(--capyme-blue-mid)', margin: '0 0 6px', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{prog.nombre}</p>
+                      {prog.descripcion && <p style={{ fontSize: '13px', color: 'var(--gray-600)', margin: '0 0 8px', fontFamily: "'DM Sans', sans-serif" }}>{prog.descripcion}</p>}
+                      <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+                        {prog.montoApoyo && <span style={{ fontSize: '12px', color: '#065F46', fontWeight: 600, fontFamily: "'DM Sans', sans-serif" }}>💰 ${Number(prog.montoApoyo).toLocaleString('es-MX')}</span>}
+                        {prog.estado && <span style={{ fontSize: '12px', color: 'var(--gray-500)', fontFamily: "'DM Sans', sans-serif" }}>📍 {[prog.municipio, prog.estado].filter(Boolean).join(', ')}</span>}
+                        {prog.fechaCierre && <span style={{ fontSize: '12px', color: '#991B1B', fontWeight: 600, fontFamily: "'DM Sans', sans-serif" }}>⏰ Cierra: {formatDate(prog.fechaCierre)}</span>}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* Footer */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', padding: '16px 24px', background: 'var(--gray-50)', borderTop: '1px solid var(--border)' }}>
+              <button onClick={handleCloseAll} style={{ padding: '9px 18px', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', background: '#fff', color: 'var(--gray-700)', fontSize: '14px', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", cursor: 'pointer' }}>
+                Cancelar
+              </button>
+              <button
+                onClick={handleSubmit}
+                disabled={submitting}
+                style={{
+                  padding: '9px 22px', border: 'none', borderRadius: 'var(--radius-md)',
+                  background: submitting ? 'var(--gray-300)' : 'linear-gradient(135deg, var(--capyme-blue-mid), var(--capyme-blue))',
+                  color: '#fff', fontSize: '14px', fontWeight: 600, fontFamily: "'DM Sans', sans-serif",
+                  cursor: submitting ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: '8px',
+                }}
+              >
+                {submitting && <div style={{ width: '14px', height: '14px', border: '2px solid rgba(255,255,255,0.4)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />}
+                {modalMode === 'create' ? 'Crear Postulación' : 'Guardar Cambios'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ════════════════════════════════════════════════════════════
+          MODAL DETALLE
+      ════════════════════════════════════════════════════════════ */}
+      {showDetalle && selectedPost && (
+        <div
+          onClick={handleCloseAll}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}
+        >
+          <div
+            className="post-modal"
+            onClick={e => e.stopPropagation()}
+            style={{ background: '#fff', borderRadius: 'var(--radius-xl)', width: '100%', maxWidth: '720px', maxHeight: '90vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 24px 64px rgba(0,0,0,0.18)' }}
+          >
+            {/* Header */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 24px', background: 'var(--gray-50)', borderBottom: '1px solid var(--border)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <h2 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--gray-900)', margin: 0, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                  Detalle de Postulación #{selectedPost.id}
+                </h2>
+                <EstadoBadge estado={selectedPost.estado} />
+              </div>
+              <button onClick={handleCloseAll} style={{ width: '30px', height: '30px', border: 'none', borderRadius: 'var(--radius-sm)', background: 'transparent', cursor: 'pointer', color: 'var(--gray-400)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <X style={{ width: '16px', height: '16px' }} />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
+
+              {/* Grid de info principal */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px' }}>
+
+                {/* Negocio */}
+                <div style={{ background: 'var(--gray-50)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '14px 16px' }}>
+                  <p style={{ fontSize: '11px', fontWeight: 700, color: 'var(--gray-400)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 8px', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Negocio</p>
+                  <p style={{ fontSize: '14px', fontWeight: 700, color: 'var(--gray-900)', margin: '0 0 4px', fontFamily: "'DM Sans', sans-serif" }}>{selectedPost.negocio?.nombreNegocio}</p>
+                  {selectedPost.negocio?.rfc && <p style={{ fontSize: '12px', color: 'var(--gray-500)', margin: '0 0 2px', fontFamily: "'DM Sans', sans-serif" }}>RFC: {selectedPost.negocio.rfc}</p>}
+                  {selectedPost.negocio?.categoria && <p style={{ fontSize: '12px', color: 'var(--gray-500)', margin: 0, fontFamily: "'DM Sans', sans-serif" }}>{selectedPost.negocio.categoria.nombre}</p>}
+                </div>
+
+                {/* Programa */}
+                <div style={{ background: '#F0F7FF', border: '1px solid #BFDBFE', borderRadius: 'var(--radius-md)', padding: '14px 16px' }}>
+                  <p style={{ fontSize: '11px', fontWeight: 700, color: '#1E40AF', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 8px', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Programa</p>
+                  <p style={{ fontSize: '14px', fontWeight: 700, color: 'var(--capyme-blue-mid)', margin: '0 0 4px', fontFamily: "'DM Sans', sans-serif" }}>{selectedPost.programa?.nombre}</p>
+                  {selectedPost.programa?.tipoPrograma && <p style={{ fontSize: '12px', color: '#1E40AF', margin: '0 0 2px', fontFamily: "'DM Sans', sans-serif" }}>{selectedPost.programa.tipoPrograma}</p>}
+                  {selectedPost.programa?.montoApoyo && <p style={{ fontSize: '12px', color: '#065F46', fontWeight: 600, margin: 0, fontFamily: "'DM Sans', sans-serif" }}>💰 ${Number(selectedPost.programa.montoApoyo).toLocaleString('es-MX')}</p>}
+                </div>
+
+                {/* Cliente */}
+                <div style={{ background: 'var(--gray-50)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '14px 16px' }}>
+                  <p style={{ fontSize: '11px', fontWeight: 700, color: 'var(--gray-400)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 8px', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Cliente / Usuario</p>
+                  <p style={{ fontSize: '14px', fontWeight: 700, color: 'var(--gray-900)', margin: '0 0 4px', fontFamily: "'DM Sans', sans-serif" }}>{selectedPost.usuario?.nombre} {selectedPost.usuario?.apellido}</p>
+                  <p style={{ fontSize: '12px', color: 'var(--gray-500)', margin: '0 0 2px', fontFamily: "'DM Sans', sans-serif" }}>{selectedPost.usuario?.email}</p>
+                  {selectedPost.usuario?.telefono && <p style={{ fontSize: '12px', color: 'var(--gray-500)', margin: 0, fontFamily: "'DM Sans', sans-serif" }}>{selectedPost.usuario.telefono}</p>}
+                </div>
+
+                {/* Ubicación y fechas */}
+                <div style={{ background: 'var(--gray-50)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '14px 16px' }}>
+                  <p style={{ fontSize: '11px', fontWeight: 700, color: 'var(--gray-400)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 8px', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Detalles</p>
+                  {(selectedPost.estadoGeo || selectedPost.municipio) && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
+                      <MapPin style={{ width: '13px', height: '13px', color: 'var(--gray-400)' }} />
+                      <span style={{ fontSize: '13px', color: 'var(--gray-700)', fontFamily: "'DM Sans', sans-serif" }}>
+                        {[selectedPost.municipio, selectedPost.estadoGeo].filter(Boolean).join(', ')}
+                      </span>
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Calendar style={{ width: '13px', height: '13px', color: 'var(--gray-400)' }} />
+                    <span style={{ fontSize: '13px', color: 'var(--gray-700)', fontFamily: "'DM Sans', sans-serif" }}>
+                      {formatDate(selectedPost.fechaPostulacion)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Respuestas */}
+              {selectedPost.respuestas?.length > 0 && (
+                <div style={{ marginBottom: '20px' }}>
+                  <SectionTitle icon={FileText} text="Respuestas del formulario" />
+                  <div style={{ marginTop: '14px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    {selectedPost.respuestas.map(r => (
+                      <div key={r.id} style={{ background: 'var(--gray-50)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '12px 14px' }}>
+                        <p style={{ fontSize: '12px', fontWeight: 600, color: 'var(--gray-600)', margin: '0 0 6px', fontFamily: "'DM Sans', sans-serif" }}>
+                          {r.pregunta?.pregunta}
                         </p>
-                        <p className="text-sm text-gray-900">{respuesta.respuesta || 'Sin respuesta'}</p>
+                        <p style={{ fontSize: '13px', color: 'var(--gray-900)', margin: 0, fontFamily: "'DM Sans', sans-serif" }}>
+                          {r.respuesta || <em style={{ color: 'var(--gray-400)' }}>Sin respuesta</em>}
+                        </p>
                       </div>
                     ))}
                   </div>
                 </div>
               )}
 
-              {selectedPostulacion.notasAdmin && (
+              {/* Notas admin */}
+              {selectedPost.notasAdmin && (
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Notas Administrativas</h3>
-                  <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
-                    <p className="text-sm text-gray-900">{selectedPostulacion.notasAdmin}</p>
+                  <SectionTitle icon={Tag} text="Notas administrativas" />
+                  <div style={{ marginTop: '14px', background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 'var(--radius-md)', padding: '14px 16px' }}>
+                    <p style={{ fontSize: '13px', color: 'var(--gray-800)', margin: 0, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6 }}>
+                      {selectedPost.notasAdmin}
+                    </p>
                   </div>
                 </div>
               )}
+            </div>
+
+            {/* Footer */}
+            <div style={{ padding: '14px 24px', background: 'var(--gray-50)', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+              {['admin', 'colaborador'].includes(currentUser.rol) && (
+                <button onClick={() => { handleCloseAll(); setTimeout(() => handleOpenEstado(selectedPost), 50); }}
+                  style={{ padding: '8px 16px', border: '1px solid var(--capyme-blue-mid)', borderRadius: 'var(--radius-md)', background: '#EEF4FF', color: 'var(--capyme-blue-mid)', fontSize: '13px', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", cursor: 'pointer' }}>
+                  Cambiar Estado
+                </button>
+              )}
+              <button onClick={handleCloseAll} style={{ padding: '8px 16px', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', background: '#fff', color: 'var(--gray-700)', fontSize: '13px', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", cursor: 'pointer' }}>
+                Cerrar
+              </button>
             </div>
           </div>
         </div>
       )}
 
-      {showEstadoModal && selectedPostulacion && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-md w-full">
-            <div className="flex items-center justify-between p-6 border-b border-gray-200">
-              <h2 className="text-xl font-semibold text-gray-900">Cambiar Estado</h2>
-              <button onClick={handleCloseModals} className="text-gray-400 hover:text-gray-600">
-                <X className="w-6 h-6" />
+      {/* ════════════════════════════════════════════════════════════
+          MODAL CAMBIAR ESTADO
+      ════════════════════════════════════════════════════════════ */}
+      {showEstado && selectedPost && (
+        <div
+          onClick={handleCloseAll}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}
+        >
+          <div
+            className="post-modal"
+            onClick={e => e.stopPropagation()}
+            style={{ background: '#fff', borderRadius: 'var(--radius-xl)', width: '100%', maxWidth: '440px', overflow: 'hidden', boxShadow: '0 24px 64px rgba(0,0,0,0.18)' }}
+          >
+            {/* Header */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 22px', background: 'var(--gray-50)', borderBottom: '1px solid var(--border)' }}>
+              <h2 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--gray-900)', margin: 0, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                Cambiar Estado
+              </h2>
+              <button onClick={handleCloseAll} style={{ width: '28px', height: '28px', border: 'none', borderRadius: 'var(--radius-sm)', background: 'transparent', cursor: 'pointer', color: 'var(--gray-400)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <X style={{ width: '15px', height: '15px' }} />
               </button>
             </div>
 
-            <div className="p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Nuevo Estado
-                </label>
-                <select
-                  value={estadoData.estado}
-                  onChange={(e) => setEstadoData({ ...estadoData, estado: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2B5BA6] focus:border-transparent"
-                >
-                  <option value="pendiente">Pendiente</option>
-                  <option value="en_revision">En Revisión</option>
-                  <option value="aprobada">Aprobada</option>
-                  <option value="rechazada">Rechazada</option>
-                  <option value="completada">Completada</option>
-                </select>
+            {/* Body */}
+            <div style={{ padding: '22px' }}>
+              <p style={{ fontSize: '13px', color: 'var(--gray-500)', margin: '0 0 18px', fontFamily: "'DM Sans', sans-serif" }}>
+                <strong style={{ color: 'var(--gray-800)' }}>{selectedPost.negocio?.nombreNegocio}</strong> → {selectedPost.programa?.nombre}
+              </p>
+
+              {/* Selección visual de estado */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '16px' }}>
+                {Object.entries(ESTADOS_CONFIG).map(([key, cfg]) => {
+                  const { Icon } = cfg;
+                  const isActive = estadoData.estado === key;
+                  return (
+                    <button
+                      key={key}
+                      onClick={() => setEstadoData(prev => ({ ...prev, estado: key }))}
+                      style={{
+                        padding: '10px 12px', border: `2px solid ${isActive ? cfg.color : 'var(--border)'}`,
+                        borderRadius: 'var(--radius-md)', background: isActive ? cfg.bg : '#fff',
+                        color: isActive ? cfg.color : 'var(--gray-600)',
+                        cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '7px',
+                        fontSize: '13px', fontWeight: isActive ? 700 : 500,
+                        fontFamily: "'DM Sans', sans-serif", transition: 'all 150ms ease',
+                      }}
+                    >
+                      <Icon style={{ width: '14px', height: '14px', flexShrink: 0 }} />
+                      {cfg.label}
+                    </button>
+                  );
+                })}
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Notas Administrativas
-                </label>
+                <label style={labelStyle}>Notas administrativas</label>
                 <textarea
-                  rows="4"
                   value={estadoData.notasAdmin}
-                  onChange={(e) => setEstadoData({ ...estadoData, notasAdmin: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2B5BA6] focus:border-transparent"
-                  placeholder="Agregar notas sobre esta postulación..."
+                  onChange={e => setEstadoData(prev => ({ ...prev, notasAdmin: e.target.value }))}
+                  placeholder="Agrega observaciones sobre esta postulación..."
+                  style={textareaStyle}
                 />
               </div>
+            </div>
 
-              <div className="flex items-center justify-end gap-3 pt-4">
-                <button
-                  type="button"
-                  onClick={handleCloseModals}
-                  className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="button"
-                  onClick={handleActualizarEstado}
-                  className="px-4 py-2 bg-[#2B5BA6] text-white rounded-lg hover:bg-[#1E3A5F] transition-colors"
-                >
-                  Guardar Cambios
-                </button>
-              </div>
+            {/* Footer */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', padding: '14px 22px', background: 'var(--gray-50)', borderTop: '1px solid var(--border)' }}>
+              <button onClick={handleCloseAll} style={{ padding: '8px 16px', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', background: '#fff', color: 'var(--gray-700)', fontSize: '13px', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", cursor: 'pointer' }}>
+                Cancelar
+              </button>
+              <button
+                onClick={handleActualizarEstado}
+                style={{
+                  padding: '8px 18px', border: 'none', borderRadius: 'var(--radius-md)',
+                  background: 'linear-gradient(135deg, var(--capyme-blue-mid), var(--capyme-blue))',
+                  color: '#fff', fontSize: '13px', fontWeight: 600,
+                  fontFamily: "'DM Sans', sans-serif", cursor: 'pointer',
+                }}
+              >
+                Guardar Estado
+              </button>
             </div>
           </div>
         </div>

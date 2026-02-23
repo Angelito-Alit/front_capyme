@@ -660,14 +660,34 @@ const Usuarios = () => {
                   <div>
                     <label style={labelStyle}>Rol *</label>
                     <div style={{ position: 'relative' }}>
-                      <select value={formData.rol} onChange={(e) => handleChange('rol', e.target.value)} style={selectStyle}>
+                      <select
+                        value={formData.rol}
+                        onChange={(e) => handleChange('rol', e.target.value)}
+                        disabled={currentUser.rol !== 'admin'}
+                        style={{
+                          ...selectStyle,
+                          backgroundColor: currentUser.rol !== 'admin' ? '#f3f4f6' : 'white',
+                          cursor: currentUser.rol !== 'admin' ? 'not-allowed' : 'pointer',
+                          opacity: currentUser.rol !== 'admin' ? 0.7 : 1
+                        }}
+                      >
                         <option value="cliente">Cliente</option>
                         <option value="colaborador">Colaborador</option>
-                        {currentUser.rol === 'admin' && (
-                          <option value="admin">Administrador</option>
-                        )}
+                        <option value="admin">Administrador</option>
                       </select>
-                      <ChevronDown style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', width: '16px', height: '16px', color: 'var(--gray-400)', pointerEvents: 'none' }} />
+
+                      <ChevronDown
+                        style={{
+                          position: 'absolute',
+                          right: '12px',
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          width: '16px',
+                          height: '16px',
+                          color: 'var(--gray-400)',
+                          pointerEvents: 'none'
+                        }}
+                      />
                     </div>
                     {currentUser.rol === 'colaborador' && (
                       <p style={{ marginTop: '5px', fontSize: '11px', color: 'var(--gray-400)', fontFamily: "'DM Sans', sans-serif", display: 'flex', alignItems: 'center', gap: '4px' }}>

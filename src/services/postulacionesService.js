@@ -16,21 +16,23 @@ export const postulacionesService = {
     return response.data;
   },
 
-  create: async (postulacionData) => {
-    const response = await api.post('/postulaciones', postulacionData);
+  create: async (data) => {
+    const response = await api.post('/postulaciones', data);
     return response.data;
   },
 
-  update: async (id, postulacionData) => {
-    const response = await api.put(`/postulaciones/${id}`, postulacionData);
+  update: async (id, data) => {
+    const response = await api.put(`/postulaciones/${id}`, data);
     return response.data;
   },
 
   updateEstado: async (id, estado, notasAdmin = null) => {
-    const response = await api.put(`/postulaciones/${id}/estado`, {
-      estado,
-      notasAdmin
-    });
+    const response = await api.put(`/postulaciones/${id}/estado`, { estado, notasAdmin });
+    return response.data;
+  },
+
+  toggleActivo: async (id) => {
+    const response = await api.patch(`/postulaciones/${id}/toggle-activo`);
     return response.data;
   },
 
