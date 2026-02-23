@@ -1,28 +1,10 @@
 import api from './axios';
 
 export const avisosService = {
-  getAll: async (params = {}) => {
-    const response = await api.get('/avisos', { params });
-    return response.data;
-  },
-
-  getById: async (id) => {
-    const response = await api.get(`/avisos/${id}`);
-    return response.data;
-  },
-
-  create: async (avisoData) => {
-    const response = await api.post('/avisos', avisoData);
-    return response.data;
-  },
-
-  update: async (id, avisoData) => {
-    const response = await api.put(`/avisos/${id}`, avisoData);
-    return response.data;
-  },
-
-  delete: async (id) => {
-    const response = await api.delete(`/avisos/${id}`);
-    return response.data;
-  }
+  getAll: async (params = {}) => (await api.get('/avisos', { params })).data,
+  getById: async (id) => (await api.get(`/avisos/${id}`)).data,
+  create: async (data) => (await api.post('/avisos', data)).data,
+  update: async (id, data) => (await api.put(`/avisos/${id}`, data)).data,
+  toggleActivo: async (id) => (await api.patch(`/avisos/${id}/toggle-activo`)).data,
+  delete: async (id) => (await api.delete(`/avisos/${id}`)).data,
 };

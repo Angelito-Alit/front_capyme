@@ -1,82 +1,131 @@
 import { useState, useEffect } from 'react';
 import Layout from '../components/common/Layout';
-import api from '../services/axios';
-import { 
-  BellRing, 
-  Plus, 
-  Search, 
-  Edit, 
+import { avisosService } from '../services/avisosService';
+import {
+  BellRing,
+  Plus,
+  Search,
+  Edit,
   Trash2,
+  CheckCircle,
   X,
   AlertCircle,
   Info,
-  Calendar as CalendarIcon,
-  Users
+  Calendar,
+  Users,
+  Tag,
+  Link,
+  ChevronDown,
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
+const initialFormData = {
+  titulo: '',
+  contenido: '',
+  tipo: 'informativo',
+  destinatario: 'clientes',
+  linkExterno: '',
+  fechaExpiracion: '',
+};
+
 const Avisos = () => {
+  const authStorage = JSON.parse(localStorage.getItem('auth-storage') || '{}');
+  const currentUser = authStorage?.state?.user || {};
+
   const [avisos, setAvisos] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [modalMode, setModalMode] = useState('create');
   const [selectedAviso, setSelectedAviso] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterTipo, setFilterTipo] = useState('');
   const [filterDestinatario, setFilterDestinatario] = useState('');
+  const [filterEstado, setFilterEstado] = useState('');
+  const [formData, setFormData] = useState(initialFormData);
+  const [formErrors, setFormErrors] = useState({});
+  const [hoveredRow, setHoveredRow] = useState(null);
 
-  const [formData, setFormData] = useState({
-    titulo: '',
-    contenido: '',
-    tipo: 'informativo',
-    destinatario: 'clientes',
-    linkExterno: '',
-    fechaExpiracion: '',
-    activo: true
-  });
+  const inputBaseStyle = {
+    width: '100%',
+    padding: '10px 12px',
+    border: '1px solid var(--border)',
+    borderRadius: 'var(--radius-md)',
+    fontSize: '14px',
+    fontFamily: "'DM Sans', sans-serif",
+    color: 'var(--gray-900)',
+    background: '#fff',
+    outline: 'none',
+    transition: 'all 200ms ease',
+    boxSizing: 'border-box',
+  };
+  const inputWithIconStyle = { ...inputBaseStyle, paddingLeft: '38px' };
+  const inputErrorStyle = {
+    borderColor: '#EF4444',
+    boxShadow: '0 0 0 2px rgba(239,68,68,0.15)',
+  };
+  const labelStyle = {
+    display: 'block',
+    fontSize: '13px',
+    fontWeight: 600,
+    color: 'var(--gray-600)',
+    marginBottom: '6px',
+    fontFamily: "'DM Sans', sans-serif",
+  };
+  const selectStyle = {
+    ...inputBaseStyle,
+    appearance: 'none',
+    paddingRight: '36px',
+    cursor: 'pointer',
+  };
+  const textareaStyle = {
+    ...inputBaseStyle,
+    resize: 'vertical',
+    minHeight: '100px',
+  };
 
   useEffect(() => {
     cargarAvisos();
-  }, [filterTipo, filterDestinatario]);
+  }, [filterTipo, filterEstado]);
 
   const cargarAvisos = async () => {
     try {
       setLoading(true);
       const params = {};
       if (filterTipo) params.tipo = filterTipo;
-
-      const response = await api.get('/avisos', { params });
-      setAvisos(response.data.data);
-    } catch (error) {
+      if (filterEstado !== '') params.activo = filterEstado;
+      const res = await avisosService.getAll(params);
+      setAvisos(res.data);
+    } catch {
       toast.error('Error al cargar avisos');
     } finally {
       setLoading(false);
     }
   };
 
+  const validateForm = () => {
+    const errors = {};
+    if (!formData.titulo.trim()) errors.titulo = 'El título es requerido';
+    if (!formData.contenido.trim()) errors.contenido = 'El contenido es requerido';
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
   const handleOpenModal = (mode, aviso = null) => {
     setModalMode(mode);
     setSelectedAviso(aviso);
+    setFormErrors({});
     if (mode === 'edit' && aviso) {
       setFormData({
-        titulo: aviso.titulo,
-        contenido: aviso.contenido,
-        tipo: aviso.tipo,
-        destinatario: aviso.destinatario,
+        titulo: aviso.titulo || '',
+        contenido: aviso.contenido || '',
+        tipo: aviso.tipo || 'informativo',
+        destinatario: aviso.destinatario || 'clientes',
         linkExterno: aviso.linkExterno || '',
         fechaExpiracion: aviso.fechaExpiracion ? aviso.fechaExpiracion.split('T')[0] : '',
-        activo: aviso.activo
       });
     } else {
-      setFormData({
-        titulo: '',
-        contenido: '',
-        tipo: 'informativo',
-        destinatario: 'clientes',
-        linkExterno: '',
-        fechaExpiracion: '',
-        activo: true
-      });
+      setFormData(initialFormData);
     }
     setShowModal(true);
   };
@@ -84,81 +133,80 @@ const Avisos = () => {
   const handleCloseModal = () => {
     setShowModal(false);
     setSelectedAviso(null);
+    setFormErrors({});
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    if (formErrors[name]) setFormErrors((prev) => ({ ...prev, [name]: '' }));
+  };
+
+  const handleSubmit = async () => {
+    if (!validateForm()) return;
+    setSubmitting(true);
     try {
+      const { activo, ...rest } = formData;
+      const dataToSend = {
+        ...rest,
+        fechaExpiracion: formData.fechaExpiracion
+          ? new Date(formData.fechaExpiracion + 'T23:59:59.000Z').toISOString()
+          : null,
+      };
       if (modalMode === 'create') {
-        await api.post('/avisos', formData);
+        await avisosService.create(dataToSend);
         toast.success('Aviso creado exitosamente');
       } else {
-        await api.put(`/avisos/${selectedAviso.id}`, formData);
+        await avisosService.update(selectedAviso.id, dataToSend);
         toast.success('Aviso actualizado exitosamente');
       }
       handleCloseModal();
       cargarAvisos();
     } catch (error) {
       toast.error(error.response?.data?.message || 'Error al guardar aviso');
+    } finally {
+      setSubmitting(false);
     }
   };
 
-  const handleDelete = async (id) => {
-    if (window.confirm('¿Estás seguro de eliminar este aviso?')) {
+  const handleToggleActivo = async (aviso) => {
+    const accion = aviso.activo ? 'desactivar' : 'activar';
+    if (window.confirm(`¿Estás seguro de ${accion} "${aviso.titulo}"?`)) {
       try {
-        await api.delete(`/avisos/${id}`);
-        toast.success('Aviso eliminado exitosamente');
+        await avisosService.toggleActivo(aviso.id);
+        toast.success(`Aviso ${accion === 'desactivar' ? 'desactivado' : 'activado'} exitosamente`);
         cargarAvisos();
-      } catch (error) {
-        toast.error('Error al eliminar aviso');
+      } catch {
+        toast.error('Error al cambiar estado');
       }
     }
   };
 
-  const avisosFiltrados = avisos.filter(aviso => {
-    const matchSearch = aviso.titulo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                       aviso.contenido.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchDestinatario = !filterDestinatario || aviso.destinatario === filterDestinatario;
+  const avisosFiltrados = avisos.filter((a) => {
+    const matchSearch =
+      a.titulo.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      a.contenido.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchDestinatario = !filterDestinatario || a.destinatario === filterDestinatario;
     return matchSearch && matchDestinatario;
   });
 
-  const getTipoIcon = (tipo) => {
-    switch (tipo) {
-      case 'urgente':
-        return <AlertCircle className="w-5 h-5" />;
-      case 'evento':
-        return <CalendarIcon className="w-5 h-5" />;
-      case 'recordatorio':
-        return <BellRing className="w-5 h-5" />;
-      default:
-        return <Info className="w-5 h-5" />;
-    }
+  const getTipoConfig = (tipo) => {
+    const map = {
+      urgente: { bg: '#FEF2F2', color: '#DC2626', label: 'Urgente' },
+      evento: { bg: '#F5F3FF', color: '#7C3AED', label: 'Evento' },
+      recordatorio: { bg: '#FFFBEB', color: '#D97706', label: 'Recordatorio' },
+      informativo: { bg: 'var(--capyme-blue-pale)', color: 'var(--capyme-blue-mid)', label: 'Informativo' },
+    };
+    return map[tipo] || map.informativo;
   };
 
-  const getTipoColor = (tipo) => {
-    switch (tipo) {
-      case 'urgente':
-        return 'bg-red-100 text-red-800 border-red-200';
-      case 'evento':
-        return 'bg-purple-100 text-purple-800 border-purple-200';
-      case 'recordatorio':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      default:
-        return 'bg-blue-100 text-blue-800 border-blue-200';
-    }
-  };
-
-  const getDestinatarioColor = (destinatario) => {
-    switch (destinatario) {
-      case 'todos':
-        return 'bg-gray-100 text-gray-800';
-      case 'clientes':
-        return 'bg-green-100 text-green-800';
-      case 'colaboradores':
-        return 'bg-blue-100 text-blue-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
+  const getDestinatarioConfig = (destinatario) => {
+    const map = {
+      todos: { bg: 'var(--gray-100)', color: 'var(--gray-600)', label: 'Todos' },
+      clientes: { bg: '#F0FDF4', color: '#16A34A', label: 'Clientes' },
+      colaboradores: { bg: 'var(--capyme-blue-pale)', color: 'var(--capyme-blue-mid)', label: 'Colaboradores' },
+    };
+    return map[destinatario] || map.todos;
   };
 
   const formatDate = (date) => {
@@ -166,15 +214,25 @@ const Avisos = () => {
     return new Date(date).toLocaleDateString('es-MX', {
       year: 'numeric',
       month: 'short',
-      day: 'numeric'
+      day: 'numeric',
     });
+  };
+
+  const getTipoIcon = (tipo) => {
+    const size = { width: '14px', height: '14px' };
+    if (tipo === 'urgente') return <AlertCircle style={size} />;
+    if (tipo === 'evento') return <Calendar style={size} />;
+    if (tipo === 'recordatorio') return <BellRing style={size} />;
+    return <Info style={size} />;
   };
 
   if (loading) {
     return (
       <Layout>
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#2B5BA6]"></div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '300px', flexDirection: 'column', gap: '16px' }}>
+          <div style={{ width: '40px', height: '40px', border: '3px solid var(--gray-200)', borderTopColor: 'var(--capyme-blue-mid)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+          <span style={{ fontSize: '14px', color: 'var(--gray-500)', fontFamily: "'DM Sans', sans-serif" }}>Cargando avisos...</span>
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
         </div>
       </Layout>
     );
@@ -182,258 +240,382 @@ const Avisos = () => {
 
   return (
     <Layout>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Gestión de Avisos</h1>
-            <p className="text-gray-600 mt-1">Administra avisos y notificaciones del sistema</p>
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes modalIn { from { opacity: 0; transform: scale(0.96) translateY(8px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+        .aviso-modal { animation: modalIn 0.25s ease both; }
+        input[type="date"]::-webkit-calendar-picker-indicator { opacity: 0.5; cursor: pointer; }
+      `}</style>
+
+      <div style={{ padding: '0 0 40px' }}>
+
+        {/* ── HEADER ── */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '28px', flexWrap: 'wrap', gap: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+            <div style={{ width: '46px', height: '46px', background: 'linear-gradient(135deg, var(--capyme-blue-mid), var(--capyme-blue))', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(31,78,158,0.25)' }}>
+              <BellRing style={{ width: '22px', height: '22px', color: '#fff' }} />
+            </div>
+            <div>
+              <h1 style={{ fontSize: '22px', fontWeight: 800, color: 'var(--gray-900)', fontFamily: "'Plus Jakarta Sans', sans-serif", margin: 0, lineHeight: 1.2 }}>
+                Avisos
+              </h1>
+              <p style={{ fontSize: '13px', color: 'var(--gray-500)', margin: '3px 0 0', fontFamily: "'DM Sans', sans-serif" }}>
+                {avisos.length} aviso{avisos.length !== 1 ? 's' : ''} registrado{avisos.length !== 1 ? 's' : ''}
+              </p>
+            </div>
           </div>
-          <button
-            onClick={() => handleOpenModal('create')}
-            className="flex items-center gap-2 px-4 py-2 bg-[#2B5BA6] text-white rounded-lg hover:bg-[#1E3A5F] transition-colors"
-          >
-            <Plus className="w-5 h-5" />
-            Nuevo Aviso
-          </button>
+
+          {currentUser.rol !== 'cliente' && (
+            <button
+              onClick={() => handleOpenModal('create')}
+              style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 18px', background: 'linear-gradient(135deg, var(--capyme-blue-mid), var(--capyme-blue))', color: '#fff', border: 'none', borderRadius: 'var(--radius-md)', fontSize: '14px', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", cursor: 'pointer', boxShadow: '0 2px 8px rgba(31,78,158,0.28)', transition: 'all 150ms ease' }}
+              onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.9'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.transform = 'translateY(0)'; }}
+            >
+              <Plus style={{ width: '16px', height: '16px' }} />
+              Nuevo Aviso
+            </button>
+          )}
         </div>
 
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-            <div className="md:col-span-2">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                <input
-                  type="text"
-                  placeholder="Buscar aviso..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2B5BA6] focus:border-transparent"
-                />
-              </div>
+        {/* ── STATS ── */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '12px', marginBottom: '20px' }}>
+          {[
+            { label: 'Total', value: avisos.length, color: 'var(--capyme-blue-mid)', bg: 'var(--capyme-blue-pale)' },
+            { label: 'Activos', value: avisos.filter((a) => a.activo).length, color: '#16A34A', bg: '#F0FDF4' },
+            { label: 'Inactivos', value: avisos.filter((a) => !a.activo).length, color: '#DC2626', bg: '#FEF2F2' },
+            { label: 'Urgentes', value: avisos.filter((a) => a.tipo === 'urgente').length, color: '#C2410C', bg: '#FFF7ED' },
+          ].map((stat) => (
+            <div key={stat.label} style={{ background: stat.bg, borderRadius: 'var(--radius-md)', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span style={{ fontSize: '22px', fontWeight: 800, color: stat.color, fontFamily: "'Plus Jakarta Sans', sans-serif", lineHeight: 1 }}>{stat.value}</span>
+              <span style={{ fontSize: '12px', color: stat.color, fontFamily: "'DM Sans', sans-serif", fontWeight: 600, opacity: 0.75 }}>{stat.label}</span>
             </div>
-            <div>
-              <select
-                value={filterTipo}
-                onChange={(e) => setFilterTipo(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2B5BA6] focus:border-transparent"
-              >
-                <option value="">Todos los tipos</option>
-                <option value="informativo">Informativo</option>
-                <option value="urgente">Urgente</option>
-                <option value="evento">Evento</option>
-                <option value="recordatorio">Recordatorio</option>
-              </select>
-            </div>
-            <div>
-              <select
-                value={filterDestinatario}
-                onChange={(e) => setFilterDestinatario(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2B5BA6] focus:border-transparent"
-              >
-                <option value="">Todos los destinatarios</option>
-                <option value="todos">Todos</option>
-                <option value="clientes">Clientes</option>
-                <option value="colaboradores">Colaboradores</option>
-              </select>
-            </div>
+          ))}
+        </div>
+
+        {/* ── FILTERS ── */}
+        <div style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '16px 20px', marginBottom: '20px', display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap', boxShadow: 'var(--shadow-sm)' }}>
+          <div style={{ position: 'relative', flex: '1', minWidth: '180px' }}>
+            <Search style={{ position: 'absolute', left: '11px', top: '50%', transform: 'translateY(-50%)', width: '15px', height: '15px', color: 'var(--gray-400)', pointerEvents: 'none' }} />
+            <input type="text" placeholder="Buscar aviso…" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} style={inputWithIconStyle} />
           </div>
 
-          <div className="space-y-4">
-            {avisosFiltrados.length > 0 ? (
-              avisosFiltrados.map((aviso) => (
-                <div key={aviso.id} className={`border-l-4 rounded-lg p-4 ${getTipoColor(aviso.tipo)}`}>
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-start gap-3 flex-1">
-                      <div className="mt-1">
-                        {getTipoIcon(aviso.tipo)}
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <h3 className="text-lg font-semibold text-gray-900">{aviso.titulo}</h3>
-                          <span className={`px-2 py-1 text-xs font-medium rounded-full ${getDestinatarioColor(aviso.destinatario)}`}>
-                            {aviso.destinatario.charAt(0).toUpperCase() + aviso.destinatario.slice(1)}
+          <div style={{ position: 'relative', minWidth: '150px' }}>
+            <select value={filterTipo} onChange={(e) => setFilterTipo(e.target.value)} style={{ ...selectStyle, width: '100%' }}>
+              <option value="">Todos los tipos</option>
+              <option value="informativo">Informativo</option>
+              <option value="urgente">Urgente</option>
+              <option value="evento">Evento</option>
+              <option value="recordatorio">Recordatorio</option>
+            </select>
+            <ChevronDown style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', width: '14px', height: '14px', color: 'var(--gray-400)', pointerEvents: 'none' }} />
+          </div>
+
+          <div style={{ position: 'relative', minWidth: '160px' }}>
+            <select value={filterDestinatario} onChange={(e) => setFilterDestinatario(e.target.value)} style={{ ...selectStyle, width: '100%' }}>
+              <option value="">Todos los dest.</option>
+              <option value="todos">Todos</option>
+              <option value="clientes">Clientes</option>
+              <option value="colaboradores">Colaboradores</option>
+            </select>
+            <ChevronDown style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', width: '14px', height: '14px', color: 'var(--gray-400)', pointerEvents: 'none' }} />
+          </div>
+
+          <div style={{ position: 'relative', minWidth: '140px' }}>
+            <select value={filterEstado} onChange={(e) => setFilterEstado(e.target.value)} style={{ ...selectStyle, width: '100%' }}>
+              <option value="">Activo / Inactivo</option>
+              <option value="true">Activos</option>
+              <option value="false">Inactivos</option>
+            </select>
+            <ChevronDown style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', width: '14px', height: '14px', color: 'var(--gray-400)', pointerEvents: 'none' }} />
+          </div>
+        </div>
+
+        {/* ── TABLE ── */}
+        {avisosFiltrados.length === 0 ? (
+          <div style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '60px 20px', textAlign: 'center', boxShadow: 'var(--shadow-sm)' }}>
+            <div style={{ width: '56px', height: '56px', background: 'var(--gray-100)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px' }}>
+              <BellRing style={{ width: '24px', height: '24px', color: 'var(--gray-400)' }} />
+            </div>
+            <p style={{ fontSize: '15px', fontWeight: 600, color: 'var(--gray-700)', margin: '0 0 6px', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>No se encontraron avisos</p>
+            <p style={{ fontSize: '13px', color: 'var(--gray-400)', margin: 0, fontFamily: "'DM Sans', sans-serif" }}>Intenta con otros filtros o crea un nuevo aviso</p>
+          </div>
+        ) : (
+          <div style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', overflow: 'hidden', boxShadow: 'var(--shadow-sm)' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ background: 'var(--gray-50)', borderBottom: '1px solid var(--border)' }}>
+                  {['Aviso', 'Tipo', 'Destinatario', 'Publicado', 'Expira', 'Creado por', 'Estado', ''].map((h) => (
+                    <th key={h} style={{ padding: '11px 16px', textAlign: h === '' ? 'right' : 'left', fontSize: '11px', fontWeight: 700, color: 'var(--gray-500)', fontFamily: "'Plus Jakarta Sans', sans-serif", textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {avisosFiltrados.map((aviso) => {
+                  const tipoConfig = getTipoConfig(aviso.tipo);
+                  const destConfig = getDestinatarioConfig(aviso.destinatario);
+                  return (
+                    <tr
+                      key={aviso.id}
+                      onMouseEnter={() => setHoveredRow(aviso.id)}
+                      onMouseLeave={() => setHoveredRow(null)}
+                      style={{ borderBottom: '1px solid var(--gray-100)', background: hoveredRow === aviso.id ? 'var(--gray-50)' : '#fff', transition: 'background 120ms ease', opacity: aviso.activo ? 1 : 0.6 }}
+                    >
+                      <td style={{ padding: '13px 16px', maxWidth: '280px' }}>
+                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+                          <div style={{ width: '36px', height: '36px', background: tipoConfig.bg, borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: tipoConfig.color, marginTop: '1px' }}>
+                            {getTipoIcon(aviso.tipo)}
+                          </div>
+                          <div>
+                            <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--gray-900)', fontFamily: "'DM Sans', sans-serif", lineHeight: 1.3 }}>{aviso.titulo}</div>
+                            <div style={{ fontSize: '12px', color: 'var(--gray-400)', fontFamily: "'DM Sans', sans-serif", maxWidth: '230px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: '2px' }}>{aviso.contenido}</div>
+                            {aviso.linkExterno && (
+                              <a href={aviso.linkExterno} target="_blank" rel="noopener noreferrer" style={{ fontSize: '11px', color: 'var(--capyme-blue-mid)', fontFamily: "'DM Sans', sans-serif", display: 'inline-flex', alignItems: 'center', gap: '3px', marginTop: '3px', textDecoration: 'none' }}>
+                                <Link style={{ width: '10px', height: '10px' }} /> Ver enlace
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+                      <td style={{ padding: '13px 16px' }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '3px 8px', borderRadius: '20px', fontSize: '11px', fontWeight: 700, background: tipoConfig.bg, color: tipoConfig.color, fontFamily: "'Plus Jakarta Sans', sans-serif", textTransform: 'capitalize' }}>
+                          {getTipoIcon(aviso.tipo)}
+                          {tipoConfig.label}
+                        </span>
+                      </td>
+                      <td style={{ padding: '13px 16px' }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '3px 8px', borderRadius: '20px', fontSize: '11px', fontWeight: 700, background: destConfig.bg, color: destConfig.color, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                          <Users style={{ width: '10px', height: '10px' }} />
+                          {destConfig.label}
+                        </span>
+                      </td>
+                      <td style={{ padding: '13px 16px', fontSize: '12px', color: 'var(--gray-500)', fontFamily: "'DM Sans', sans-serif", whiteSpace: 'nowrap' }}>
+                        {formatDate(aviso.fechaPublicacion) || '—'}
+                      </td>
+                      <td style={{ padding: '13px 16px', fontSize: '12px', fontFamily: "'DM Sans', sans-serif', whiteSpace: 'nowrap'" }}>
+                        {aviso.fechaExpiracion ? (
+                          <span style={{ color: new Date(aviso.fechaExpiracion) < new Date() ? '#DC2626' : 'var(--gray-500)' }}>
+                            {formatDate(aviso.fechaExpiracion)}
                           </span>
-                          {!aviso.activo && (
-                            <span className="px-2 py-1 text-xs font-medium bg-gray-100 text-gray-600 rounded-full">
-                              Inactivo
+                        ) : (
+                          <span style={{ color: 'var(--gray-300)' }}>—</span>
+                        )}
+                      </td>
+                      <td style={{ padding: '13px 16px' }}>
+                        {aviso.creador ? (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
+                            <div style={{ width: '26px', height: '26px', background: 'linear-gradient(135deg, var(--capyme-blue-mid), var(--capyme-blue))', borderRadius: 'var(--radius-sm)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                              <span style={{ fontSize: '10px', fontWeight: 700, color: '#fff', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                                {aviso.creador.nombre?.[0]}{aviso.creador.apellido?.[0]}
+                              </span>
+                            </div>
+                            <span style={{ fontSize: '12px', color: 'var(--gray-600)', fontFamily: "'DM Sans', sans-serif" }}>
+                              {aviso.creador.nombre} {aviso.creador.apellido}
                             </span>
-                          )}
-                        </div>
-                        <p className="text-sm text-gray-700 mb-2">{aviso.contenido}</p>
-                        <div className="flex items-center gap-4 text-xs text-gray-600">
-                          <span>Publicado: {formatDate(aviso.fechaPublicacion)}</span>
-                          {aviso.fechaExpiracion && (
-                            <span>Expira: {formatDate(aviso.fechaExpiracion)}</span>
-                          )}
-                          {aviso.linkExterno && (
-                            <a 
-                              href={aviso.linkExterno} 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              className="text-[#2B5BA6] hover:underline"
+                          </div>
+                        ) : (
+                          <span style={{ color: 'var(--gray-300)', fontSize: '13px' }}>—</span>
+                        )}
+                      </td>
+                      <td style={{ padding: '13px 16px' }}>
+                        <span style={{ display: 'inline-block', padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 700, background: aviso.activo ? '#ECFDF5' : '#FEF2F2', color: aviso.activo ? '#065F46' : '#DC2626', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                          {aviso.activo ? 'Activo' : 'Inactivo'}
+                        </span>
+                      </td>
+                      <td style={{ padding: '13px 16px', textAlign: 'right' }}>
+                        <div style={{ display: 'flex', gap: '4px', justifyContent: 'flex-end' }}>
+                          <button
+                            onClick={() => handleOpenModal('edit', aviso)}
+                            title="Editar"
+                            style={{ width: '34px', height: '34px', border: 'none', borderRadius: 'var(--radius-sm)', background: 'transparent', cursor: 'pointer', color: 'var(--gray-400)', transition: 'all 150ms ease', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                            onMouseEnter={(e) => { e.currentTarget.style.background = '#EEF4FF'; e.currentTarget.style.color = 'var(--capyme-blue-mid)'; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gray-400)'; }}
+                          >
+                            <Edit style={{ width: '15px', height: '15px' }} />
+                          </button>
+
+                          {currentUser.rol === 'admin' && !aviso.activo && (
+                            <button
+                              onClick={() => handleToggleActivo(aviso)}
+                              title="Activar"
+                              style={{ width: '34px', height: '34px', border: 'none', borderRadius: 'var(--radius-sm)', background: 'transparent', cursor: 'pointer', color: 'var(--gray-400)', transition: 'all 150ms ease', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                              onMouseEnter={(e) => { e.currentTarget.style.background = '#ECFDF5'; e.currentTarget.style.color = '#065F46'; }}
+                              onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gray-400)'; }}
                             >
-                              Ver más
-                            </a>
+                              <CheckCircle style={{ width: '15px', height: '15px' }} />
+                            </button>
+                          )}
+
+                          {currentUser.rol === 'admin' && aviso.activo && (
+                            <button
+                              onClick={() => handleToggleActivo(aviso)}
+                              title="Desactivar"
+                              style={{ width: '34px', height: '34px', border: 'none', borderRadius: 'var(--radius-sm)', background: 'transparent', cursor: 'pointer', color: 'var(--gray-400)', transition: 'all 150ms ease', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                              onMouseEnter={(e) => { e.currentTarget.style.background = '#FEF2F2'; e.currentTarget.style.color = '#DC2626'; }}
+                              onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gray-400)'; }}
+                            >
+                              <Trash2 style={{ width: '15px', height: '15px' }} />
+                            </button>
+                          )}
+
+                          {currentUser.rol === 'colaborador' && (
+                            <button
+                              title="Sin permiso para cambiar estado"
+                              style={{ width: '34px', height: '34px', border: 'none', borderRadius: 'var(--radius-sm)', background: 'transparent', cursor: 'not-allowed', color: 'var(--gray-200)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                            >
+                              <Trash2 style={{ width: '15px', height: '15px' }} />
+                            </button>
                           )}
                         </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 ml-4">
-                      <button
-                        onClick={() => handleOpenModal('edit', aviso)}
-                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                      >
-                        <Edit className="w-5 h-5" />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(aviso.id)}
-                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                      >
-                        <Trash2 className="w-5 h-5" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="text-center py-12">
-                <BellRing className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                <p className="text-gray-500">No se encontraron avisos</p>
-              </div>
-            )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
-        </div>
+        )}
       </div>
 
+      {/* ═══ MODAL ═══ */}
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between p-6 border-b border-gray-200">
-              <h2 className="text-xl font-semibold text-gray-900">
-                {modalMode === 'create' ? 'Nuevo Aviso' : 'Editar Aviso'}
-              </h2>
-              <button onClick={handleCloseModal} className="text-gray-400 hover:text-gray-600">
-                <X className="w-6 h-6" />
+        <div
+          onClick={handleCloseModal}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.42)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}
+        >
+          <div
+            className="aviso-modal"
+            onClick={(e) => e.stopPropagation()}
+            style={{ background: '#fff', borderRadius: 'var(--radius-lg)', width: '100%', maxWidth: '600px', maxHeight: '92vh', display: 'flex', flexDirection: 'column', boxShadow: '0 24px 64px rgba(0,0,0,0.18)', overflow: 'hidden' }}
+          >
+            {/* Header */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 24px', background: 'var(--gray-50)', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{ width: '36px', height: '36px', background: 'linear-gradient(135deg, var(--capyme-blue-mid), var(--capyme-blue))', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <BellRing style={{ width: '18px', height: '18px', color: '#fff' }} />
+                </div>
+                <h2 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--gray-900)', fontFamily: "'Plus Jakarta Sans', sans-serif", margin: 0 }}>
+                  {modalMode === 'create' ? 'Nuevo Aviso' : 'Editar Aviso'}
+                </h2>
+              </div>
+              <button
+                onClick={handleCloseModal}
+                style={{ width: '32px', height: '32px', border: 'none', borderRadius: 'var(--radius-sm)', background: 'transparent', cursor: 'pointer', color: 'var(--gray-400)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 150ms ease' }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--gray-200)'; e.currentTarget.style.color = 'var(--gray-700)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gray-400)'; }}
+              >
+                <X style={{ width: '18px', height: '18px' }} />
               </button>
             </div>
 
-            <div className="p-6">
-              <div className="space-y-4">
+            {/* Body */}
+            <div style={{ overflowY: 'auto', flex: 1, padding: '24px' }}>
+              <SectionTitle icon={BellRing} text="Información del aviso" />
+              <div style={{ marginTop: '14px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Título
-                  </label>
+                  <label style={labelStyle}>Título <span style={{ color: '#EF4444' }}>*</span></label>
                   <input
+                    name="titulo"
                     type="text"
-                    required
                     value={formData.titulo}
-                    onChange={(e) => setFormData({ ...formData, titulo: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2B5BA6] focus:border-transparent"
+                    onChange={handleChange}
+                    placeholder="Ej. Convocatoria Fondo PyME 2025"
+                    style={{ ...inputBaseStyle, ...(formErrors.titulo ? inputErrorStyle : {}) }}
                   />
+                  {formErrors.titulo && <ErrorMsg text={formErrors.titulo} />}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Contenido
-                  </label>
+                  <label style={labelStyle}>Contenido <span style={{ color: '#EF4444' }}>*</span></label>
                   <textarea
-                    rows="4"
-                    required
+                    name="contenido"
                     value={formData.contenido}
-                    onChange={(e) => setFormData({ ...formData, contenido: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2B5BA6] focus:border-transparent"
+                    onChange={handleChange}
+                    placeholder="Describe el aviso con detalle..."
+                    style={{ ...textareaStyle, ...(formErrors.contenido ? inputErrorStyle : {}) }}
                   />
+                  {formErrors.contenido && <ErrorMsg text={formErrors.contenido} />}
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Tipo
-                    </label>
-                    <select
-                      value={formData.tipo}
-                      onChange={(e) => setFormData({ ...formData, tipo: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2B5BA6] focus:border-transparent"
-                    >
-                      <option value="informativo">Informativo</option>
-                      <option value="urgente">Urgente</option>
-                      <option value="evento">Evento</option>
-                      <option value="recordatorio">Recordatorio</option>
-                    </select>
+                    <label style={labelStyle}>Tipo</label>
+                    <div style={{ position: 'relative' }}>
+                      <select name="tipo" value={formData.tipo} onChange={handleChange} style={selectStyle}>
+                        <option value="informativo">Informativo</option>
+                        <option value="urgente">Urgente</option>
+                        <option value="evento">Evento</option>
+                        <option value="recordatorio">Recordatorio</option>
+                      </select>
+                      <ChevronDown style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', width: '14px', height: '14px', color: 'var(--gray-400)', pointerEvents: 'none' }} />
+                    </div>
                   </div>
-
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Destinatario
-                    </label>
-                    <select
-                      value={formData.destinatario}
-                      onChange={(e) => setFormData({ ...formData, destinatario: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2B5BA6] focus:border-transparent"
-                    >
-                      <option value="todos">Todos</option>
-                      <option value="clientes">Clientes</option>
-                      <option value="colaboradores">Colaboradores</option>
-                    </select>
+                    <label style={labelStyle}>Destinatario</label>
+                    <div style={{ position: 'relative' }}>
+                      <select name="destinatario" value={formData.destinatario} onChange={handleChange} style={selectStyle}>
+                        <option value="todos">Todos</option>
+                        <option value="clientes">Clientes</option>
+                        <option value="colaboradores">Colaboradores</option>
+                      </select>
+                      <ChevronDown style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', width: '14px', height: '14px', color: 'var(--gray-400)', pointerEvents: 'none' }} />
+                    </div>
                   </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Link Externo (opcional)
-                  </label>
-                  <input
-                    type="url"
-                    value={formData.linkExterno}
-                    onChange={(e) => setFormData({ ...formData, linkExterno: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2B5BA6] focus:border-transparent"
-                    placeholder="https://"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Fecha de Expiración (opcional)
-                  </label>
-                  <input
-                    type="date"
-                    value={formData.fechaExpiracion}
-                    onChange={(e) => setFormData({ ...formData, fechaExpiracion: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2B5BA6] focus:border-transparent"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Estado
-                  </label>
-                  <select
-                    value={formData.activo}
-                    onChange={(e) => setFormData({ ...formData, activo: e.target.value === 'true' })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2B5BA6] focus:border-transparent"
-                  >
-                    <option value="true">Activo</option>
-                    <option value="false">Inactivo</option>
-                  </select>
-                </div>
-
-                <div className="flex items-center justify-end gap-3 pt-4">
-                  <button
-                    type="button"
-                    onClick={handleCloseModal}
-                    className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleSubmit}
-                    className="px-4 py-2 bg-[#2B5BA6] text-white rounded-lg hover:bg-[#1E3A5F] transition-colors"
-                  >
-                    {modalMode === 'create' ? 'Crear Aviso' : 'Guardar Cambios'}
-                  </button>
                 </div>
               </div>
+
+              <div style={{ marginTop: '24px' }}>
+                <SectionTitle icon={Link} text="Opciones adicionales" />
+                <div style={{ marginTop: '14px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+                  <div>
+                    <label style={labelStyle}>Link Externo</label>
+                    <input
+                      name="linkExterno"
+                      type="url"
+                      value={formData.linkExterno}
+                      onChange={handleChange}
+                      placeholder="https://..."
+                      style={inputBaseStyle}
+                    />
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Fecha de Expiración</label>
+                    <input
+                      name="fechaExpiracion"
+                      type="date"
+                      value={formData.fechaExpiracion}
+                      onChange={handleChange}
+                      style={inputBaseStyle}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', padding: '16px 24px', background: 'var(--gray-50)', borderTop: '1px solid var(--border)', flexShrink: 0 }}>
+              <button
+                onClick={handleCloseModal}
+                disabled={submitting}
+                style={{ padding: '9px 18px', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', background: '#fff', color: 'var(--gray-700)', fontSize: '14px', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", cursor: 'pointer', transition: 'all 150ms ease' }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--gray-100)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = '#fff'; }}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleSubmit}
+                disabled={submitting}
+                style={{ padding: '9px 22px', border: 'none', borderRadius: 'var(--radius-md)', background: submitting ? 'var(--gray-300)' : 'linear-gradient(135deg, var(--capyme-blue-mid), var(--capyme-blue))', color: '#fff', fontSize: '14px', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", cursor: submitting ? 'not-allowed' : 'pointer', boxShadow: submitting ? 'none' : '0 2px 8px rgba(31,78,158,0.28)', transition: 'all 150ms ease', display: 'flex', alignItems: 'center', gap: '8px' }}
+              >
+                {submitting && (
+                  <span style={{ width: '14px', height: '14px', border: '2px solid rgba(255,255,255,0.4)', borderTopColor: '#fff', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} />
+                )}
+                {submitting ? 'Guardando…' : modalMode === 'create' ? 'Crear Aviso' : 'Guardar Cambios'}
+              </button>
             </div>
           </div>
         </div>
@@ -441,5 +623,20 @@ const Avisos = () => {
     </Layout>
   );
 };
+
+const SectionTitle = ({ icon: Icon, text }) => (
+  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', paddingBottom: '4px', borderBottom: '1px solid var(--gray-100)' }}>
+    <Icon style={{ width: '14px', height: '14px', color: 'var(--gray-400)' }} />
+    <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--gray-400)', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+      {text}
+    </span>
+  </div>
+);
+
+const ErrorMsg = ({ text }) => (
+  <p style={{ marginTop: '4px', fontSize: '12px', color: '#EF4444', display: 'flex', alignItems: 'center', gap: '4px', fontFamily: "'DM Sans', sans-serif" }}>
+    <AlertCircle style={{ width: '12px', height: '12px' }} /> {text}
+  </p>
+);
 
 export default Avisos;

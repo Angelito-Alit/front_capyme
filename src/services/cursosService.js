@@ -1,38 +1,13 @@
 import api from './axios';
 
 export const cursosService = {
-  getAll: async (params = {}) => {
-    const response = await api.get('/cursos', { params });
-    return response.data;
-  },
-
-  getById: async (id) => {
-    const response = await api.get(`/cursos/${id}`);
-    return response.data;
-  },
-
-  create: async (cursoData) => {
-    const response = await api.post('/cursos', cursoData);
-    return response.data;
-  },
-
-  update: async (id, cursoData) => {
-    const response = await api.put(`/cursos/${id}`, cursoData);
-    return response.data;
-  },
-
-  delete: async (id) => {
-    const response = await api.delete(`/cursos/${id}`);
-    return response.data;
-  },
-
-  inscribir: async (id, negocioId = null) => {
-    const response = await api.post(`/cursos/${id}/inscribir`, { negocioId });
-    return response.data;
-  },
-
-  getInscritos: async (id) => {
-    const response = await api.get(`/cursos/${id}/inscritos`);
-    return response.data;
-  }
+  getAll: async (params = {}) => (await api.get('/cursos', { params })).data,
+  getById: async (id) => (await api.get(`/cursos/${id}`)).data,
+  create: async (data) => (await api.post('/cursos', data)).data,
+  update: async (id, data) => (await api.put(`/cursos/${id}`, data)).data,
+  toggleActivo: async (id) => (await api.patch(`/cursos/${id}/toggle-activo`)).data,
+  getInscritos: async (id) => (await api.get(`/cursos/${id}/inscritos`)).data,
+  inscribir: async (id, negocioId = null) => (await api.post(`/cursos/${id}/inscribir`, { negocioId })).data,
+  getPagosPendientes: async () => (await api.get('/cursos/pagos-pendientes')).data,
+  confirmarPago: async (pagoId) => (await api.patch(`/cursos/pagos/${pagoId}/confirmar`)).data,
 };
