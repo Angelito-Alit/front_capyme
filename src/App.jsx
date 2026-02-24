@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import ProtectedRoute from './components/ProtectedRoute';
+import InactivoModal from './components/InactivoModal';   // ← nuevo
 
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
@@ -45,6 +46,9 @@ function App() {
           },
         }}
       />
+
+      {/* Modal global de usuario inactivo — aparece sobre cualquier página */}
+      <InactivoModal />
 
       <Routes>
         <Route path="/login" element={<Login />} />

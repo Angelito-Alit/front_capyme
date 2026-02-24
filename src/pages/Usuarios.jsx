@@ -248,7 +248,6 @@ const Usuarios = () => {
     }
   };
 
-  /* ── Toggle con ConfirmModal ── */
   const handleToggleActivo = (usuario) => {
     const desactivar = usuario.activo;
     showConfirm({
@@ -261,8 +260,9 @@ const Usuarios = () => {
       confirmLabel: desactivar ? 'Sí, desactivar' : 'Sí, activar',
       onConfirm: async () => {
         try {
-          await usuariosService.update(usuario.id, { ...usuario, activo: !usuario.activo });
-          toast.success(`Usuario ${usuario.activo ? 'desactivado' : 'activado'} exitosamente`);
+          // ✅ PATCH /:id/toggle-activo — no PUT con activo en el body
+          await usuariosService.toggleActivo(usuario.id);
+          toast.success(`Usuario ${desactivar ? 'desactivado' : 'activado'} exitosamente`);
           cargarUsuarios();
         } catch (error) {
           toast.error('Error al cambiar estado del usuario');
