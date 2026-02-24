@@ -2,48 +2,30 @@ import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 import { useAuth } from '../../hooks/useAuth';
-import { avisosService } from '../../services/avisosService';
+import { notificacionesService } from '../../services/notificacionesService';
 import api from '../../services/axios';
 import {
-  Bell,
-  User,
-  LogOut,
-  Menu,
-  ChevronDown,
-  AlertCircle,
-  Info,
-  Calendar,
-  BellRing,
-  ExternalLink,
-  Activity,
+  Bell, User, LogOut, Menu, ChevronDown,
+  AlertCircle, Info, Calendar, BellRing,
+  ExternalLink, Activity, CheckCheck, GraduationCap,
 } from 'lucide-react';
 import LogoCapyme from '../../assets/LogoCapyme.png';
 
-/* ─── key en localStorage ─────────────────────────────── */
 const LS_KEY = 'historial_visto_en';
+const getUltimaVista = () => { const v = localStorage.getItem(LS_KEY); return v ? new Date(v) : null; };
+const marcarComoVisto = () => { localStorage.setItem(LS_KEY, new Date().toISOString()); };
 
-const getUltimaVista = () => {
-  const v = localStorage.getItem(LS_KEY);
-  return v ? new Date(v) : null;
-};
-
-const marcarComoVisto = () => {
-  localStorage.setItem(LS_KEY, new Date().toISOString());
-};
-
-/* ══════════════════════════════════════════════════════ */
 const Navbar = ({ onMenuClick }) => {
-  const { user }    = useAuthStore();
-  const { logout }  = useAuth();
-  const navigate    = useNavigate();
-  const location    = useLocation();
+  const { user }   = useAuthStore();
+  const { logout } = useAuth();
+  const navigate   = useNavigate();
+  const location   = useLocation();
 
   const [showUserMenu,      setShowUserMenu]      = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
-  const [avisos,            setAvisos]            = useState([]);
-  const [loadingAvisos,     setLoadingAvisos]     = useState(false);
-
-  /* badge historial — solo admins */
+  const [items,             setItems]             = useState([]);
+  const [noLeidas,          setNoLeidas]          = useState(0);
+  const [loadingNotif,      setLoadingNotif]      = useState(false);
   const [nuevosMovimientos, setNuevosMovimientos] = useState(0);
 
   const notifRef = useRef(null);
@@ -51,12 +33,10 @@ const Navbar = ({ onMenuClick }) => {
 
   const isAdmin = user?.rol === 'admin';
 
-  /* ── helpers de roles ── */
-  const roleName = { admin: 'Administrador', colaborador: 'Colaborador', cliente: 'Cliente' };
-  const roleBg   = { admin: '#FEE2E2',       colaborador: '#DBEAFE',     cliente: '#D1FAE5' };
-  const roleColor= { admin: '#B91C1C',       colaborador: '#1D4ED8',     cliente: '#065F46' };
+  const roleName  = { admin: 'Administrador', colaborador: 'Colaborador', cliente: 'Cliente' };
+  const roleBg    = { admin: '#FEE2E2', colaborador: '#DBEAFE', cliente: '#D1FAE5' };
+  const roleColor = { admin: '#B91C1C', colaborador: '#1D4ED8', cliente: '#065F46' };
 
-  /* ── cerrar dropdowns al click fuera ── */
   useEffect(() => {
     const handleClick = (e) => {
       if (notifRef.current && !notifRef.current.contains(e.target)) setShowNotifications(false);
@@ -66,25 +46,25 @@ const Navbar = ({ onMenuClick }) => {
     return () => document.removeEventListener('mousedown', handleClick);
   }, []);
 
-  /* ── avisos ── */
-  useEffect(() => { cargarAvisos(); }, []);
-
-  const cargarAvisos = async () => {
+  const cargarNotificaciones = async () => {
     try {
-      setLoadingAvisos(true);
-      const res    = await avisosService.getAll({ activo: 'true' });
-      const todos  = res.data || [];
-      const ahora  = new Date();
-      const vigentes = todos.filter((a) => !a.fechaExpiracion || new Date(a.fechaExpiracion) > ahora);
-      setAvisos(vigentes.slice(0, 6));
+      setLoadingNotif(true);
+      const res = await notificacionesService.getAll();
+      setItems(res.data || []);
+      setNoLeidas(res.noLeidas || 0);
     } catch {
-      setAvisos([]);
+      setItems([]);
     } finally {
-      setLoadingAvisos(false);
+      setLoadingNotif(false);
     }
   };
 
-  /* ── badge historial ── */
+  useEffect(() => {
+    cargarNotificaciones();
+    const interval = setInterval(cargarNotificaciones, 30_000);
+    return () => clearInterval(interval);
+  }, []);
+
   const consultarNuevos = async () => {
     if (!isAdmin) return;
     try {
@@ -92,12 +72,9 @@ const Navbar = ({ onMenuClick }) => {
       const params = ultimaVista ? { desde: ultimaVista.toISOString() } : {};
       const res = await api.get('/dashboard/historial/nuevos', { params });
       setNuevosMovimientos(res.data.total || 0);
-    } catch {
-      /* silencioso — no romper la UI si falla */
-    }
+    } catch {}
   };
 
-  /* si la ruta activa es /historial → marcar como visto y limpiar badge */
   useEffect(() => {
     if (location.pathname === '/historial') {
       marcarComoVisto();
@@ -105,47 +82,58 @@ const Navbar = ({ onMenuClick }) => {
     }
   }, [location.pathname]);
 
-  /* consultar al montar y cada 60 s */
   useEffect(() => {
     if (!isAdmin) return;
     consultarNuevos();
     const interval = setInterval(consultarNuevos, 60_000);
     return () => clearInterval(interval);
-  }, [isAdmin]); // eslint-disable-line
+  }, [isAdmin]);
 
-  /* ── avisos helpers ── */
-  const getTipoIcon = (tipo) => {
-    const s = { width: '14px', height: '14px', flexShrink: 0 };
-    if (tipo === 'urgente')      return <AlertCircle style={{ ...s, color: '#DC2626' }} />;
-    if (tipo === 'evento')       return <Calendar    style={{ ...s, color: '#7C3AED' }} />;
-    if (tipo === 'recordatorio') return <BellRing    style={{ ...s, color: '#D97706' }} />;
-    return <Info style={{ ...s, color: 'var(--capyme-blue-mid)' }} />;
+  // Al abrir el panel: marcar todos los avisos no leídos como leídos en BD
+  const handleAbrirPanel = async () => {
+    const abriendo = !showNotifications;
+    setShowNotifications(abriendo);
+    setShowUserMenu(false);
+
+    if (abriendo) {
+      const avisosNoLeidos = items.filter(i => i.origen === 'aviso' && !i.leida);
+      if (avisosNoLeidos.length > 0) {
+        // Actualizar UI inmediatamente
+        setItems(prev => prev.map(i => i.origen === 'aviso' ? { ...i, leida: true } : i));
+        setNoLeidas(prev => Math.max(0, prev - avisosNoLeidos.length));
+        // Persistir en BD
+        try {
+          await notificacionesService.marcarAvisosLeidos(avisosNoLeidos.map(i => i._id));
+        } catch {}
+      }
+    }
   };
 
-  const getTipoBg = (tipo) => {
-    if (tipo === 'urgente')      return '#FEF2F2';
-    if (tipo === 'evento')       return '#F5F3FF';
-    if (tipo === 'recordatorio') return '#FFFBEB';
-    return 'var(--capyme-blue-pale)';
+  // Marcar notificación personal como leída al hacer clic
+  const marcarLeida = async (item) => {
+    if (item.origen !== 'notificacion' || item.leida) return;
+    setItems(prev => prev.map(n => n.id === item.id ? { ...n, leida: true } : n));
+    setNoLeidas(prev => Math.max(0, prev - 1));
+    try {
+      await notificacionesService.marcarLeida(item._id);
+    } catch {}
   };
 
-  const formatTimeAgo = (date) => {
-    if (!date) return '';
-    const diff = Math.floor((new Date() - new Date(date)) / 1000);
-    if (diff < 60)    return 'Hace un momento';
-    if (diff < 3600)  return `Hace ${Math.floor(diff / 60)} min`;
-    if (diff < 86400) return `Hace ${Math.floor(diff / 3600)}h`;
-    return new Date(date).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' });
+  // Marcar todas las notificaciones personales como leídas
+  const marcarTodas = async () => {
+    setItems(prev => prev.map(n => ({ ...n, leida: true })));
+    setNoLeidas(0);
+    try {
+      await notificacionesService.marcarTodas();
+    } catch {}
   };
 
-  const urgentes = avisos.filter((a) => a.tipo === 'urgente').length;
-
-  const getAvisoRoute = (aviso) =>
-    user?.rol === 'cliente' ? `/cliente/avisos/${aviso.id}` : `/avisos/${aviso.id}`;
-
-  const handleAvisoClick = (aviso) => {
-    setShowNotifications(false);
-    navigate(getAvisoRoute(aviso));
+  const handleItemClick = (item) => {
+    marcarLeida(item);
+    if (item.origen === 'aviso') {
+      setShowNotifications(false);
+      navigate(user?.rol === 'cliente' ? `/cliente/avisos/${item._id}` : `/avisos/${item._id}`);
+    }
   };
 
   const handleVerTodos = () => {
@@ -153,14 +141,36 @@ const Navbar = ({ onMenuClick }) => {
     navigate(user?.rol === 'cliente' ? '/cliente/avisos' : '/avisos');
   };
 
-  /* ── ir a historial ── */
   const handleHistorialClick = () => {
     marcarComoVisto();
     setNuevosMovimientos(0);
     navigate('/historial');
   };
 
-  /* ─────────── RENDER ─────────── */
+  const getItemStyle = (tipo, origen) => {
+    if (origen === 'notificacion') {
+      if (tipo === 'inscripcion_declinada') return { bg: '#FEF2F2', color: '#DC2626', Icon: GraduationCap };
+      if (tipo === 'pago_confirmado')       return { bg: '#ECFDF5', color: '#16A34A', Icon: GraduationCap };
+      return { bg: '#EEF4FF', color: 'var(--capyme-blue-mid)', Icon: Info };
+    }
+    if (tipo === 'urgente')      return { bg: '#FEF2F2', color: '#DC2626',             Icon: AlertCircle };
+    if (tipo === 'evento')       return { bg: '#F5F3FF', color: '#7C3AED',             Icon: Calendar };
+    if (tipo === 'recordatorio') return { bg: '#FFFBEB', color: '#D97706',             Icon: BellRing };
+    return { bg: 'var(--capyme-blue-pale)', color: 'var(--capyme-blue-mid)', Icon: Info };
+  };
+
+  const formatFecha = (fecha) => {
+    if (!fecha) return '';
+    const diff = Math.floor((new Date() - new Date(fecha)) / 1000);
+    if (diff < 60)    return 'Hace un momento';
+    if (diff < 3600)  return `Hace ${Math.floor(diff / 60)} min`;
+    if (diff < 86400) return `Hace ${Math.floor(diff / 3600)}h`;
+    return new Date(fecha).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' });
+  };
+
+  const urgentes = items.filter(i => i.tipo === 'urgente' && !i.leida).length;
+  const badgeNum = noLeidas;
+
   return (
     <nav style={{
       position: 'fixed', top: 0, left: 0, right: 0, zIndex: 30,
@@ -202,7 +212,6 @@ const Navbar = ({ onMenuClick }) => {
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
 
-        {/* ── LEFT ── */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <button onClick={onMenuClick} className="nav-icon-btn">
             <Menu style={{ width: '20px', height: '20px' }} />
@@ -212,10 +221,8 @@ const Navbar = ({ onMenuClick }) => {
           </Link>
         </div>
 
-        {/* ── RIGHT ── */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
 
-          {/* ── BADGE HISTORIAL — solo admin ── */}
           {isAdmin && (
             <button
               onClick={handleHistorialClick}
@@ -224,16 +231,12 @@ const Navbar = ({ onMenuClick }) => {
               style={{ color: nuevosMovimientos > 0 ? 'var(--capyme-blue-mid)' : undefined }}
             >
               <Activity style={{ width: '20px', height: '20px' }} />
-
               {nuevosMovimientos > 0 && (
                 <span style={{
-                  position: 'absolute',
-                  top: '4px', right: '4px',
-                  minWidth: '17px',
-                  height: '17px',
+                  position: 'absolute', top: '4px', right: '4px',
+                  minWidth: '17px', height: '17px',
                   background: 'linear-gradient(135deg, var(--capyme-blue-mid), var(--capyme-blue))',
-                  borderRadius: '99px',
-                  border: '2px solid white',
+                  borderRadius: '99px', border: '2px solid white',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontSize: '9px', fontWeight: 800, color: '#fff',
                   fontFamily: "'Plus Jakarta Sans', sans-serif",
@@ -248,21 +251,19 @@ const Navbar = ({ onMenuClick }) => {
             </button>
           )}
 
-          {/* ── NOTIFICACIONES ── */}
           <div style={{ position: 'relative' }} ref={notifRef}>
             <button
-              onClick={() => { setShowNotifications(!showNotifications); setShowUserMenu(false); }}
+              onClick={handleAbrirPanel}
               className={`nav-icon-btn${showNotifications ? ' active' : ''}`}
             >
               <Bell style={{ width: '20px', height: '20px' }} />
-              {avisos.length > 0 && (
+              {badgeNum > 0 && (
                 <span style={{
                   position: 'absolute', top: '5px', right: '5px',
                   minWidth: urgentes > 0 ? '16px' : '8px',
                   height: urgentes > 0 ? '16px' : '8px',
                   background: urgentes > 0 ? '#EF4444' : 'var(--capyme-blue-mid)',
-                  borderRadius: '99px',
-                  border: '2px solid white',
+                  borderRadius: '99px', border: '2px solid white',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontSize: '9px', fontWeight: 700, color: '#fff',
                   fontFamily: "'Plus Jakarta Sans', sans-serif",
@@ -276,8 +277,7 @@ const Navbar = ({ onMenuClick }) => {
             {showNotifications && (
               <div style={{
                 position: 'absolute', right: 0, top: 'calc(100% + 8px)',
-                width: '360px',
-                maxWidth: 'calc(100vw - 40px)',
+                width: '380px', maxWidth: 'calc(100vw - 40px)',
                 background: 'var(--surface)',
                 borderRadius: 'var(--radius-lg)',
                 border: '1px solid var(--border)',
@@ -289,60 +289,102 @@ const Navbar = ({ onMenuClick }) => {
                 <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--gray-50)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <BellRing style={{ width: '15px', height: '15px', color: 'var(--capyme-blue-mid)' }} />
-                    <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: '14px', fontWeight: 700, color: 'var(--gray-900)' }}>Avisos</span>
+                    <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: '14px', fontWeight: 700, color: 'var(--gray-900)' }}>Notificaciones</span>
+                    {noLeidas > 0 && (
+                      <span style={{ padding: '1px 7px', background: '#EEF4FF', color: 'var(--capyme-blue-mid)', borderRadius: '99px', fontSize: '11px', fontWeight: 700, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                        {noLeidas} nuevas
+                      </span>
+                    )}
                   </div>
-                  {avisos.length > 0 && (
-                    <span style={{ padding: '2px 8px', background: urgentes > 0 ? '#FEF2F2' : 'var(--capyme-blue-pale)', color: urgentes > 0 ? '#DC2626' : 'var(--capyme-blue-mid)', borderRadius: '99px', fontSize: '11px', fontWeight: 700, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-                      {urgentes > 0 ? `${urgentes} urgente${urgentes > 1 ? 's' : ''}` : `${avisos.length} activo${avisos.length > 1 ? 's' : ''}`}
-                    </span>
+                  {items.filter(i => i.origen === 'notificacion' && !i.leida).length > 0 && (
+                    <button onClick={marcarTodas} style={{
+                      display: 'flex', alignItems: 'center', gap: '4px',
+                      padding: '4px 8px', border: 'none', borderRadius: 'var(--radius-sm)',
+                      background: 'transparent', cursor: 'pointer',
+                      color: 'var(--capyme-blue-mid)', fontSize: '12px', fontWeight: 600,
+                      fontFamily: "'DM Sans', sans-serif",
+                    }}>
+                      <CheckCheck style={{ width: '13px', height: '13px' }} />
+                      Marcar leídas
+                    </button>
                   )}
                 </div>
 
-                <div style={{ maxHeight: '380px', overflowY: 'auto' }}>
-                  {loadingAvisos ? (
+                <div style={{ maxHeight: '420px', overflowY: 'auto' }}>
+                  {loadingNotif ? (
                     <div style={{ padding: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
                       <div style={{ width: '18px', height: '18px', border: '2px solid var(--gray-200)', borderTopColor: 'var(--capyme-blue-mid)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-                      <span style={{ fontSize: '13px', color: 'var(--gray-400)', fontFamily: "'DM Sans', sans-serif" }}>Cargando avisos…</span>
+                      <span style={{ fontSize: '13px', color: 'var(--gray-400)', fontFamily: "'DM Sans', sans-serif" }}>Cargando…</span>
                     </div>
-                  ) : avisos.length === 0 ? (
-                    <div style={{ padding: '32px 20px', textAlign: 'center' }}>
-                      <BellRing style={{ width: '28px', height: '28px', color: 'var(--gray-300)', margin: '0 auto 8px' }} />
-                      <p style={{ fontSize: '13px', color: 'var(--gray-400)', fontFamily: "'DM Sans', sans-serif" }}>Sin avisos activos</p>
+                  ) : items.length === 0 ? (
+                    <div style={{ padding: '40px 20px', textAlign: 'center' }}>
+                      <BellRing style={{ width: '28px', height: '28px', color: 'var(--gray-300)', margin: '0 auto 8px', display: 'block' }} />
+                      <p style={{ fontSize: '13px', color: 'var(--gray-400)', margin: 0, fontFamily: "'DM Sans', sans-serif" }}>Sin notificaciones</p>
                     </div>
                   ) : (
-                    avisos.map((aviso, i) => (
-                      <button
-                        key={aviso.id}
-                        onClick={() => handleAvisoClick(aviso)}
-                        style={{
-                          display: 'flex', alignItems: 'flex-start', gap: '12px',
-                          padding: '13px 18px', width: '100%',
-                          background: aviso.tipo === 'urgente' ? '#FFF8F8' : 'transparent',
-                          border: 'none',
-                          borderBottom: i < avisos.length - 1 ? '1px solid var(--gray-100)' : 'none',
-                          cursor: 'pointer', textAlign: 'left',
-                          transition: 'background 120ms ease',
-                        }}
-                        onMouseEnter={e => e.currentTarget.style.background = 'var(--gray-50)'}
-                        onMouseLeave={e => e.currentTarget.style.background = aviso.tipo === 'urgente' ? '#FFF8F8' : 'transparent'}
-                      >
-                        <div style={{ width: '32px', height: '32px', borderRadius: 'var(--radius-md)', background: getTipoBg(aviso.tipo), display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                          {getTipoIcon(aviso.tipo)}
+                    items.map((item, i) => {
+                      const { bg, color, Icon } = getItemStyle(item.tipo, item.origen);
+                      const esNueva = !item.leida;
+                      return (
+                        <div
+                          key={item.id}
+                          onClick={() => handleItemClick(item)}
+                          style={{
+                            padding: '12px 18px',
+                            borderBottom: i < items.length - 1 ? '1px solid var(--gray-100)' : 'none',
+                            display: 'flex', gap: '12px', alignItems: 'flex-start',
+                            background: esNueva ? '#F8FAFF' : item.tipo === 'urgente' ? '#FFF8F8' : '#fff',
+                            cursor: item.origen === 'aviso' || (item.origen === 'notificacion' && esNueva) ? 'pointer' : 'default',
+                            transition: 'background 150ms ease',
+                          }}
+                          onMouseEnter={e => { if (item.origen === 'aviso' || esNueva) e.currentTarget.style.background = 'var(--gray-50)'; }}
+                          onMouseLeave={e => { e.currentTarget.style.background = esNueva ? '#F8FAFF' : item.tipo === 'urgente' ? '#FFF8F8' : '#fff'; }}
+                        >
+                          <div style={{ width: '34px', height: '34px', borderRadius: 'var(--radius-md)', background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                            <Icon style={{ width: '16px', height: '16px', color }} />
+                          </div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
+                              <span style={{
+                                fontSize: '13px', fontWeight: esNueva ? 700 : 600,
+                                color: 'var(--gray-900)', fontFamily: "'DM Sans', sans-serif",
+                                lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                              }}>
+                                {item.titulo}
+                              </span>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                                {esNueva && (
+                                  <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: 'var(--capyme-blue-mid)', marginTop: '3px' }} />
+                                )}
+                                {item.origen === 'aviso' && (
+                                  <ExternalLink style={{ width: '12px', height: '12px', color: 'var(--gray-300)', marginTop: '2px' }} />
+                                )}
+                              </div>
+                            </div>
+                            <p style={{
+                              fontSize: '12px', color: 'var(--gray-500)', margin: '3px 0 4px',
+                              fontFamily: "'DM Sans', sans-serif", lineHeight: 1.4,
+                              display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
+                            }}>
+                              {item.mensaje}
+                            </p>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <span style={{ fontSize: '11px', color: 'var(--gray-400)', fontFamily: "'DM Sans', sans-serif" }}>
+                                {formatFecha(item.fecha)}
+                              </span>
+                              <span style={{
+                                fontSize: '10px', padding: '1px 6px', borderRadius: '99px',
+                                background: item.origen === 'aviso' ? 'var(--capyme-blue-pale)' : '#F0FDF4',
+                                color: item.origen === 'aviso' ? 'var(--capyme-blue-mid)' : '#16A34A',
+                                fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 700,
+                              }}>
+                                {item.origen === 'aviso' ? 'Aviso' : 'Personal'}
+                              </span>
+                            </div>
+                          </div>
                         </div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--gray-900)', margin: '0 0 2px', fontFamily: "'DM Sans', sans-serif", overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {aviso.titulo}
-                          </p>
-                          <p style={{ fontSize: '12px', color: 'var(--gray-500)', margin: '0 0 4px', fontFamily: "'DM Sans', sans-serif", display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', lineHeight: 1.4 }}>
-                            {aviso.contenido}
-                          </p>
-                          <span style={{ fontSize: '11px', color: 'var(--gray-400)', fontFamily: "'DM Sans', sans-serif" }}>
-                            {formatTimeAgo(aviso.fechaPublicacion)}
-                          </span>
-                        </div>
-                        <ExternalLink style={{ width: '13px', height: '13px', color: 'var(--gray-300)', flexShrink: 0, marginTop: '2px' }} />
-                      </button>
-                    ))
+                      );
+                    })
                   )}
                 </div>
 
@@ -360,7 +402,6 @@ const Navbar = ({ onMenuClick }) => {
             )}
           </div>
 
-          {/* ── USUARIO ── */}
           <div style={{ position: 'relative', marginLeft: '2px' }} ref={userRef}>
             <button
               onClick={() => { setShowUserMenu(!showUserMenu); setShowNotifications(false); }}
@@ -410,6 +451,7 @@ const Navbar = ({ onMenuClick }) => {
               </div>
             )}
           </div>
+
         </div>
       </div>
     </nav>
