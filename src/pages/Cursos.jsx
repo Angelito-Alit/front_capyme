@@ -1,4 +1,3 @@
-//cursos vista admin
 import { useState, useEffect } from 'react';
 import Layout from '../components/common/Layout';
 import { cursosService } from '../services/cursosService';
@@ -27,6 +26,7 @@ import {
   Banknote,
   AlertTriangle,
   Shield,
+  XCircle,
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
@@ -42,77 +42,48 @@ const initialFormData = {
   costo: '',
 };
 
-/* ─── Modal de confirmación reutilizable ─────────────────── */
 const ConfirmModal = ({ config, onClose }) => {
   if (!config?.show) return null;
   const isDanger  = config.variant === 'danger';
   const isWarning = config.variant === 'warning';
 
-  const accentBg    = isDanger ? '#FEF2F2' : isWarning ? '#FFFBEB' : '#EEF4FF';
-  const accentBorder= isDanger ? '#FECACA' : isWarning ? '#FDE68A' : 'var(--border)';
-  const iconBg      = isDanger ? '#EF4444' : isWarning ? '#F59E0B' : 'var(--capyme-blue-mid)';
-  const titleColor  = isDanger ? '#B91C1C' : isWarning ? '#92400E' : 'var(--gray-900)';
-  const subtitleColor=isDanger ? '#DC2626' : isWarning ? '#B45309' : 'var(--gray-500)';
-  const btnBg       = isDanger
+  const accentBg     = isDanger ? '#FEF2F2' : isWarning ? '#FFFBEB' : '#EEF4FF';
+  const accentBorder = isDanger ? '#FECACA' : isWarning ? '#FDE68A' : 'var(--border)';
+  const iconBg       = isDanger ? '#EF4444' : isWarning ? '#F59E0B' : 'var(--capyme-blue-mid)';
+  const titleColor   = isDanger ? '#B91C1C' : isWarning ? '#92400E' : 'var(--gray-900)';
+  const subtitleColor= isDanger ? '#DC2626' : isWarning ? '#B45309' : 'var(--gray-500)';
+  const btnBg        = isDanger
     ? 'linear-gradient(135deg,#EF4444,#DC2626)'
     : isWarning
       ? 'linear-gradient(135deg,#F59E0B,#D97706)'
       : 'linear-gradient(135deg,var(--capyme-blue-mid),var(--capyme-blue))';
-  const btnShadow   = isDanger
+  const btnShadow    = isDanger
     ? '0 2px 8px rgba(239,68,68,0.35)'
     : isWarning
       ? '0 2px 8px rgba(245,158,11,0.35)'
       : '0 2px 8px rgba(31,78,158,0.28)';
 
   return (
-    <div
-      onClick={onClose}
-      style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.45)', backdropFilter:'blur(4px)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:1200, padding:'20px' }}
-    >
-      <div
-        onClick={e => e.stopPropagation()}
-        style={{ background:'#fff', borderRadius:'var(--radius-lg)', width:'100%', maxWidth:'440px', boxShadow:'0 24px 64px rgba(0,0,0,0.22)', overflow:'hidden', animation:'modalIn 0.22s ease both' }}
-      >
-        {/* Header */}
+    <div onClick={onClose} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.45)', backdropFilter:'blur(4px)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:1200, padding:'20px' }}>
+      <div onClick={e => e.stopPropagation()} style={{ background:'#fff', borderRadius:'var(--radius-lg)', width:'100%', maxWidth:'440px', boxShadow:'0 24px 64px rgba(0,0,0,0.22)', overflow:'hidden', animation:'modalIn 0.22s ease both' }}>
         <div style={{ background:accentBg, padding:'20px 24px', borderBottom:`1px solid ${accentBorder}`, display:'flex', alignItems:'center', gap:'14px' }}>
           <div style={{ width:'44px', height:'44px', background:iconBg, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, boxShadow:`0 4px 12px ${iconBg}40` }}>
             <AlertTriangle style={{ width:'22px', height:'22px', color:'#fff' }} />
           </div>
           <div>
-            <h3 style={{ fontSize:'17px', fontWeight:800, color:titleColor, fontFamily:"'Plus Jakarta Sans', sans-serif", margin:'0 0 2px' }}>
-              {config.title}
-            </h3>
-            <p style={{ fontSize:'13px', color:subtitleColor, margin:0, fontFamily:"'DM Sans', sans-serif", fontWeight:500 }}>
-              {config.subtitle || 'Esta acción puede revertirse más adelante'}
-            </p>
+            <h3 style={{ fontSize:'17px', fontWeight:800, color:titleColor, fontFamily:"'Plus Jakarta Sans', sans-serif", margin:'0 0 2px' }}>{config.title}</h3>
+            <p style={{ fontSize:'13px', color:subtitleColor, margin:0, fontFamily:"'DM Sans', sans-serif", fontWeight:500 }}>{config.subtitle || 'Esta acción puede revertirse más adelante'}</p>
           </div>
         </div>
-
-        {/* Body */}
         <div style={{ padding:'20px 24px' }}>
           {config.message && (
             <div style={{ background:'var(--gray-50)', border:'1px solid var(--border)', borderRadius:'var(--radius-md)', padding:'14px 16px', marginBottom:'20px' }}>
-              <p style={{ fontSize:'14px', color:'var(--gray-700)', margin:0, fontFamily:"'DM Sans', sans-serif", lineHeight:1.5 }}>
-                {config.message}
-              </p>
+              <p style={{ fontSize:'14px', color:'var(--gray-700)', margin:0, fontFamily:"'DM Sans', sans-serif", lineHeight:1.5 }}>{config.message}</p>
             </div>
           )}
-
           <div style={{ display:'flex', gap:'10px', justifyContent:'flex-end' }}>
-            <button
-              onClick={onClose}
-              style={{ padding:'9px 18px', border:'1px solid var(--border)', borderRadius:'var(--radius-md)', background:'#fff', color:'var(--gray-700)', fontSize:'14px', fontWeight:600, fontFamily:"'DM Sans', sans-serif", cursor:'pointer', transition:'all 150ms ease' }}
-              onMouseEnter={e => e.currentTarget.style.background = 'var(--gray-100)'}
-              onMouseLeave={e => e.currentTarget.style.background = '#fff'}
-            >
-              Cancelar
-            </button>
-            <button
-              onClick={() => { config.onConfirm(); onClose(); }}
-              style={{ padding:'9px 22px', border:'none', borderRadius:'var(--radius-md)', background:btnBg, color:'#fff', fontSize:'14px', fontWeight:600, fontFamily:"'DM Sans', sans-serif", cursor:'pointer', boxShadow:btnShadow, transition:'all 150ms ease', display:'flex', alignItems:'center', gap:'8px' }}
-              onMouseEnter={e => e.currentTarget.style.opacity = '0.9'}
-              onMouseLeave={e => e.currentTarget.style.opacity = '1'}
-            >
+            <button onClick={onClose} style={{ padding:'9px 18px', border:'1px solid var(--border)', borderRadius:'var(--radius-md)', background:'#fff', color:'var(--gray-700)', fontSize:'14px', fontWeight:600, fontFamily:"'DM Sans', sans-serif", cursor:'pointer', transition:'all 150ms ease' }} onMouseEnter={e => e.currentTarget.style.background='var(--gray-100)'} onMouseLeave={e => e.currentTarget.style.background='#fff'}>Cancelar</button>
+            <button onClick={() => { config.onConfirm(); onClose(); }} style={{ padding:'9px 22px', border:'none', borderRadius:'var(--radius-md)', background:btnBg, color:'#fff', fontSize:'14px', fontWeight:600, fontFamily:"'DM Sans', sans-serif", cursor:'pointer', boxShadow:btnShadow, transition:'all 150ms ease', display:'flex', alignItems:'center', gap:'8px' }} onMouseEnter={e => e.currentTarget.style.opacity='0.9'} onMouseLeave={e => e.currentTarget.style.opacity='1'}>
               {config.confirmLabel || 'Confirmar'}
             </button>
           </div>
@@ -130,11 +101,14 @@ const Cursos = () => {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [confirmandoPago, setConfirmandoPago] = useState(null);
+  const [declinandoPago, setDeclinandoPago] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [showInscritosModal, setShowInscritosModal] = useState(false);
   const [showPagosModal, setShowPagosModal] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [showDeclinarModal, setShowDeclinarModal] = useState(false);
   const [pagoToConfirm, setPagoToConfirm] = useState(null);
+  const [pagoToDeclinar, setPagoToDeclinar] = useState(null);
   const [modalMode, setModalMode] = useState('create');
   const [selectedCurso, setSelectedCurso] = useState(null);
   const [inscritos, setInscritos] = useState([]);
@@ -149,7 +123,6 @@ const Cursos = () => {
   const [formData, setFormData] = useState(initialFormData);
   const [formErrors, setFormErrors] = useState({});
 
-  /* ── Modal de confirmación genérico ── */
   const [confirmConfig, setConfirmConfig] = useState({ show: false });
   const showConfirm = (cfg) => setConfirmConfig({ show: true, ...cfg });
   const closeConfirm = () => setConfirmConfig({ show: false });
@@ -163,10 +136,7 @@ const Cursos = () => {
   };
   const inputWithIconStyle = { ...inputBaseStyle, paddingLeft: '38px' };
   const inputErrorStyle = { borderColor: '#EF4444', boxShadow: '0 0 0 2px rgba(239,68,68,0.15)' };
-  const labelStyle = {
-    display: 'block', fontSize: '13px', fontWeight: 600,
-    color: 'var(--gray-600)', marginBottom: '6px', fontFamily: "'DM Sans', sans-serif",
-  };
+  const labelStyle = { display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--gray-600)', marginBottom: '6px', fontFamily: "'DM Sans', sans-serif" };
   const selectStyle = { ...inputBaseStyle, appearance: 'none', paddingRight: '36px', cursor: 'pointer' };
   const textareaStyle = { ...inputBaseStyle, resize: 'vertical', minHeight: '80px' };
 
@@ -199,20 +169,40 @@ const Cursos = () => {
     setShowConfirmModal(true);
   };
 
+  const openDeclinarModal = (pago) => {
+    setPagoToDeclinar(pago);
+    setShowDeclinarModal(true);
+  };
+
   const handleConfirmarPago = async () => {
     if (!pagoToConfirm) return;
     try {
       setConfirmandoPago(pagoToConfirm.id);
       await cursosService.confirmarPago(pagoToConfirm.id);
       toast.success('Pago confirmado exitosamente');
-      const nuevos = pagosPendientes.filter((p) => p.id !== pagoToConfirm.id);
-      setPagosPendientes(nuevos);
+      setPagosPendientes(prev => prev.filter(p => p.id !== pagoToConfirm.id));
       setShowConfirmModal(false);
       setPagoToConfirm(null);
     } catch (error) {
       toast.error(error.response?.data?.message || 'Error al confirmar pago');
     } finally {
       setConfirmandoPago(null);
+    }
+  };
+
+  const handleDeclinarPago = async () => {
+    if (!pagoToDeclinar) return;
+    try {
+      setDeclinandoPago(pagoToDeclinar.id);
+      await cursosService.declinarPago(pagoToDeclinar.id);
+      toast.success('Inscripción declinada y cliente notificado');
+      setPagosPendientes(prev => prev.filter(p => p.id !== pagoToDeclinar.id));
+      setShowDeclinarModal(false);
+      setPagoToDeclinar(null);
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Error al declinar inscripción');
+    } finally {
+      setDeclinandoPago(null);
     }
   };
 
@@ -254,8 +244,8 @@ const Cursos = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-    if (formErrors[name]) setFormErrors((prev) => ({ ...prev, [name]: '' }));
+    setFormData(prev => ({ ...prev, [name]: value }));
+    if (formErrors[name]) setFormErrors(prev => ({ ...prev, [name]: '' }));
   };
 
   const handleSubmit = async () => {
@@ -285,12 +275,11 @@ const Cursos = () => {
     } finally { setSubmitting(false); }
   };
 
-  /* ── toggle con modal en lugar de window.confirm ── */
   const handleToggleActivo = (curso) => {
     const desactivar = curso.activo;
     showConfirm({
       variant: desactivar ? 'danger' : 'warning',
-      title: desactivar ? `Desactivar curso` : `Activar curso`,
+      title: desactivar ? 'Desactivar curso' : 'Activar curso',
       subtitle: desactivar ? 'El curso dejará de estar disponible' : 'El curso estará visible para los usuarios',
       message: `¿Confirmas que deseas ${desactivar ? 'desactivar' : 'activar'} "${curso.titulo}"?`,
       confirmLabel: desactivar ? 'Sí, desactivar' : 'Sí, activar',
@@ -316,7 +305,7 @@ const Cursos = () => {
   };
 
   const cursosFiltrados = cursos.filter(
-    (c) => c.titulo.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    c => c.titulo.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (c.instructor || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -357,7 +346,7 @@ const Cursos = () => {
 
       <div style={{ padding: '0 0 40px' }}>
 
-        {/* ── HEADER ── */}
+        {/* HEADER */}
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '28px', flexWrap: 'wrap', gap: '16px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
             <div style={{ width: '46px', height: '46px', background: 'linear-gradient(135deg, var(--capyme-blue-mid), var(--capyme-blue))', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(31,78,158,0.25)' }}>
@@ -377,8 +366,8 @@ const Cursos = () => {
                 onClick={cargarPagosPendientes}
                 disabled={loadingPagos}
                 style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 18px', background: '#FFF7ED', color: '#C2410C', border: '1.5px solid #FED7AA', borderRadius: 'var(--radius-md)', fontSize: '14px', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", cursor: 'pointer', transition: 'all 150ms ease' }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = '#FFEDD5'; e.currentTarget.style.borderColor = '#FB923C'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = '#FFF7ED'; e.currentTarget.style.borderColor = '#FED7AA'; }}
+                onMouseEnter={e => { e.currentTarget.style.background = '#FFEDD5'; e.currentTarget.style.borderColor = '#FB923C'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = '#FFF7ED'; e.currentTarget.style.borderColor = '#FED7AA'; }}
               >
                 <CreditCard style={{ width: '16px', height: '16px' }} />
                 Pagos pendientes de inscripciones
@@ -388,8 +377,8 @@ const Cursos = () => {
               <button
                 onClick={() => handleOpenModal('create')}
                 style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 18px', background: 'linear-gradient(135deg, var(--capyme-blue-mid), var(--capyme-blue))', color: '#fff', border: 'none', borderRadius: 'var(--radius-md)', fontSize: '14px', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", cursor: 'pointer', boxShadow: '0 2px 8px rgba(31,78,158,0.28)', transition: 'all 150ms ease' }}
-                onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.9'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.transform = 'translateY(0)'; }}
+                onMouseEnter={e => { e.currentTarget.style.opacity = '0.9'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                onMouseLeave={e => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.transform = 'translateY(0)'; }}
               >
                 <Plus style={{ width: '16px', height: '16px' }} />
                 Nuevo Curso
@@ -398,14 +387,14 @@ const Cursos = () => {
           </div>
         </div>
 
-        {/* ── STATS ── */}
+        {/* STATS */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '12px', marginBottom: '20px' }}>
           {[
             { label: 'Total', value: cursos.length, color: 'var(--capyme-blue-mid)', bg: 'var(--capyme-blue-pale)' },
-            { label: 'Activos', value: cursos.filter((c) => c.activo).length, color: '#16A34A', bg: '#F0FDF4' },
-            { label: 'Inactivos', value: cursos.filter((c) => !c.activo).length, color: '#DC2626', bg: '#FEF2F2' },
-            { label: 'Gratuitos', value: cursos.filter((c) => !c.costo || parseFloat(c.costo) === 0).length, color: '#7C3AED', bg: '#F5F3FF' },
-          ].map((stat) => (
+            { label: 'Activos', value: cursos.filter(c => c.activo).length, color: '#16A34A', bg: '#F0FDF4' },
+            { label: 'Inactivos', value: cursos.filter(c => !c.activo).length, color: '#DC2626', bg: '#FEF2F2' },
+            { label: 'Gratuitos', value: cursos.filter(c => !c.costo || parseFloat(c.costo) === 0).length, color: '#7C3AED', bg: '#F5F3FF' },
+          ].map(stat => (
             <div key={stat.label} style={{ background: stat.bg, borderRadius: 'var(--radius-md)', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
               <span style={{ fontSize: '22px', fontWeight: 800, color: stat.color, fontFamily: "'Plus Jakarta Sans', sans-serif", lineHeight: 1 }}>{stat.value}</span>
               <span style={{ fontSize: '12px', color: stat.color, fontFamily: "'DM Sans', sans-serif", fontWeight: 600, opacity: 0.75 }}>{stat.label}</span>
@@ -413,14 +402,14 @@ const Cursos = () => {
           ))}
         </div>
 
-        {/* ── FILTERS ── */}
+        {/* FILTERS */}
         <div style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '16px 20px', marginBottom: '20px', display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap', boxShadow: 'var(--shadow-sm)' }}>
           <div style={{ position: 'relative', flex: '1', minWidth: '180px' }}>
             <Search style={{ position: 'absolute', left: '11px', top: '50%', transform: 'translateY(-50%)', width: '15px', height: '15px', color: 'var(--gray-400)', pointerEvents: 'none' }} />
-            <input type="text" placeholder="Buscar curso o instructor…" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} style={inputWithIconStyle} />
+            <input type="text" placeholder="Buscar curso o instructor…" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} style={inputWithIconStyle} />
           </div>
           <div style={{ position: 'relative', minWidth: '160px' }}>
-            <select value={filterModalidad} onChange={(e) => setFilterModalidad(e.target.value)} style={{ ...selectStyle, width: '100%' }}>
+            <select value={filterModalidad} onChange={e => setFilterModalidad(e.target.value)} style={{ ...selectStyle, width: '100%' }}>
               <option value="">Todas las modalidades</option>
               <option value="online">Online</option>
               <option value="presencial">Presencial</option>
@@ -429,7 +418,7 @@ const Cursos = () => {
             <ChevronDown style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', width: '14px', height: '14px', color: 'var(--gray-400)', pointerEvents: 'none' }} />
           </div>
           <div style={{ position: 'relative', minWidth: '140px' }}>
-            <select value={filterEstado} onChange={(e) => setFilterEstado(e.target.value)} style={{ ...selectStyle, width: '100%' }}>
+            <select value={filterEstado} onChange={e => setFilterEstado(e.target.value)} style={{ ...selectStyle, width: '100%' }}>
               <option value="">Activo / Inactivo</option>
               <option value="true">Activos</option>
               <option value="false">Inactivos</option>
@@ -445,7 +434,7 @@ const Cursos = () => {
           </div>
         </div>
 
-        {/* ── CONTENT ── */}
+        {/* CONTENT */}
         {cursosFiltrados.length === 0 ? (
           <div style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '60px 20px', textAlign: 'center', boxShadow: 'var(--shadow-sm)' }}>
             <div style={{ width: '56px', height: '56px', background: 'var(--gray-100)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px' }}>
@@ -513,23 +502,23 @@ const Cursos = () => {
                       )}
                     </div>
                     <div style={{ display: 'flex', gap: '6px', paddingTop: '14px', borderTop: '1px solid var(--gray-100)', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <button onClick={() => cargarInscritos(curso)} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', background: 'transparent', cursor: 'pointer', color: 'var(--gray-600)', fontSize: '12px', fontFamily: "'DM Sans', sans-serif", fontWeight: 600, transition: 'all 150ms ease' }} onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--capyme-blue-pale)'; e.currentTarget.style.color = 'var(--capyme-blue-mid)'; e.currentTarget.style.borderColor = 'var(--capyme-blue-mid)'; }} onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gray-600)'; e.currentTarget.style.borderColor = 'var(--border)'; }}>
+                      <button onClick={() => cargarInscritos(curso)} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', background: 'transparent', cursor: 'pointer', color: 'var(--gray-600)', fontSize: '12px', fontFamily: "'DM Sans', sans-serif", fontWeight: 600, transition: 'all 150ms ease' }} onMouseEnter={e => { e.currentTarget.style.background = 'var(--capyme-blue-pale)'; e.currentTarget.style.color = 'var(--capyme-blue-mid)'; e.currentTarget.style.borderColor = 'var(--capyme-blue-mid)'; }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gray-600)'; e.currentTarget.style.borderColor = 'var(--border)'; }}>
                         <Users style={{ width: '13px', height: '13px' }} />
                         Inscritos ({curso.inscritosCount || 0})
                       </button>
                       <div style={{ display: 'flex', gap: '4px' }}>
                         {currentUser.rol !== 'cliente' && (
-                          <button onClick={() => handleOpenModal('edit', curso)} title="Editar" style={{ width: '34px', height: '34px', border: 'none', borderRadius: 'var(--radius-sm)', background: 'transparent', cursor: 'pointer', color: 'var(--gray-400)', transition: 'all 150ms ease', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onMouseEnter={(e) => { e.currentTarget.style.background = '#EEF4FF'; e.currentTarget.style.color = 'var(--capyme-blue-mid)'; }} onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gray-400)'; }}>
+                          <button onClick={() => handleOpenModal('edit', curso)} title="Editar" style={{ width: '34px', height: '34px', border: 'none', borderRadius: 'var(--radius-sm)', background: 'transparent', cursor: 'pointer', color: 'var(--gray-400)', transition: 'all 150ms ease', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onMouseEnter={e => { e.currentTarget.style.background = '#EEF4FF'; e.currentTarget.style.color = 'var(--capyme-blue-mid)'; }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gray-400)'; }}>
                             <Edit style={{ width: '15px', height: '15px' }} />
                           </button>
                         )}
                         {currentUser.rol === 'admin' && !curso.activo && (
-                          <button onClick={() => handleToggleActivo(curso)} title="Activar" style={{ width: '34px', height: '34px', border: 'none', borderRadius: 'var(--radius-sm)', background: 'transparent', cursor: 'pointer', color: 'var(--gray-400)', transition: 'all 150ms ease', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onMouseEnter={(e) => { e.currentTarget.style.background = '#ECFDF5'; e.currentTarget.style.color = '#065F46'; }} onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gray-400)'; }}>
+                          <button onClick={() => handleToggleActivo(curso)} title="Activar" style={{ width: '34px', height: '34px', border: 'none', borderRadius: 'var(--radius-sm)', background: 'transparent', cursor: 'pointer', color: 'var(--gray-400)', transition: 'all 150ms ease', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onMouseEnter={e => { e.currentTarget.style.background = '#ECFDF5'; e.currentTarget.style.color = '#065F46'; }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gray-400)'; }}>
                             <CheckCircle style={{ width: '15px', height: '15px' }} />
                           </button>
                         )}
                         {currentUser.rol === 'admin' && curso.activo && (
-                          <button onClick={() => handleToggleActivo(curso)} title="Desactivar" style={{ width: '34px', height: '34px', border: 'none', borderRadius: 'var(--radius-sm)', background: 'transparent', cursor: 'pointer', color: 'var(--gray-400)', transition: 'all 150ms ease', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onMouseEnter={(e) => { e.currentTarget.style.background = '#FEF2F2'; e.currentTarget.style.color = '#DC2626'; }} onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gray-400)'; }}>
+                          <button onClick={() => handleToggleActivo(curso)} title="Desactivar" style={{ width: '34px', height: '34px', border: 'none', borderRadius: 'var(--radius-sm)', background: 'transparent', cursor: 'pointer', color: 'var(--gray-400)', transition: 'all 150ms ease', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onMouseEnter={e => { e.currentTarget.style.background = '#FEF2F2'; e.currentTarget.style.color = '#DC2626'; }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gray-400)'; }}>
                             <Trash2 style={{ width: '15px', height: '15px' }} />
                           </button>
                         )}
@@ -546,13 +535,13 @@ const Cursos = () => {
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ background: 'var(--gray-50)', borderBottom: '1px solid var(--border)' }}>
-                  {['Curso', 'Modalidad', 'Instructor', 'Duración', 'Costo', 'Inscritos', 'Estado', ''].map((h) => (
+                  {['Curso', 'Modalidad', 'Instructor', 'Duración', 'Costo', 'Inscritos', 'Estado', ''].map(h => (
                     <th key={h} style={{ padding: '11px 16px', textAlign: h === '' ? 'right' : 'left', fontSize: '11px', fontWeight: 700, color: 'var(--gray-500)', fontFamily: "'Plus Jakarta Sans', sans-serif", textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {cursosFiltrados.map((curso) => {
+                {cursosFiltrados.map(curso => {
                   const ms = getModalidadStyle(curso.modalidad);
                   const MIcon = getModalidadIcon(curso.modalidad);
                   const esGratis = !curso.costo || parseFloat(curso.costo) === 0;
@@ -578,7 +567,7 @@ const Cursos = () => {
                       <td style={{ padding: '13px 16px', fontSize: '13px', color: 'var(--gray-600)', fontFamily: "'DM Sans', sans-serif" }}>{curso.duracionHoras ? `${curso.duracionHoras} h` : <span style={{ color: 'var(--gray-300)' }}>—</span>}</td>
                       <td style={{ padding: '13px 16px', fontSize: '13px', fontWeight: 600, fontFamily: "'DM Sans', sans-serif" }}>{esGratis ? <span style={{ color: '#065F46' }}>Gratis</span> : <span style={{ color: 'var(--gray-800)' }}>{formatCurrency(curso.costo)}</span>}</td>
                       <td style={{ padding: '13px 16px' }}>
-                        <button onClick={() => cargarInscritos(curso)} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '4px 10px', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', background: 'transparent', cursor: 'pointer', color: 'var(--gray-600)', fontSize: '12px', fontFamily: "'DM Sans', sans-serif", fontWeight: 600, transition: 'all 150ms ease' }} onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--capyme-blue-pale)'; e.currentTarget.style.color = 'var(--capyme-blue-mid)'; }} onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gray-600)'; }}>
+                        <button onClick={() => cargarInscritos(curso)} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '4px 10px', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', background: 'transparent', cursor: 'pointer', color: 'var(--gray-600)', fontSize: '12px', fontFamily: "'DM Sans', sans-serif", fontWeight: 600, transition: 'all 150ms ease' }} onMouseEnter={e => { e.currentTarget.style.background = 'var(--capyme-blue-pale)'; e.currentTarget.style.color = 'var(--capyme-blue-mid)'; }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gray-600)'; }}>
                           <Users style={{ width: '12px', height: '12px' }} />
                           {curso.inscritosCount || 0}{curso.cupoMaximo ? `/${curso.cupoMaximo}` : ''}
                         </button>
@@ -591,17 +580,17 @@ const Cursos = () => {
                       <td style={{ padding: '13px 16px', textAlign: 'right' }}>
                         <div style={{ display: 'flex', gap: '4px', justifyContent: 'flex-end' }}>
                           {currentUser.rol !== 'cliente' && (
-                            <button onClick={() => handleOpenModal('edit', curso)} title="Editar" style={{ width: '34px', height: '34px', border: 'none', borderRadius: 'var(--radius-sm)', background: 'transparent', cursor: 'pointer', color: 'var(--gray-400)', transition: 'all 150ms ease', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onMouseEnter={(e) => { e.currentTarget.style.background = '#EEF4FF'; e.currentTarget.style.color = 'var(--capyme-blue-mid)'; }} onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gray-400)'; }}>
+                            <button onClick={() => handleOpenModal('edit', curso)} title="Editar" style={{ width: '34px', height: '34px', border: 'none', borderRadius: 'var(--radius-sm)', background: 'transparent', cursor: 'pointer', color: 'var(--gray-400)', transition: 'all 150ms ease', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onMouseEnter={e => { e.currentTarget.style.background = '#EEF4FF'; e.currentTarget.style.color = 'var(--capyme-blue-mid)'; }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gray-400)'; }}>
                               <Edit style={{ width: '15px', height: '15px' }} />
                             </button>
                           )}
                           {currentUser.rol === 'admin' && !curso.activo && (
-                            <button onClick={() => handleToggleActivo(curso)} title="Activar" style={{ width: '34px', height: '34px', border: 'none', borderRadius: 'var(--radius-sm)', background: 'transparent', cursor: 'pointer', color: 'var(--gray-400)', transition: 'all 150ms ease', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onMouseEnter={(e) => { e.currentTarget.style.background = '#ECFDF5'; e.currentTarget.style.color = '#065F46'; }} onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gray-400)'; }}>
+                            <button onClick={() => handleToggleActivo(curso)} title="Activar" style={{ width: '34px', height: '34px', border: 'none', borderRadius: 'var(--radius-sm)', background: 'transparent', cursor: 'pointer', color: 'var(--gray-400)', transition: 'all 150ms ease', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onMouseEnter={e => { e.currentTarget.style.background = '#ECFDF5'; e.currentTarget.style.color = '#065F46'; }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gray-400)'; }}>
                               <CheckCircle style={{ width: '15px', height: '15px' }} />
                             </button>
                           )}
                           {currentUser.rol === 'admin' && curso.activo && (
-                            <button onClick={() => handleToggleActivo(curso)} title="Desactivar" style={{ width: '34px', height: '34px', border: 'none', borderRadius: 'var(--radius-sm)', background: 'transparent', cursor: 'pointer', color: 'var(--gray-400)', transition: 'all 150ms ease', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onMouseEnter={(e) => { e.currentTarget.style.background = '#FEF2F2'; e.currentTarget.style.color = '#DC2626'; }} onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gray-400)'; }}>
+                            <button onClick={() => handleToggleActivo(curso)} title="Desactivar" style={{ width: '34px', height: '34px', border: 'none', borderRadius: 'var(--radius-sm)', background: 'transparent', cursor: 'pointer', color: 'var(--gray-400)', transition: 'all 150ms ease', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onMouseEnter={e => { e.currentTarget.style.background = '#FEF2F2'; e.currentTarget.style.color = '#DC2626'; }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gray-400)'; }}>
                               <Trash2 style={{ width: '15px', height: '15px' }} />
                             </button>
                           )}
@@ -616,10 +605,10 @@ const Cursos = () => {
         )}
       </div>
 
-      {/* ═══ MODAL CREAR / EDITAR ═══ */}
+      {/* MODAL CREAR / EDITAR */}
       {showModal && (
         <div onClick={handleCloseModal} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.42)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
-          <div className="curso-modal" onClick={(e) => e.stopPropagation()} style={{ background: '#fff', borderRadius: 'var(--radius-lg)', width: '100%', maxWidth: '720px', maxHeight: '92vh', display: 'flex', flexDirection: 'column', boxShadow: '0 24px 64px rgba(0,0,0,0.18)', overflow: 'hidden' }}>
+          <div className="curso-modal" onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 'var(--radius-lg)', width: '100%', maxWidth: '720px', maxHeight: '92vh', display: 'flex', flexDirection: 'column', boxShadow: '0 24px 64px rgba(0,0,0,0.18)', overflow: 'hidden' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 24px', background: 'var(--gray-50)', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <div style={{ width: '36px', height: '36px', background: 'linear-gradient(135deg, var(--capyme-blue-mid), var(--capyme-blue))', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -629,7 +618,7 @@ const Cursos = () => {
                   {modalMode === 'create' ? 'Nuevo Curso' : 'Editar Curso'}
                 </h2>
               </div>
-              <button onClick={handleCloseModal} style={{ width: '32px', height: '32px', border: 'none', borderRadius: 'var(--radius-sm)', background: 'transparent', cursor: 'pointer', color: 'var(--gray-400)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 150ms ease' }} onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--gray-200)'; e.currentTarget.style.color = 'var(--gray-700)'; }} onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gray-400)'; }}>
+              <button onClick={handleCloseModal} style={{ width: '32px', height: '32px', border: 'none', borderRadius: 'var(--radius-sm)', background: 'transparent', cursor: 'pointer', color: 'var(--gray-400)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 150ms ease' }} onMouseEnter={e => { e.currentTarget.style.background = 'var(--gray-200)'; e.currentTarget.style.color = 'var(--gray-700)'; }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gray-400)'; }}>
                 <X style={{ width: '18px', height: '18px' }} />
               </button>
             </div>
@@ -714,7 +703,7 @@ const Cursos = () => {
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', padding: '16px 24px', background: 'var(--gray-50)', borderTop: '1px solid var(--border)', flexShrink: 0 }}>
-              <button onClick={handleCloseModal} disabled={submitting} style={{ padding: '9px 18px', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', background: '#fff', color: 'var(--gray-700)', fontSize: '14px', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", cursor: 'pointer', transition: 'all 150ms ease' }} onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--gray-100)'; }} onMouseLeave={(e) => { e.currentTarget.style.background = '#fff'; }}>
+              <button onClick={handleCloseModal} disabled={submitting} style={{ padding: '9px 18px', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', background: '#fff', color: 'var(--gray-700)', fontSize: '14px', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", cursor: 'pointer', transition: 'all 150ms ease' }} onMouseEnter={e => e.currentTarget.style.background = 'var(--gray-100)'} onMouseLeave={e => e.currentTarget.style.background = '#fff'}>
                 Cancelar
               </button>
               <button onClick={handleSubmit} disabled={submitting} style={{ padding: '9px 22px', border: 'none', borderRadius: 'var(--radius-md)', background: submitting ? 'var(--gray-300)' : 'linear-gradient(135deg, var(--capyme-blue-mid), var(--capyme-blue))', color: '#fff', fontSize: '14px', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", cursor: submitting ? 'not-allowed' : 'pointer', boxShadow: submitting ? 'none' : '0 2px 8px rgba(31,78,158,0.28)', transition: 'all 150ms ease', display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -726,10 +715,10 @@ const Cursos = () => {
         </div>
       )}
 
-      {/* ═══ MODAL INSCRITOS ═══ */}
+      {/* MODAL INSCRITOS */}
       {showInscritosModal && (
         <div onClick={() => setShowInscritosModal(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.42)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
-          <div className="curso-modal" onClick={(e) => e.stopPropagation()} style={{ background: '#fff', borderRadius: 'var(--radius-lg)', width: '100%', maxWidth: '680px', maxHeight: '88vh', display: 'flex', flexDirection: 'column', boxShadow: '0 24px 64px rgba(0,0,0,0.18)', overflow: 'hidden' }}>
+          <div className="curso-modal" onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 'var(--radius-lg)', width: '100%', maxWidth: '680px', maxHeight: '88vh', display: 'flex', flexDirection: 'column', boxShadow: '0 24px 64px rgba(0,0,0,0.18)', overflow: 'hidden' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 24px', background: 'var(--gray-50)', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <div style={{ width: '36px', height: '36px', background: 'linear-gradient(135deg, var(--capyme-blue-mid), var(--capyme-blue))', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -740,7 +729,7 @@ const Cursos = () => {
                   <p style={{ fontSize: '12px', color: 'var(--gray-400)', margin: '2px 0 0', fontFamily: "'DM Sans', sans-serif", maxWidth: '380px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{inscritosCursoTitulo}</p>
                 </div>
               </div>
-              <button onClick={() => setShowInscritosModal(false)} style={{ width: '32px', height: '32px', border: 'none', borderRadius: 'var(--radius-sm)', background: 'transparent', cursor: 'pointer', color: 'var(--gray-400)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 150ms ease' }} onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--gray-200)'; }} onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}>
+              <button onClick={() => setShowInscritosModal(false)} style={{ width: '32px', height: '32px', border: 'none', borderRadius: 'var(--radius-sm)', background: 'transparent', cursor: 'pointer', color: 'var(--gray-400)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 150ms ease' }} onMouseEnter={e => e.currentTarget.style.background = 'var(--gray-200)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                 <X style={{ width: '18px', height: '18px' }} />
               </button>
             </div>
@@ -757,13 +746,13 @@ const Cursos = () => {
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                   <thead>
                     <tr style={{ background: 'var(--gray-50)', borderBottom: '1px solid var(--border)' }}>
-                      {['Participante', 'Email', 'Negocio', 'Estado', 'Fecha'].map((h) => (
+                      {['Participante', 'Email', 'Negocio', 'Estado', 'Fecha'].map(h => (
                         <th key={h} style={{ padding: '11px 16px', textAlign: 'left', fontSize: '11px', fontWeight: 700, color: 'var(--gray-500)', fontFamily: "'Plus Jakarta Sans', sans-serif", textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>{h}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
-                    {inscritos.map((inscrito) => {
+                    {inscritos.map(inscrito => {
                       const es = getEstadoInscripcionStyle(inscrito.estado);
                       const iniciales = `${inscrito.usuario.nombre[0]}${inscrito.usuario.apellido[0]}`.toUpperCase();
                       return (
@@ -796,7 +785,7 @@ const Cursos = () => {
             </div>
             <div style={{ padding: '14px 24px', background: 'var(--gray-50)', borderTop: '1px solid var(--border)', flexShrink: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ fontSize: '13px', color: 'var(--gray-500)', fontFamily: "'DM Sans', sans-serif" }}>{inscritos.length} inscrito{inscritos.length !== 1 ? 's' : ''}</span>
-              <button onClick={() => setShowInscritosModal(false)} style={{ padding: '8px 18px', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', background: '#fff', color: 'var(--gray-700)', fontSize: '13px', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", cursor: 'pointer', transition: 'all 150ms ease' }} onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--gray-100)'; }} onMouseLeave={(e) => { e.currentTarget.style.background = '#fff'; }}>
+              <button onClick={() => setShowInscritosModal(false)} style={{ padding: '8px 18px', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', background: '#fff', color: 'var(--gray-700)', fontSize: '13px', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", cursor: 'pointer', transition: 'all 150ms ease' }} onMouseEnter={e => e.currentTarget.style.background = 'var(--gray-100)'} onMouseLeave={e => e.currentTarget.style.background = '#fff'}>
                 Cerrar
               </button>
             </div>
@@ -804,10 +793,10 @@ const Cursos = () => {
         </div>
       )}
 
-      {/* ═══ MODAL PAGOS PENDIENTES ═══ */}
+      {/* MODAL PAGOS PENDIENTES */}
       {showPagosModal && (
         <div onClick={() => setShowPagosModal(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.42)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
-          <div className="curso-modal" onClick={(e) => e.stopPropagation()} style={{ background: '#fff', borderRadius: 'var(--radius-lg)', width: '100%', maxWidth: '780px', maxHeight: '90vh', display: 'flex', flexDirection: 'column', boxShadow: '0 24px 64px rgba(0,0,0,0.18)', overflow: 'hidden' }}>
+          <div className="curso-modal" onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 'var(--radius-lg)', width: '100%', maxWidth: '780px', maxHeight: '90vh', display: 'flex', flexDirection: 'column', boxShadow: '0 24px 64px rgba(0,0,0,0.18)', overflow: 'hidden' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 24px', background: '#FFF7ED', borderBottom: '1px solid #FED7AA', flexShrink: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <div style={{ width: '36px', height: '36px', background: 'linear-gradient(135deg, #FB923C, #EA580C)', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -816,11 +805,11 @@ const Cursos = () => {
                 <div>
                   <h2 style={{ fontSize: '17px', fontWeight: 800, color: '#9A3412', fontFamily: "'Plus Jakarta Sans', sans-serif", margin: 0 }}>Pagos pendientes de inscripciones</h2>
                   <p style={{ fontSize: '12px', color: '#C2410C', margin: '2px 0 0', fontFamily: "'DM Sans', sans-serif" }}>
-                    {pagosPendientes.length} pago{pagosPendientes.length !== 1 ? 's' : ''} por confirmar
+                    {pagosPendientes.length} pago{pagosPendientes.length !== 1 ? 's' : ''} por revisar
                   </p>
                 </div>
               </div>
-              <button onClick={() => setShowPagosModal(false)} style={{ width: '32px', height: '32px', border: 'none', borderRadius: 'var(--radius-sm)', background: 'transparent', cursor: 'pointer', color: '#C2410C', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 150ms ease' }} onMouseEnter={(e) => { e.currentTarget.style.background = '#FFEDD5'; }} onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}>
+              <button onClick={() => setShowPagosModal(false)} style={{ width: '32px', height: '32px', border: 'none', borderRadius: 'var(--radius-sm)', background: 'transparent', cursor: 'pointer', color: '#C2410C', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 150ms ease' }} onMouseEnter={e => e.currentTarget.style.background = '#FFEDD5'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                 <X style={{ width: '18px', height: '18px' }} />
               </button>
             </div>
@@ -829,7 +818,7 @@ const Cursos = () => {
               <div style={{ padding: '12px 24px', background: '#FFFBEB', borderBottom: '1px solid #FDE68A', flexShrink: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <AlertTriangle style={{ width: '14px', height: '14px', color: '#B45309', flexShrink: 0 }} />
                 <span style={{ fontSize: '12px', color: '#92400E', fontFamily: "'DM Sans', sans-serif", lineHeight: 1.4 }}>
-                  Verifica cada transferencia en tu portal bancario antes de confirmar. Para pagos en efectivo, confirma únicamente si ya recibiste el dinero físicamente.
+                  Verifica cada transferencia en tu portal bancario antes de confirmar. Si el pago no corresponde, utiliza el botón <strong>Declinar</strong> para notificar al cliente.
                 </span>
               </div>
             )}
@@ -841,13 +830,14 @@ const Cursos = () => {
                     <CheckCircle style={{ width: '26px', height: '26px', color: '#16A34A' }} />
                   </div>
                   <p style={{ fontSize: '15px', fontWeight: 600, color: 'var(--gray-700)', margin: '0 0 6px', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Sin pagos pendientes</p>
-                  <p style={{ fontSize: '13px', color: 'var(--gray-400)', margin: 0, fontFamily: "'DM Sans', sans-serif" }}>Todos los pagos han sido confirmados</p>
+                  <p style={{ fontSize: '13px', color: 'var(--gray-400)', margin: 0, fontFamily: "'DM Sans', sans-serif" }}>Todos los pagos han sido revisados</p>
                 </div>
               ) : (
                 <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  {pagosPendientes.map((pago) => {
+                  {pagosPendientes.map(pago => {
                     const esSpei = pago.tipoPago === 'spei';
                     const estaConfirmando = confirmandoPago === pago.id;
+                    const estaDeclinando = declinandoPago === pago.id;
                     return (
                       <div key={pago.id} style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', overflow: 'hidden', background: '#fff' }}>
                         <div style={{ padding: '16px 20px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' }}>
@@ -878,11 +868,41 @@ const Cursos = () => {
                             <div style={{ fontSize: '11px', color: 'var(--gray-400)', fontFamily: "'DM Sans', sans-serif" }}>Solicitado: {formatDate(pago.fechaCreacion)}</div>
                           </div>
                         </div>
-                        <div style={{ padding: '12px 20px', background: 'var(--gray-50)', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end' }}>
+                        {/* Botones de acción: Confirmar + Declinar */}
+                        <div style={{ padding: '12px 20px', background: 'var(--gray-50)', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                          <button
+                            onClick={() => openDeclinarModal(pago)}
+                            disabled={estaDeclinando || estaConfirmando}
+                            style={{
+                              display: 'flex', alignItems: 'center', gap: '7px',
+                              padding: '9px 18px', border: '1.5px solid #FECACA',
+                              borderRadius: 'var(--radius-md)', background: '#FEF2F2',
+                              color: '#B91C1C', fontSize: '13px', fontWeight: 600,
+                              fontFamily: "'DM Sans', sans-serif",
+                              cursor: (estaDeclinando || estaConfirmando) ? 'not-allowed' : 'pointer',
+                              opacity: (estaDeclinando || estaConfirmando) ? 0.5 : 1,
+                              transition: 'all 150ms ease',
+                            }}
+                            onMouseEnter={e => { if (!estaDeclinando && !estaConfirmando) { e.currentTarget.style.background = '#FEE2E2'; e.currentTarget.style.borderColor = '#F87171'; } }}
+                            onMouseLeave={e => { e.currentTarget.style.background = '#FEF2F2'; e.currentTarget.style.borderColor = '#FECACA'; }}
+                          >
+                            <XCircle style={{ width: '15px', height: '15px' }} />
+                            Declinar inscripción
+                          </button>
                           <button
                             onClick={() => openConfirmModal(pago)}
-                            disabled={estaConfirmando}
-                            style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '9px 20px', border: 'none', borderRadius: 'var(--radius-md)', background: estaConfirmando ? 'var(--gray-300)' : 'linear-gradient(135deg, #16A34A, #15803D)', color: '#fff', fontSize: '13px', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", cursor: estaConfirmando ? 'not-allowed' : 'pointer', boxShadow: estaConfirmando ? 'none' : '0 2px 8px rgba(22,163,74,0.28)', transition: 'all 150ms ease' }}
+                            disabled={estaConfirmando || estaDeclinando}
+                            style={{
+                              display: 'flex', alignItems: 'center', gap: '8px',
+                              padding: '9px 20px', border: 'none',
+                              borderRadius: 'var(--radius-md)',
+                              background: (estaConfirmando || estaDeclinando) ? 'var(--gray-300)' : 'linear-gradient(135deg, #16A34A, #15803D)',
+                              color: '#fff', fontSize: '13px', fontWeight: 600,
+                              fontFamily: "'DM Sans', sans-serif",
+                              cursor: (estaConfirmando || estaDeclinando) ? 'not-allowed' : 'pointer',
+                              boxShadow: (estaConfirmando || estaDeclinando) ? 'none' : '0 2px 8px rgba(22,163,74,0.28)',
+                              transition: 'all 150ms ease',
+                            }}
                           >
                             {estaConfirmando
                               ? <><span style={{ width: '13px', height: '13px', border: '2px solid rgba(255,255,255,0.4)', borderTopColor: '#fff', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} />Confirmando...</>
@@ -898,7 +918,7 @@ const Cursos = () => {
             </div>
 
             <div style={{ padding: '14px 24px', background: 'var(--gray-50)', borderTop: '1px solid var(--border)', flexShrink: 0, display: 'flex', justifyContent: 'flex-end' }}>
-              <button onClick={() => setShowPagosModal(false)} style={{ padding: '8px 18px', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', background: '#fff', color: 'var(--gray-700)', fontSize: '13px', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", cursor: 'pointer', transition: 'all 150ms ease' }} onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--gray-100)'; }} onMouseLeave={(e) => { e.currentTarget.style.background = '#fff'; }}>
+              <button onClick={() => setShowPagosModal(false)} style={{ padding: '8px 18px', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', background: '#fff', color: 'var(--gray-700)', fontSize: '13px', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", cursor: 'pointer', transition: 'all 150ms ease' }} onMouseEnter={e => e.currentTarget.style.background = 'var(--gray-100)'} onMouseLeave={e => e.currentTarget.style.background = '#fff'}>
                 Cerrar
               </button>
             </div>
@@ -906,66 +926,46 @@ const Cursos = () => {
         </div>
       )}
 
-      {/* ═══ MODAL CONFIRMACIÓN DE PAGO ═══ */}
+      {/* MODAL CONFIRMACIÓN DE PAGO */}
       {showConfirmModal && pagoToConfirm && (
         <div onClick={() => setShowConfirmModal(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.42)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, padding: '20px' }}>
-          <div className="curso-modal" onClick={(e) => e.stopPropagation()} style={{ background: '#fff', borderRadius: 'var(--radius-lg)', width: '100%', maxWidth: '500px', boxShadow: '0 24px 64px rgba(0,0,0,0.25)', overflow: 'hidden' }}>
-            <div style={{ background: '#FEF2F2', padding: '20px 24px', borderBottom: '1px solid #FECACA', display: 'flex', alignItems: 'center', gap: '14px' }}>
-              <div style={{ width: '44px', height: '44px', background: '#EF4444', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(239,68,68,0.25)' }}>
-                <AlertTriangle style={{ width: '22px', height: '22px', color: '#fff' }} />
+          <div className="curso-modal" onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 'var(--radius-lg)', width: '100%', maxWidth: '500px', boxShadow: '0 24px 64px rgba(0,0,0,0.25)', overflow: 'hidden' }}>
+            <div style={{ background: '#F0FDF4', padding: '20px 24px', borderBottom: '1px solid #BBF7D0', display: 'flex', alignItems: 'center', gap: '14px' }}>
+              <div style={{ width: '44px', height: '44px', background: '#16A34A', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(22,163,74,0.25)' }}>
+                <CheckCircle style={{ width: '22px', height: '22px', color: '#fff' }} />
               </div>
               <div>
-                <h3 style={{ fontSize: '18px', fontWeight: 800, color: '#B91C1C', fontFamily: "'Plus Jakarta Sans', sans-serif", margin: '0 0 2px' }}>Confirmar recepción de pago</h3>
-                <p style={{ fontSize: '13px', color: '#DC2626', margin: 0, fontFamily: "'DM Sans', sans-serif", fontWeight: 500 }}>Esta acción no se puede deshacer</p>
+                <h3 style={{ fontSize: '18px', fontWeight: 800, color: '#14532D', fontFamily: "'Plus Jakarta Sans', sans-serif", margin: '0 0 2px' }}>Confirmar recepción de pago</h3>
+                <p style={{ fontSize: '13px', color: '#166534', margin: 0, fontFamily: "'DM Sans', sans-serif", fontWeight: 500 }}>Esta acción no se puede deshacer</p>
               </div>
             </div>
             <div style={{ padding: '24px' }}>
               <div style={{ background: '#F9FAFB', borderRadius: 'var(--radius-md)', padding: '16px', marginBottom: '20px', border: '1px solid var(--border)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px', paddingBottom: '12px', borderBottom: '1px dashed var(--border)' }}>
-                  <div style={{ width: '40px', height: '40px', background: pagoToConfirm.tipoPago === 'spei' ? '#EEF4FF' : '#F0FDF4', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    {pagoToConfirm.tipoPago === 'spei' ? <Banknote style={{ width: '18px', height: '18px', color: 'var(--capyme-blue-mid)' }} /> : <DollarSign style={{ width: '18px', height: '18px', color: '#16A34A' }} />}
-                  </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px', paddingBottom: '12px', borderBottom: '1px dashed var(--border)' }}>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--gray-900)', fontFamily: "'Plus Jakarta Sans', sans-serif", marginBottom: '2px' }}>
                       {pagoToConfirm.inscripcion.usuario.nombre} {pagoToConfirm.inscripcion.usuario.apellido}
                     </div>
                     <div style={{ fontSize: '13px', color: 'var(--gray-500)', fontFamily: "'DM Sans', sans-serif" }}>{pagoToConfirm.inscripcion.curso.titulo}</div>
                   </div>
+                  <span style={{ fontSize: '20px', fontWeight: 800, color: 'var(--gray-900)', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{formatCurrency(pagoToConfirm.monto)}</span>
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '12px' }}>
-                  <div>
-                    <div style={{ fontSize: '11px', color: 'var(--gray-400)', fontFamily: "'DM Sans', sans-serif", fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '4px' }}>Monto</div>
-                    <div style={{ fontSize: '22px', fontWeight: 800, color: 'var(--gray-900)', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{formatCurrency(pagoToConfirm.monto)}</div>
-                  </div>
-                  <div>
-                    <div style={{ fontSize: '11px', color: 'var(--gray-400)', fontFamily: "'DM Sans', sans-serif", fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '4px' }}>Tipo de pago</div>
-                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '4px 10px', borderRadius: '20px', background: pagoToConfirm.tipoPago === 'spei' ? '#EEF4FF' : '#F0FDF4', color: pagoToConfirm.tipoPago === 'spei' ? 'var(--capyme-blue-mid)' : '#16A34A', fontSize: '12px', fontWeight: 600, fontFamily: "'DM Sans', sans-serif" }}>
-                      {pagoToConfirm.tipoPago === 'spei' ? <Banknote style={{ width: '12px', height: '12px' }} /> : <DollarSign style={{ width: '12px', height: '12px' }} />}
-                      {pagoToConfirm.tipoPago === 'spei' ? 'SPEI / Transferencia' : 'Efectivo'}
-                    </div>
-                  </div>
-                </div>
-                <div style={{ background: '#F3F4F6', borderRadius: 'var(--radius-sm)', padding: '12px', marginBottom: '12px' }}>
-                  <div style={{ fontSize: '11px', color: 'var(--gray-400)', fontFamily: "'DM Sans', sans-serif", fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '4px' }}>Referencia</div>
-                  <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--gray-800)', fontFamily: "'JetBrains Mono', monospace", letterSpacing: '0.02em' }}>{pagoToConfirm.referencia}</div>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', background: pagoToConfirm.tipoPago === 'spei' ? '#FFFBEB' : '#F0FDF4', padding: '12px', borderRadius: 'var(--radius-sm)' }}>
-                  <Shield style={{ width: '18px', height: '18px', color: pagoToConfirm.tipoPago === 'spei' ? '#B45309' : '#16A34A', flexShrink: 0 }} />
-                  <span style={{ fontSize: '12px', color: pagoToConfirm.tipoPago === 'spei' ? '#92400E' : '#065F46', fontFamily: "'DM Sans', sans-serif", lineHeight: 1.4 }}>
-                    {pagoToConfirm.tipoPago === 'spei' ? 'Verifica que la transferencia aparezca en tu estado de cuenta bancario antes de confirmar.' : 'Confirma únicamente si ya recibiste el efectivo físicamente.'}
+                <div style={{ background: '#FFFBEB', borderRadius: 'var(--radius-sm)', padding: '10px 12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Shield style={{ width: '15px', height: '15px', color: '#B45309', flexShrink: 0 }} />
+                  <span style={{ fontSize: '12px', color: '#92400E', fontFamily: "'DM Sans', sans-serif", lineHeight: 1.4 }}>
+                    Verifica que la transferencia aparezca en tu estado de cuenta bancario antes de confirmar.
                   </span>
                 </div>
               </div>
               <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-                <button onClick={() => setShowConfirmModal(false)} style={{ padding: '10px 18px', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', background: '#fff', color: 'var(--gray-700)', fontSize: '14px', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", cursor: 'pointer', transition: 'all 150ms ease' }} onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--gray-100)'; }} onMouseLeave={(e) => { e.currentTarget.style.background = '#fff'; }}>
+                <button onClick={() => setShowConfirmModal(false)} style={{ padding: '10px 18px', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', background: '#fff', color: 'var(--gray-700)', fontSize: '14px', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", cursor: 'pointer', transition: 'all 150ms ease' }} onMouseEnter={e => e.currentTarget.style.background = 'var(--gray-100)'} onMouseLeave={e => e.currentTarget.style.background = '#fff'}>
                   Cancelar
                 </button>
                 <button onClick={handleConfirmarPago} disabled={confirmandoPago === pagoToConfirm.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 22px', border: 'none', borderRadius: 'var(--radius-md)', background: confirmandoPago === pagoToConfirm.id ? 'var(--gray-300)' : 'linear-gradient(135deg, #16A34A, #15803D)', color: '#fff', fontSize: '14px', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", cursor: confirmandoPago === pagoToConfirm.id ? 'not-allowed' : 'pointer', boxShadow: confirmandoPago === pagoToConfirm.id ? 'none' : '0 2px 8px rgba(22,163,74,0.28)', transition: 'all 150ms ease' }}>
-                  {confirmandoPago === pagoToConfirm.id ? (
-                    <><span style={{ width: '14px', height: '14px', border: '2px solid rgba(255,255,255,0.4)', borderTopColor: '#fff', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} />Confirmando...</>
-                  ) : (
-                    <><CheckCircle style={{ width: '16px', height: '16px' }} />Sí, confirmar pago</>
-                  )}
+                  {confirmandoPago === pagoToConfirm.id
+                    ? <><span style={{ width: '14px', height: '14px', border: '2px solid rgba(255,255,255,0.4)', borderTopColor: '#fff', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} />Confirmando...</>
+                    : <><CheckCircle style={{ width: '16px', height: '16px' }} />Sí, confirmar pago</>
+                  }
                 </button>
               </div>
             </div>
@@ -973,7 +973,49 @@ const Cursos = () => {
         </div>
       )}
 
-      {/* ═══ MODAL CONFIRM GENÉRICO (toggle activo) ═══ */}
+      {/* MODAL DECLINAR INSCRIPCIÓN */}
+      {showDeclinarModal && pagoToDeclinar && (
+        <div onClick={() => setShowDeclinarModal(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.42)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, padding: '20px' }}>
+          <div className="curso-modal" onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 'var(--radius-lg)', width: '100%', maxWidth: '500px', boxShadow: '0 24px 64px rgba(0,0,0,0.25)', overflow: 'hidden' }}>
+            <div style={{ background: '#FEF2F2', padding: '20px 24px', borderBottom: '1px solid #FECACA', display: 'flex', alignItems: 'center', gap: '14px' }}>
+              <div style={{ width: '44px', height: '44px', background: '#EF4444', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(239,68,68,0.25)' }}>
+                <XCircle style={{ width: '22px', height: '22px', color: '#fff' }} />
+              </div>
+              <div>
+                <h3 style={{ fontSize: '18px', fontWeight: 800, color: '#7F1D1D', fontFamily: "'Plus Jakarta Sans', sans-serif", margin: '0 0 2px' }}>Declinar inscripción</h3>
+                <p style={{ fontSize: '13px', color: '#B91C1C', margin: 0, fontFamily: "'DM Sans', sans-serif", fontWeight: 500 }}>El cliente será notificado de esta decisión</p>
+              </div>
+            </div>
+            <div style={{ padding: '24px' }}>
+              <div style={{ background: '#F9FAFB', borderRadius: 'var(--radius-md)', padding: '16px', marginBottom: '16px', border: '1px solid var(--border)' }}>
+                <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--gray-900)', fontFamily: "'Plus Jakarta Sans', sans-serif", marginBottom: '4px' }}>
+                  {pagoToDeclinar.inscripcion.usuario.nombre} {pagoToDeclinar.inscripcion.usuario.apellido}
+                </div>
+                <div style={{ fontSize: '13px', color: 'var(--gray-500)', fontFamily: "'DM Sans', sans-serif", marginBottom: '2px' }}>{pagoToDeclinar.inscripcion.curso.titulo}</div>
+                <div style={{ fontSize: '13px', color: 'var(--gray-400)', fontFamily: "'DM Sans', sans-serif" }}>{pagoToDeclinar.inscripcion.usuario.email}</div>
+              </div>
+              <div style={{ background: '#FEF2F2', borderRadius: 'var(--radius-md)', padding: '12px 14px', marginBottom: '20px', display: 'flex', alignItems: 'flex-start', gap: '8px', border: '1px solid #FECACA' }}>
+                <AlertTriangle style={{ width: '14px', height: '14px', color: '#DC2626', flexShrink: 0, marginTop: '2px' }} />
+                <p style={{ fontSize: '12px', color: '#991B1B', fontFamily: "'DM Sans', sans-serif", margin: 0, lineHeight: 1.5 }}>
+                  La inscripción será cancelada y se enviará una notificación al cliente indicando que su solicitud fue declinada. Esta acción no se puede deshacer.
+                </p>
+              </div>
+              <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+                <button onClick={() => setShowDeclinarModal(false)} style={{ padding: '10px 18px', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', background: '#fff', color: 'var(--gray-700)', fontSize: '14px', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", cursor: 'pointer', transition: 'all 150ms ease' }} onMouseEnter={e => e.currentTarget.style.background = 'var(--gray-100)'} onMouseLeave={e => e.currentTarget.style.background = '#fff'}>
+                  Cancelar
+                </button>
+                <button onClick={handleDeclinarPago} disabled={declinandoPago === pagoToDeclinar.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 22px', border: 'none', borderRadius: 'var(--radius-md)', background: declinandoPago === pagoToDeclinar.id ? 'var(--gray-300)' : 'linear-gradient(135deg, #EF4444, #DC2626)', color: '#fff', fontSize: '14px', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", cursor: declinandoPago === pagoToDeclinar.id ? 'not-allowed' : 'pointer', boxShadow: declinandoPago === pagoToDeclinar.id ? 'none' : '0 2px 8px rgba(239,68,68,0.30)', transition: 'all 150ms ease' }}>
+                  {declinandoPago === pagoToDeclinar.id
+                    ? <><span style={{ width: '14px', height: '14px', border: '2px solid rgba(255,255,255,0.4)', borderTopColor: '#fff', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} />Declinando...</>
+                    : <><XCircle style={{ width: '16px', height: '16px' }} />Sí, declinar inscripción</>
+                  }
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <ConfirmModal config={confirmConfig} onClose={closeConfirm} />
     </Layout>
   );

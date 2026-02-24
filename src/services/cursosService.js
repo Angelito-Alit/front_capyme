@@ -11,4 +11,5 @@ export const cursosService = {
   getMiPago: async (id) => (await api.get(`/cursos/${id}/mi-pago`)).data,
   getPagosPendientes: async () => (await api.get('/cursos/pagos-pendientes')).data,
   confirmarPago: async (pagoId) => (await api.patch(`/cursos/pagos/${pagoId}/confirmar`)).data,
+  declinarPago: async (pagoId) => (await api.patch(`/cursos/pagos/${pagoId}/declinar`)).data,
 };

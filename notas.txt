@@ -2,21 +2,21 @@ para generar el nuevo prisma:
 npx prisma db push
 npx prisma generate
 
-prompt para las alertas: si hay alertas entonces ponlas como modal y con el estilo que se tiene para que no se vea tan mal
 
 importante por hacer:
 - al momento de inscribirme primero debe de verse inscribir y pagar al mismo tiempo, y despues aparecerá el otro boton y sustituyendo el anterior boton y este nuevo boton dirá "ver Ver mi pago pendiente", tambien en la vista del administrador debe de ponerse un boton "declinar" y si se le da declinacion entonces notificarle al cliente que su inscripcion ha sido declinado
 - hacer el mismo flujo pero ahora en enlaces: checa el flujo de cursos de que un usuario quiera comprar le da en inscribirse y le aparece unos pasos a seguir y el admin confirma de que si le llego esa transferencia ajena a la plataforma y le sale otra para que de verdad si confirme dos veces y este flujo es lo que quiero meter pero en recursos:
 - si yo inactivo un usuario, el usuario no puede iniciar sesion y si inició entonces al pasar de una pagina a otra debe de haber algo para que cheque si está activo el usuario o no y si no entonces se cerrará la sesión y mandará un alerta (modal) diciendole que su usuario ha sido dado de baja, ponerse en contacto con capyme y pone el correo y whatsapp de capyme guardados del primer administrador
-
+- (navbar) las notificaciones tienen que ser igual de dinamicas, que si hay algo nuevo en avisos se notifique y si le doy click y se abre la notificacion entonces el icono se verá que ya lo leí y cuando reciba un aviso o muchos avisos tendrá el icono un numero para que sepa cuantos mensajes no he abierto o no he dado clic en esas notificaciones
 
 
 
 
 otras cosas por hacer
 en pages me falta la incubacion de proyectos (pagina financiamiento) (hacer esto en el cloude de paga)
-ir ahora a carpeta clientes y checa cosas
+ir ahora a carpeta clientes y checa cosas del flujo que se haga bien
 un usuario puede inscribirse a muchos cursos diferentes, pero un curso solo puede estar inscrito a usuario totalmente diferentes, no se puede repetir la inscripcion de un usuario a un mismo curso
+un usuario puede inscribirse a muchos recursos diferentes, pero un recurso solo puede estar inscrito a usuario totalmente diferentes, no se puede repetir la inscripcion de un usuario a un mismo recurso
 
 
 

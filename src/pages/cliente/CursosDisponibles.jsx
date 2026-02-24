@@ -38,6 +38,7 @@ const CursosDisponibles = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterModalidad, setFilterModalidad] = useState('');
   const [pagoModal, setPagoModal] = useState(null);
+  const [cursosConPagoPendiente, setCursosConPagoPendiente] = useState({});
 
   useEffect(() => {
     cargarCursos();
@@ -63,6 +64,7 @@ const CursosDisponibles = () => {
       const res = await cursosService.inscribir(cursoId);
       if (res.requierePago && res.pagoInfo) {
         setPagoModal({ ...res.pagoInfo, cursoId });
+        setCursosConPagoPendiente(prev => ({ ...prev, [cursoId]: true }));
         toast.success('¡Solicitud registrada! Realiza tu transferencia para confirmar.');
       } else {
         toast.success('¡Inscripción exitosa!');
@@ -72,6 +74,7 @@ const CursosDisponibles = () => {
       const data = error.response?.data;
       if (data?.pagoExistente) {
         setPagoModal({ ...data.pagoExistente, cursoId });
+        setCursosConPagoPendiente(prev => ({ ...prev, [cursoId]: true }));
         toast('Ya tienes un pago pendiente para este curso', { icon: '💳' });
       } else {
         toast.error(data?.message || 'Error al inscribirse');
@@ -202,6 +205,7 @@ const CursosDisponibles = () => {
                 formatCurrency={formatCurrency}
                 formatDate={formatDate}
                 inscribiendo={inscribiendoId === curso.id}
+                tienePagoPendiente={!!cursosConPagoPendiente[curso.id]}
                 onInscribir={() => handleInscribir(curso.id)}
                 onVerPago={() => handleVerMiPago(curso.id)}
               />
@@ -252,7 +256,7 @@ const CursosDisponibles = () => {
   );
 };
 
-const CursoCard = ({ curso, formatCurrency, formatDate, inscribiendo, onInscribir, onVerPago }) => {
+const CursoCard = ({ curso, formatCurrency, formatDate, inscribiendo, tienePagoPendiente, onInscribir, onVerPago }) => {
   const mod = modalidadConfig[curso.modalidad] || modalidadConfig.online;
   const ModIcon = mod.icon;
   const gratuito = !curso.costo || parseFloat(curso.costo) === 0;
@@ -369,56 +373,66 @@ const CursoCard = ({ curso, formatCurrency, formatDate, inscribiendo, onInscribi
           </div>
         )}
 
-        <div style={{ marginTop: 'auto', paddingTop: '4px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-          <button
-            onClick={onInscribir}
-            disabled={inscribiendo || cupoLleno}
-            style={{
-              width: '100%',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-              padding: '9px 0',
-              background: cupoLleno
-                ? 'var(--gray-100)'
-                : inscribiendo
-                  ? 'var(--gray-300)'
-                  : gratuito
-                    ? 'linear-gradient(135deg, var(--capyme-blue-mid), var(--capyme-blue))'
-                    : 'linear-gradient(135deg, #D97706, #B45309)',
-              border: 'none', borderRadius: 'var(--radius-md)',
-              color: cupoLleno ? 'var(--gray-400)' : '#fff',
-              fontSize: '13px', fontWeight: 600,
-              fontFamily: "'Plus Jakarta Sans', sans-serif",
-              cursor: (inscribiendo || cupoLleno) ? 'not-allowed' : 'pointer',
-              boxShadow: (inscribiendo || cupoLleno) ? 'none' : '0 2px 8px rgba(0,0,0,0.18)',
-              transition: 'all 150ms ease',
-            }}
-            onMouseEnter={e => { if (!inscribiendo && !cupoLleno) e.currentTarget.style.transform = 'translateY(-1px)'; }}
-            onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
-          >
-            {gratuito
-              ? <CheckCircle style={{ width: '14px', height: '14px' }} />
-              : <Banknote style={{ width: '14px', height: '14px' }} />}
-            {cupoLleno ? 'Cupo lleno' : inscribiendo ? 'Procesando...' : gratuito ? 'Inscribirme' : `Pagar ${formatCurrency(curso.costo)}`}
-          </button>
-
-          {!gratuito && !cupoLleno && (
+        <div style={{ marginTop: 'auto', paddingTop: '4px' }}>
+          {tienePagoPendiente ? (
+            /* Pago ya generado en esta sesión: mostrar solo "Ver mi pago pendiente" */
             <button
               onClick={onVerPago}
               style={{
                 width: '100%',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-                padding: '7px 0',
-                background: 'transparent', border: '1px solid var(--border)',
-                borderRadius: 'var(--radius-md)', color: 'var(--gray-500)',
-                fontSize: '12px', fontWeight: 600,
-                fontFamily: "'DM Sans', sans-serif", cursor: 'pointer',
+                padding: '9px 0',
+                background: 'linear-gradient(135deg, #D97706, #B45309)',
+                border: 'none', borderRadius: 'var(--radius-md)',
+                color: '#fff', fontSize: '13px', fontWeight: 600,
+                fontFamily: "'Plus Jakarta Sans', sans-serif",
+                cursor: 'pointer',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
                 transition: 'all 150ms ease',
               }}
-              onMouseEnter={e => { e.currentTarget.style.background = 'var(--gray-50)'; e.currentTarget.style.color = 'var(--gray-700)'; }}
-              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gray-500)'; }}
+              onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-1px)'}
+              onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
             >
-              <RefreshCw style={{ width: '11px', height: '11px' }} />
+              <RefreshCw style={{ width: '14px', height: '14px' }} />
               Ver mi pago pendiente
+            </button>
+          ) : (
+            /* Aún no inscrito: mostrar botón principal de inscripción */
+            <button
+              onClick={onInscribir}
+              disabled={inscribiendo || cupoLleno}
+              style={{
+                width: '100%',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                padding: '9px 0',
+                background: cupoLleno
+                  ? 'var(--gray-100)'
+                  : inscribiendo
+                    ? 'var(--gray-300)'
+                    : gratuito
+                      ? 'linear-gradient(135deg, var(--capyme-blue-mid), var(--capyme-blue))'
+                      : 'linear-gradient(135deg, #D97706, #B45309)',
+                border: 'none', borderRadius: 'var(--radius-md)',
+                color: cupoLleno ? 'var(--gray-400)' : '#fff',
+                fontSize: '13px', fontWeight: 600,
+                fontFamily: "'Plus Jakarta Sans', sans-serif",
+                cursor: (inscribiendo || cupoLleno) ? 'not-allowed' : 'pointer',
+                boxShadow: (inscribiendo || cupoLleno) ? 'none' : '0 2px 8px rgba(0,0,0,0.18)',
+                transition: 'all 150ms ease',
+              }}
+              onMouseEnter={e => { if (!inscribiendo && !cupoLleno) e.currentTarget.style.transform = 'translateY(-1px)'; }}
+              onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
+            >
+              {gratuito
+                ? <CheckCircle style={{ width: '14px', height: '14px' }} />
+                : <Banknote style={{ width: '14px', height: '14px' }} />}
+              {cupoLleno
+                ? 'Cupo lleno'
+                : inscribiendo
+                  ? 'Procesando...'
+                  : gratuito
+                    ? 'Inscribirme'
+                    : `Inscribirme y pagar ${formatCurrency(curso.costo)}`}
             </button>
           )}
         </div>
@@ -532,7 +546,6 @@ const ModalPago = ({ pago, formatCurrency, onClose }) => {
         </div>
 
         <div style={{ overflowY: 'auto', flex: 1, padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: '18px' }}>
-
           {!pago.clabeInterbancaria && (
             <div style={{
               padding: '12px 14px', background: '#FEF2F2', border: '1px solid #FCA5A5',
@@ -558,24 +571,9 @@ const ModalPago = ({ pago, formatCurrency, onClose }) => {
                 }}>Datos bancarios para la transferencia</span>
               </div>
               <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                <DatoCopiable
-                  label="CLABE Interbancaria (18 dígitos)"
-                  value={pago.clabeInterbancaria}
-                  mono
-                  onCopy={() => copiar(pago.clabeInterbancaria, 'CLABE')}
-                />
-                <DatoCopiable
-                  label="Concepto / Referencia (copia exactamente)"
-                  value={pago.referencia}
-                  mono
-                  highlight
-                  onCopy={() => copiar(pago.referencia, 'Referencia')}
-                />
-                <DatoCopiable
-                  label="Monto exacto a transferir"
-                  value={formatCurrency(pago.monto)}
-                  onCopy={() => copiar(String(pago.monto), 'Monto')}
-                />
+                <DatoCopiable label="CLABE Interbancaria (18 dígitos)" value={pago.clabeInterbancaria} mono onCopy={() => copiar(pago.clabeInterbancaria, 'CLABE')} />
+                <DatoCopiable label="Concepto / Referencia (copia exactamente)" value={pago.referencia} mono highlight onCopy={() => copiar(pago.referencia, 'Referencia')} />
+                <DatoCopiable label="Monto exacto a transferir" value={formatCurrency(pago.monto)} onCopy={() => copiar(String(pago.monto), 'Monto')} />
               </div>
             </div>
           )}
@@ -594,17 +592,11 @@ const ModalPago = ({ pago, formatCurrency, onClose }) => {
                     background: 'linear-gradient(135deg, #D97706, #B45309)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                   }}>
-                    <span style={{ fontSize: '11px', fontWeight: 800, color: '#fff', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-                      {paso.num}
-                    </span>
+                    <span style={{ fontSize: '11px', fontWeight: 800, color: '#fff', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{paso.num}</span>
                   </div>
                   <div>
-                    <p style={{ fontSize: '13px', fontWeight: 700, color: 'var(--gray-800)', fontFamily: "'Plus Jakarta Sans', sans-serif", margin: '0 0 3px' }}>
-                      {paso.titulo}
-                    </p>
-                    <p style={{ fontSize: '12px', color: 'var(--gray-500)', fontFamily: "'DM Sans', sans-serif", lineHeight: 1.5, margin: 0 }}>
-                      {paso.desc}
-                    </p>
+                    <p style={{ fontSize: '13px', fontWeight: 700, color: 'var(--gray-800)', fontFamily: "'Plus Jakarta Sans', sans-serif", margin: '0 0 3px' }}>{paso.titulo}</p>
+                    <p style={{ fontSize: '12px', color: 'var(--gray-500)', fontFamily: "'DM Sans', sans-serif", lineHeight: 1.5, margin: 0 }}>{paso.desc}</p>
                   </div>
                 </div>
               ))}
@@ -612,19 +604,13 @@ const ModalPago = ({ pago, formatCurrency, onClose }) => {
           </div>
 
           {waLink && (
-            <a
-              href={waLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
-                padding: '13px', background: '#25D366', borderRadius: 'var(--radius-lg)',
-                textDecoration: 'none', color: '#fff',
-                fontSize: '14px', fontWeight: 700,
-                fontFamily: "'Plus Jakarta Sans', sans-serif",
-                boxShadow: '0 2px 12px rgba(37,211,102,0.35)',
-                transition: 'all 150ms ease',
-              }}
+            <a href={waLink} target="_blank" rel="noopener noreferrer" style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
+              padding: '13px', background: '#25D366', borderRadius: 'var(--radius-lg)',
+              textDecoration: 'none', color: '#fff', fontSize: '14px', fontWeight: 700,
+              fontFamily: "'Plus Jakarta Sans', sans-serif",
+              boxShadow: '0 2px 12px rgba(37,211,102,0.35)', transition: 'all 150ms ease',
+            }}
               onMouseEnter={e => e.currentTarget.style.opacity = '0.9'}
               onMouseLeave={e => e.currentTarget.style.opacity = '1'}
             >
@@ -649,14 +635,12 @@ const ModalPago = ({ pago, formatCurrency, onClose }) => {
           padding: '14px 24px', background: 'var(--gray-50)',
           borderTop: '1px solid var(--border)', flexShrink: 0, display: 'flex', justifyContent: 'flex-end',
         }}>
-          <button
-            onClick={onClose}
-            style={{
-              padding: '9px 22px', border: '1px solid var(--border)',
-              borderRadius: 'var(--radius-md)', background: '#fff', color: 'var(--gray-700)',
-              fontSize: '14px', fontWeight: 600, fontFamily: "'DM Sans', sans-serif",
-              cursor: 'pointer', transition: 'all 150ms ease',
-            }}
+          <button onClick={onClose} style={{
+            padding: '9px 22px', border: '1px solid var(--border)',
+            borderRadius: 'var(--radius-md)', background: '#fff', color: 'var(--gray-700)',
+            fontSize: '14px', fontWeight: 600, fontFamily: "'DM Sans', sans-serif",
+            cursor: 'pointer', transition: 'all 150ms ease',
+          }}
             onMouseEnter={e => e.currentTarget.style.background = 'var(--gray-100)'}
             onMouseLeave={e => e.currentTarget.style.background = '#fff'}
           >
@@ -676,8 +660,7 @@ const DatoCopiable = ({ label, value, mono, highlight, onCopy }) => (
       fontFamily: "'Plus Jakarta Sans', sans-serif", marginBottom: '6px',
     }}>{label}</p>
     <div style={{
-      display: 'flex', alignItems: 'center', gap: '10px',
-      padding: '10px 12px',
+      display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px',
       background: highlight ? '#FFFBEB' : '#fff',
       border: `1px solid ${highlight ? '#FDE68A' : 'var(--border)'}`,
       borderRadius: 'var(--radius-md)',
@@ -688,16 +671,13 @@ const DatoCopiable = ({ label, value, mono, highlight, onCopy }) => (
         fontFamily: mono ? "'JetBrains Mono', monospace" : "'Plus Jakarta Sans', sans-serif",
         letterSpacing: mono ? '0.08em' : '0', wordBreak: 'break-all',
       }}>{value}</span>
-      <button
-        onClick={onCopy}
-        title="Copiar"
-        style={{
-          width: '30px', height: '30px', flexShrink: 0,
-          border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)',
-          background: '#fff', cursor: 'pointer',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          color: 'var(--gray-400)', transition: 'all 150ms ease',
-        }}
+      <button onClick={onCopy} title="Copiar" style={{
+        width: '30px', height: '30px', flexShrink: 0,
+        border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)',
+        background: '#fff', cursor: 'pointer',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        color: 'var(--gray-400)', transition: 'all 150ms ease',
+      }}
         onMouseEnter={e => { e.currentTarget.style.background = 'var(--capyme-blue-pale)'; e.currentTarget.style.color = 'var(--capyme-blue-mid)'; e.currentTarget.style.borderColor = 'var(--capyme-blue-mid)'; }}
         onMouseLeave={e => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.color = 'var(--gray-400)'; e.currentTarget.style.borderColor = 'var(--border)'; }}
       >
