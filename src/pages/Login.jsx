@@ -1,6 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "../hooks/useAuth";
-import { Mail, Lock, ArrowRight, Eye, EyeOff } from "lucide-react";
+import { Mail, Lock, ArrowRight, Eye, EyeOff, Phone, MessageCircle } from "lucide-react";
+import axios from "axios";
+import LogoCapyme from "../assets/LogoCapyme.png";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -8,12 +10,24 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const { login, loading, error } = useAuth();
 
+  const [contacto, setContacto] = useState(null);
+
+  useEffect(() => {
+    // Endpoint público — no requiere token
+    axios
+      .get(`${import.meta.env.VITE_API_URL || "http://localhost:3000/api"}/contacto`)
+      .then((res) => {
+        if (res.data?.success && res.data?.data) {
+          setContacto(res.data.data);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     await login(email, password);
   };
-
-  const stats = [];
 
   return (
     <>
@@ -31,6 +45,7 @@ export default function Login() {
           background: #fff;
         }
 
+        /* ── Panel izquierdo ── */
         .login-panel {
           display: none;
           position: relative;
@@ -60,22 +75,20 @@ export default function Login() {
           background: rgba(255,255,255,0.03); pointer-events: none;
         }
 
+        /* Logo panel */
         .panel-logo {
-          display: flex; align-items: center; gap: 10px; z-index: 1;
+          display: flex; align-items: center; z-index: 1;
         }
-        .panel-logo-mark {
-          width: 38px; height: 38px;
-          background: rgba(255,255,255,0.14);
-          border: 1.5px solid rgba(255,255,255,0.28);
+        .panel-logo-img {
+          height: 100px; width: auto;
+          object-fit: contain;
+          background: rgba(255,255,255,0.12);
+          padding: 6px 12px;
           border-radius: 10px;
-          display: flex; align-items: center; justify-content: center;
-        }
-        .panel-logo-text {
-          font-family: 'Plus Jakarta Sans', sans-serif;
-          font-weight: 800; font-size: 18px;
-          letter-spacing: 0.1em; color: #fff;
+          backdrop-filter: blur(4px);
         }
 
+        /* Cuerpo panel */
         .panel-body { z-index: 1; }
         .panel-eyebrow {
           display: inline-block;
@@ -99,26 +112,55 @@ export default function Login() {
           color: rgba(255,255,255,0.6); max-width: 340px;
         }
 
-        .panel-stats {
+        /* Contacto panel (pie) */
+        .panel-contact {
           z-index: 1;
-          display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px;
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
         }
-        .stat-item {
+        .panel-contact-label {
+          font-size: 10px; font-weight: 700;
+          letter-spacing: 0.1em; text-transform: uppercase;
+          color: rgba(255,255,255,0.4);
+          margin-bottom: 2px;
+          font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+        .panel-contact-item {
+          display: flex; align-items: center; gap: 10px;
           background: rgba(255,255,255,0.07);
           border: 1px solid rgba(255,255,255,0.12);
-          border-radius: 14px; padding: 18px 12px; text-align: center;
+          border-radius: 10px;
+          padding: 11px 14px;
+          text-decoration: none;
+          transition: background 0.18s;
         }
-        .stat-icon {
+        .panel-contact-item:hover {
+          background: rgba(255,255,255,0.12);
+        }
+        .panel-contact-icon {
+          width: 32px; height: 32px;
+          background: rgba(255,255,255,0.12);
+          border-radius: 8px;
+          display: flex; align-items: center; justify-content: center;
+          flex-shrink: 0;
+        }
+        .panel-contact-text {
+          display: flex; flex-direction: column; gap: 1px;
+        }
+        .panel-contact-type {
+          font-size: 10px; font-weight: 600;
           color: rgba(255,255,255,0.45);
-          display: flex; justify-content: center; margin-bottom: 8px;
-        }
-        .stat-value {
+          text-transform: uppercase; letter-spacing: 0.06em;
           font-family: 'Plus Jakarta Sans', sans-serif;
-          font-size: 22px; font-weight: 800; color: #fff;
-          display: block; line-height: 1; margin-bottom: 5px;
         }
-        .stat-label { font-size: 11px; color: rgba(255,255,255,0.5); line-height: 1.3; }
+        .panel-contact-value {
+          font-size: 13px; font-weight: 500;
+          color: #fff;
+          font-family: 'DM Sans', sans-serif;
+        }
 
+        /* ── Formulario (lado derecho) ── */
         .login-form-side {
           flex: 1;
           display: flex; align-items: center; justify-content: center;
@@ -130,36 +172,32 @@ export default function Login() {
 
         .form-card { width: 100%; max-width: 420px; }
 
+        /* Logo móvil */
         .mobile-logo {
-          display: flex; align-items: center; gap: 10px; margin-bottom: 36px;
+          display: flex; align-items: center; margin-bottom: 36px;
         }
         @media (min-width: 900px) { .mobile-logo { display: none; } }
-        .mobile-logo-mark {
-          width: 36px; height: 36px;
-          background: linear-gradient(135deg, #1F4E9E, #2B69C8);
-          border-radius: 9px;
-          display: flex; align-items: center; justify-content: center;
-        }
-        .mobile-logo-text {
-          font-family: 'Plus Jakarta Sans', sans-serif;
-          font-weight: 800; font-size: 18px;
-          letter-spacing: 0.1em; color: #0F2A5A;
+        .mobile-logo-img {
+          height: 42px; width: auto;
+          object-fit: contain;
         }
 
-        .mobile-stats {
-          display: flex; justify-content: space-between;
-          gap: 8px; margin-bottom: 36px;
-          padding: 16px; background: #f0f5ff;
-          border-radius: 12px;
+        /* Contacto móvil (debajo del logo) */
+        .mobile-contact {
+          display: flex; gap: 8px; flex-wrap: wrap;
+          margin-bottom: 32px;
         }
-        @media (min-width: 900px) { .mobile-stats { display: none; } }
-        .ms-item { text-align: center; flex: 1; }
-        .ms-value {
-          font-family: 'Plus Jakarta Sans', sans-serif;
-          font-size: 17px; font-weight: 800;
-          color: #1F4E9E; display: block;
+        @media (min-width: 900px) { .mobile-contact { display: none; } }
+        .mobile-contact-pill {
+          display: flex; align-items: center; gap: 6px;
+          background: #f0f5ff; border: 1px solid #dbeafe;
+          border-radius: 100px; padding: 5px 12px;
+          font-size: 12px; color: #1d4ed8;
+          font-family: 'DM Sans', sans-serif;
+          text-decoration: none;
+          transition: background 0.15s;
         }
-        .ms-label { font-size: 10px; color: #6b7280; line-height: 1.3; }
+        .mobile-contact-pill:hover { background: #dbeafe; }
 
         .form-heading {
           font-family: 'Plus Jakarta Sans', sans-serif;
@@ -239,15 +277,6 @@ export default function Login() {
         }
         @keyframes spin { to { transform: rotate(360deg); } }
 
-        .form-footer {
-          text-align: center; margin-top: 26px;
-          font-size: 13px; color: #6b7280;
-        }
-        .form-footer a {
-          color: #2B5BA6; font-weight: 600; text-decoration: none;
-        }
-        .form-footer a:hover { text-decoration: underline; }
-
         .form-brand {
           text-align: center; margin-top: 36px;
           font-size: 11px; color: #c5cad5; letter-spacing: 0.02em;
@@ -255,23 +284,20 @@ export default function Login() {
       `}</style>
 
       <div className="login-root">
+
+        {/* ════ PANEL IZQUIERDO ════ */}
         <div className="login-panel">
           <div className="panel-circle-1" />
           <div className="panel-circle-2" />
           <div className="panel-circle-3" />
 
+          {/* Logo */}
           <div className="panel-logo">
-            <div className="panel-logo-mark">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-                <polyline points="9 22 9 12 15 12 15 22"/>
-              </svg>
-            </div>
-            <span className="panel-logo-text">CAPYME</span>
+            <img src={LogoCapyme} alt="CAPYME" className="panel-logo-img" />
           </div>
 
+          {/* Headline */}
           <div className="panel-body">
-            <span className="panel-eyebrow">Plataforma Empresarial</span>
             <h1 className="panel-headline">
               Impulsa tu negocio con los mejores programas gubernamentales
             </h1>
@@ -280,38 +306,91 @@ export default function Login() {
             </p>
           </div>
 
-          <div className="panel-stats">
-            {stats.map(({ icon: Icon, value, label }) => (
-              <div className="stat-item" key={label}>
-                <div className="stat-icon"><Icon size={18} /></div>
-                <span className="stat-value">{value}</span>
-                <span className="stat-label">{label}</span>
-              </div>
-            ))}
-          </div>
+          {/* Contacto (pie del panel) */}
+          {contacto && (contacto.email || contacto.whatsapp || contacto.telefono) && (
+            <div className="panel-contact">
+              <span className="panel-contact-label">Contacto CAPYME</span>
+
+              {contacto.email && (
+                <a href={`mailto:${contacto.email}`} className="panel-contact-item">
+                  <div className="panel-contact-icon">
+                    <Mail size={15} color="rgba(255,255,255,0.8)" />
+                  </div>
+                  <div className="panel-contact-text">
+                    <span className="panel-contact-type">Correo</span>
+                    <span className="panel-contact-value">{contacto.email}</span>
+                  </div>
+                </a>
+              )}
+
+              {contacto.whatsapp && (
+                <a
+                  href={`https://wa.me/${contacto.whatsapp.replace(/\D/g, "")}?text=${encodeURIComponent("Hola, necesito información sobre CAPYME.")}`}
+                  target="_blank" rel="noreferrer"
+                  className="panel-contact-item"
+                >
+                  <div className="panel-contact-icon">
+                    <MessageCircle size={15} color="rgba(255,255,255,0.8)" />
+                  </div>
+                  <div className="panel-contact-text">
+                    <span className="panel-contact-type">WhatsApp</span>
+                    <span className="panel-contact-value">{contacto.whatsapp}</span>
+                  </div>
+                </a>
+              )}
+
+              {contacto.telefono && (
+                <a href={`tel:${contacto.telefono}`} className="panel-contact-item">
+                  <div className="panel-contact-icon">
+                    <Phone size={15} color="rgba(255,255,255,0.8)" />
+                  </div>
+                  <div className="panel-contact-text">
+                    <span className="panel-contact-type">Teléfono</span>
+                    <span className="panel-contact-value">{contacto.telefono}</span>
+                  </div>
+                </a>
+              )}
+            </div>
+          )}
         </div>
 
+        {/* ════ FORMULARIO ════ */}
         <div className="login-form-side">
           <div className="form-card">
 
+            {/* Logo móvil */}
             <div className="mobile-logo">
-              <div className="mobile-logo-mark">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-                  <polyline points="9 22 9 12 15 12 15 22"/>
-                </svg>
-              </div>
-              <span className="mobile-logo-text">CAPYME</span>
+              <img src={LogoCapyme} alt="CAPYME" className="mobile-logo-img" />
             </div>
 
-            <div className="mobile-stats">
-              {stats.map(({ value, label }) => (
-                <div className="ms-item" key={label}>
-                  <span className="ms-value">{value}</span>
-                  <span className="ms-label">{label}</span>
-                </div>
-              ))}
-            </div>
+            {/* Contacto móvil (pills) */}
+            {contacto && (contacto.email || contacto.whatsapp || contacto.telefono) && (
+              <div className="mobile-contact">
+                {contacto.email && (
+                  <a href={`mailto:${contacto.email}`} className="mobile-contact-pill">
+                    <Mail size={12} />
+                    {contacto.email}
+                  </a>
+                )}
+                {contacto.whatsapp && (
+                  <a
+                    href={`https://wa.me/${contacto.whatsapp.replace(/\D/g, "")}?text=${encodeURIComponent("Hola, necesito información sobre CAPYME.")}`}
+                    target="_blank" rel="noreferrer"
+                    className="mobile-contact-pill"
+                    style={{ color: '#16a34a', background: '#f0fdf4', borderColor: '#bbf7d0' }}
+                  >
+                    <MessageCircle size={12} />
+                    {contacto.whatsapp}
+                  </a>
+                )}
+                {contacto.telefono && (
+                  <a href={`tel:${contacto.telefono}`} className="mobile-contact-pill">
+                    <Phone size={12} />
+                    {contacto.telefono}
+                  </a>
+                )}
+              </div>
+            )}
 
             <h2 className="form-heading">Bienvenido de nuevo</h2>
             <p className="form-subheading">Ingresa tus credenciales para acceder al sistema</p>
@@ -363,8 +442,6 @@ export default function Login() {
               </button>
             </form>
 
-            <p className="form-footer">
-            </p>
             <p className="form-brand">
               CAPYME — Consultoría y Asesoría a la Pequeña y Mediana Empresa
             </p>
