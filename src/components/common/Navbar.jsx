@@ -1,13 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 import { useAuth } from '../../hooks/useAuth';
 import { avisosService } from '../../services/avisosService';
+import api from '../../services/axios';
 import {
   Bell,
   User,
   LogOut,
-  Settings,
   Menu,
   ChevronDown,
   AlertCircle,
@@ -15,43 +15,66 @@ import {
   Calendar,
   BellRing,
   ExternalLink,
+  Activity,
 } from 'lucide-react';
 import LogoCapyme from '../../assets/LogoCapyme.png';
 
+/* ─── key en localStorage ─────────────────────────────── */
+const LS_KEY = 'historial_visto_en';
+
+const getUltimaVista = () => {
+  const v = localStorage.getItem(LS_KEY);
+  return v ? new Date(v) : null;
+};
+
+const marcarComoVisto = () => {
+  localStorage.setItem(LS_KEY, new Date().toISOString());
+};
+
+/* ══════════════════════════════════════════════════════ */
 const Navbar = ({ onMenuClick }) => {
-  const { user } = useAuthStore();
-  const { logout } = useAuth();
-  const navigate = useNavigate();
-  const [showUserMenu, setShowUserMenu] = useState(false);
+  const { user }    = useAuthStore();
+  const { logout }  = useAuth();
+  const navigate    = useNavigate();
+  const location    = useLocation();
+
+  const [showUserMenu,      setShowUserMenu]      = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
-  const [avisos, setAvisos] = useState([]);
-  const [loadingAvisos, setLoadingAvisos] = useState(false);
+  const [avisos,            setAvisos]            = useState([]);
+  const [loadingAvisos,     setLoadingAvisos]     = useState(false);
+
+  /* badge historial — solo admins */
+  const [nuevosMovimientos, setNuevosMovimientos] = useState(0);
+
   const notifRef = useRef(null);
-  const userRef = useRef(null);
+  const userRef  = useRef(null);
 
+  const isAdmin = user?.rol === 'admin';
+
+  /* ── helpers de roles ── */
   const roleName = { admin: 'Administrador', colaborador: 'Colaborador', cliente: 'Cliente' };
-  const roleBg   = { admin: '#FEE2E2', colaborador: '#DBEAFE', cliente: '#D1FAE5' };
-  const roleColor= { admin: '#B91C1C', colaborador: '#1D4ED8', cliente: '#065F46' };
+  const roleBg   = { admin: '#FEE2E2',       colaborador: '#DBEAFE',     cliente: '#D1FAE5' };
+  const roleColor= { admin: '#B91C1C',       colaborador: '#1D4ED8',     cliente: '#065F46' };
 
-  useEffect(() => {
-    cargarAvisos();
-  }, []);
-
+  /* ── cerrar dropdowns al click fuera ── */
   useEffect(() => {
     const handleClick = (e) => {
       if (notifRef.current && !notifRef.current.contains(e.target)) setShowNotifications(false);
-      if (userRef.current && !userRef.current.contains(e.target)) setShowUserMenu(false);
+      if (userRef.current  && !userRef.current.contains(e.target))  setShowUserMenu(false);
     };
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
   }, []);
 
+  /* ── avisos ── */
+  useEffect(() => { cargarAvisos(); }, []);
+
   const cargarAvisos = async () => {
     try {
       setLoadingAvisos(true);
-      const res = await avisosService.getAll({ activo: 'true' });
-      const todos = res.data || [];
-      const ahora = new Date();
+      const res    = await avisosService.getAll({ activo: 'true' });
+      const todos  = res.data || [];
+      const ahora  = new Date();
       const vigentes = todos.filter((a) => !a.fechaExpiracion || new Date(a.fechaExpiracion) > ahora);
       setAvisos(vigentes.slice(0, 6));
     } catch {
@@ -61,17 +84,47 @@ const Navbar = ({ onMenuClick }) => {
     }
   };
 
+  /* ── badge historial ── */
+  const consultarNuevos = async () => {
+    if (!isAdmin) return;
+    try {
+      const ultimaVista = getUltimaVista();
+      const params = ultimaVista ? { desde: ultimaVista.toISOString() } : {};
+      const res = await api.get('/dashboard/historial/nuevos', { params });
+      setNuevosMovimientos(res.data.total || 0);
+    } catch {
+      /* silencioso — no romper la UI si falla */
+    }
+  };
+
+  /* si la ruta activa es /historial → marcar como visto y limpiar badge */
+  useEffect(() => {
+    if (location.pathname === '/historial') {
+      marcarComoVisto();
+      setNuevosMovimientos(0);
+    }
+  }, [location.pathname]);
+
+  /* consultar al montar y cada 60 s */
+  useEffect(() => {
+    if (!isAdmin) return;
+    consultarNuevos();
+    const interval = setInterval(consultarNuevos, 60_000);
+    return () => clearInterval(interval);
+  }, [isAdmin]); // eslint-disable-line
+
+  /* ── avisos helpers ── */
   const getTipoIcon = (tipo) => {
     const s = { width: '14px', height: '14px', flexShrink: 0 };
-    if (tipo === 'urgente') return <AlertCircle style={{ ...s, color: '#DC2626' }} />;
-    if (tipo === 'evento') return <Calendar style={{ ...s, color: '#7C3AED' }} />;
-    if (tipo === 'recordatorio') return <BellRing style={{ ...s, color: '#D97706' }} />;
+    if (tipo === 'urgente')      return <AlertCircle style={{ ...s, color: '#DC2626' }} />;
+    if (tipo === 'evento')       return <Calendar    style={{ ...s, color: '#7C3AED' }} />;
+    if (tipo === 'recordatorio') return <BellRing    style={{ ...s, color: '#D97706' }} />;
     return <Info style={{ ...s, color: 'var(--capyme-blue-mid)' }} />;
   };
 
   const getTipoBg = (tipo) => {
-    if (tipo === 'urgente') return '#FEF2F2';
-    if (tipo === 'evento') return '#F5F3FF';
+    if (tipo === 'urgente')      return '#FEF2F2';
+    if (tipo === 'evento')       return '#F5F3FF';
     if (tipo === 'recordatorio') return '#FFFBEB';
     return 'var(--capyme-blue-pale)';
   };
@@ -79,18 +132,16 @@ const Navbar = ({ onMenuClick }) => {
   const formatTimeAgo = (date) => {
     if (!date) return '';
     const diff = Math.floor((new Date() - new Date(date)) / 1000);
-    if (diff < 60) return 'Hace un momento';
-    if (diff < 3600) return `Hace ${Math.floor(diff / 60)} min`;
+    if (diff < 60)    return 'Hace un momento';
+    if (diff < 3600)  return `Hace ${Math.floor(diff / 60)} min`;
     if (diff < 86400) return `Hace ${Math.floor(diff / 3600)}h`;
     return new Date(date).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' });
   };
 
   const urgentes = avisos.filter((a) => a.tipo === 'urgente').length;
 
-  const getAvisoRoute = (aviso) => {
-    if (user?.rol === 'cliente') return `/cliente/avisos/${aviso.id}`;
-    return `/avisos/${aviso.id}`;
-  };
+  const getAvisoRoute = (aviso) =>
+    user?.rol === 'cliente' ? `/cliente/avisos/${aviso.id}` : `/avisos/${aviso.id}`;
 
   const handleAvisoClick = (aviso) => {
     setShowNotifications(false);
@@ -102,6 +153,14 @@ const Navbar = ({ onMenuClick }) => {
     navigate(user?.rol === 'cliente' ? '/cliente/avisos' : '/avisos');
   };
 
+  /* ── ir a historial ── */
+  const handleHistorialClick = () => {
+    marcarComoVisto();
+    setNuevosMovimientos(0);
+    navigate('/historial');
+  };
+
+  /* ─────────── RENDER ─────────── */
   return (
     <nav style={{
       position: 'fixed', top: 0, left: 0, right: 0, zIndex: 30,
@@ -119,17 +178,33 @@ const Navbar = ({ onMenuClick }) => {
           from { opacity: 0; transform: translateY(-6px); }
           to   { opacity: 1; transform: translateY(0); }
         }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes pulse-badge {
+          0%, 100% { transform: scale(1); }
+          50%       { transform: scale(1.18); }
+        }
+        .nav-icon-btn {
+          padding: 8px;
+          border-radius: var(--radius-md);
+          border: none;
+          background: transparent;
+          cursor: pointer;
+          color: var(--gray-500);
+          transition: background 150ms ease, color 150ms ease;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          position: relative;
+        }
+        .nav-icon-btn:hover { background: var(--gray-100); }
+        .nav-icon-btn.active { background: var(--gray-100); color: var(--capyme-blue-mid); }
       `}</style>
+
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
 
-        {/* Left */}
+        {/* ── LEFT ── */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <button
-            onClick={onMenuClick}
-            style={{ padding: '8px', borderRadius: 'var(--radius-md)', border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--gray-600)', transition: 'background var(--transition)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-            onMouseEnter={e => e.currentTarget.style.background = 'var(--gray-100)'}
-            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-          >
+          <button onClick={onMenuClick} className="nav-icon-btn">
             <Menu style={{ width: '20px', height: '20px' }} />
           </button>
           <Link to="/dashboard" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
@@ -137,16 +212,47 @@ const Navbar = ({ onMenuClick }) => {
           </Link>
         </div>
 
-        {/* Right */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+        {/* ── RIGHT ── */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+
+          {/* ── BADGE HISTORIAL — solo admin ── */}
+          {isAdmin && (
+            <button
+              onClick={handleHistorialClick}
+              className={`nav-icon-btn${location.pathname === '/historial' ? ' active' : ''}`}
+              title="Historial de actividad"
+              style={{ color: nuevosMovimientos > 0 ? 'var(--capyme-blue-mid)' : undefined }}
+            >
+              <Activity style={{ width: '20px', height: '20px' }} />
+
+              {nuevosMovimientos > 0 && (
+                <span style={{
+                  position: 'absolute',
+                  top: '4px', right: '4px',
+                  minWidth: '17px',
+                  height: '17px',
+                  background: 'linear-gradient(135deg, var(--capyme-blue-mid), var(--capyme-blue))',
+                  borderRadius: '99px',
+                  border: '2px solid white',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: '9px', fontWeight: 800, color: '#fff',
+                  fontFamily: "'Plus Jakarta Sans', sans-serif",
+                  padding: '0 3px',
+                  animation: 'pulse-badge 2s ease-in-out infinite',
+                  boxShadow: '0 1px 6px rgba(31,78,158,0.4)',
+                  lineHeight: 1,
+                }}>
+                  {nuevosMovimientos > 99 ? '99+' : nuevosMovimientos}
+                </span>
+              )}
+            </button>
+          )}
 
           {/* ── NOTIFICACIONES ── */}
           <div style={{ position: 'relative' }} ref={notifRef}>
             <button
               onClick={() => { setShowNotifications(!showNotifications); setShowUserMenu(false); }}
-              style={{ position: 'relative', padding: '8px', borderRadius: 'var(--radius-md)', border: 'none', background: showNotifications ? 'var(--gray-100)' : 'transparent', cursor: 'pointer', color: 'var(--gray-500)', transition: 'background var(--transition)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-              onMouseEnter={e => e.currentTarget.style.background = 'var(--gray-100)'}
-              onMouseLeave={e => { if (!showNotifications) e.currentTarget.style.background = 'transparent'; }}
+              className={`nav-icon-btn${showNotifications ? ' active' : ''}`}
             >
               <Bell style={{ width: '20px', height: '20px' }} />
               {avisos.length > 0 && (
@@ -180,13 +286,10 @@ const Navbar = ({ onMenuClick }) => {
                 animation: 'slideDown 150ms ease both',
                 zIndex: 50,
               }}>
-                {/* Header panel */}
                 <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--gray-50)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <BellRing style={{ width: '15px', height: '15px', color: 'var(--capyme-blue-mid)' }} />
-                    <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: '14px', fontWeight: 700, color: 'var(--gray-900)' }}>
-                      Avisos
-                    </span>
+                    <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: '14px', fontWeight: 700, color: 'var(--gray-900)' }}>Avisos</span>
                   </div>
                   {avisos.length > 0 && (
                     <span style={{ padding: '2px 8px', background: urgentes > 0 ? '#FEF2F2' : 'var(--capyme-blue-pale)', color: urgentes > 0 ? '#DC2626' : 'var(--capyme-blue-mid)', borderRadius: '99px', fontSize: '11px', fontWeight: 700, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
@@ -195,13 +298,11 @@ const Navbar = ({ onMenuClick }) => {
                   )}
                 </div>
 
-                {/* Lista */}
                 <div style={{ maxHeight: '380px', overflowY: 'auto' }}>
                   {loadingAvisos ? (
                     <div style={{ padding: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
                       <div style={{ width: '18px', height: '18px', border: '2px solid var(--gray-200)', borderTopColor: 'var(--capyme-blue-mid)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
                       <span style={{ fontSize: '13px', color: 'var(--gray-400)', fontFamily: "'DM Sans', sans-serif" }}>Cargando avisos…</span>
-                      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
                     </div>
                   ) : avisos.length === 0 ? (
                     <div style={{ padding: '32px 20px', textAlign: 'center' }}>
@@ -245,7 +346,6 @@ const Navbar = ({ onMenuClick }) => {
                   )}
                 </div>
 
-                {/* Footer panel */}
                 <div style={{ padding: '12px 18px', borderTop: '1px solid var(--border)', background: 'var(--gray-50)' }}>
                   <button
                     onClick={handleVerTodos}
@@ -261,7 +361,7 @@ const Navbar = ({ onMenuClick }) => {
           </div>
 
           {/* ── USUARIO ── */}
-          <div style={{ position: 'relative' }} ref={userRef}>
+          <div style={{ position: 'relative', marginLeft: '2px' }} ref={userRef}>
             <button
               onClick={() => { setShowUserMenu(!showUserMenu); setShowNotifications(false); }}
               style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 10px 6px 6px', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)', background: showUserMenu ? 'var(--gray-50)' : 'transparent', cursor: 'pointer', transition: 'all var(--transition)' }}
@@ -284,9 +384,7 @@ const Navbar = ({ onMenuClick }) => {
 
             {showUserMenu && (
               <div style={{ position: 'absolute', right: 0, top: 'calc(100% + 8px)', width: '220px', background: 'var(--surface)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)', boxShadow: '0 16px 40px rgba(0,0,0,0.12)', overflow: 'hidden', animation: 'slideDown 150ms ease both', zIndex: 50 }}>
-                {[
-                  { to: '/perfil', icon: User, label: 'Mi Perfil' }
-                ].map((item, i) => (
+                {[{ to: '/perfil', icon: User, label: 'Mi Perfil' }].map((item, i) => (
                   <Link
                     key={i}
                     to={item.to}
@@ -299,9 +397,7 @@ const Navbar = ({ onMenuClick }) => {
                     {item.label}
                   </Link>
                 ))}
-
                 <div style={{ height: '1px', background: 'var(--border)' }} />
-
                 <button
                   onClick={() => { setShowUserMenu(false); logout(); }}
                   style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '11px 18px', width: '100%', fontSize: '13px', fontWeight: 500, color: '#DC2626', background: 'transparent', border: 'none', cursor: 'pointer', transition: 'background var(--transition)', textAlign: 'left' }}

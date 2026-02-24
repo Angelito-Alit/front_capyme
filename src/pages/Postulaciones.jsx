@@ -25,6 +25,7 @@ import {
   ToggleLeft,
   ToggleRight,
   Trash2,
+  AlertTriangle,
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
@@ -87,6 +88,82 @@ const initialEstadoData = {
   notasAdmin: '',
 };
 
+/* ─── Modal de confirmación reutilizable ─────────────────── */
+const ConfirmModal = ({ config, onClose }) => {
+  if (!config?.show) return null;
+  const isDanger  = config.variant === 'danger';
+  const isWarning = config.variant === 'warning';
+
+  const accentBg     = isDanger ? '#FEF2F2' : isWarning ? '#FFFBEB' : '#EEF4FF';
+  const accentBorder = isDanger ? '#FECACA' : isWarning ? '#FDE68A' : 'var(--border)';
+  const iconBg       = isDanger ? '#EF4444' : isWarning ? '#F59E0B' : 'var(--capyme-blue-mid)';
+  const titleColor   = isDanger ? '#B91C1C' : isWarning ? '#92400E' : 'var(--gray-900)';
+  const subtitleColor= isDanger ? '#DC2626' : isWarning ? '#B45309' : 'var(--gray-500)';
+  const btnBg        = isDanger
+    ? 'linear-gradient(135deg,#EF4444,#DC2626)'
+    : isWarning
+      ? 'linear-gradient(135deg,#F59E0B,#D97706)'
+      : 'linear-gradient(135deg,var(--capyme-blue-mid),var(--capyme-blue))';
+  const btnShadow    = isDanger
+    ? '0 2px 8px rgba(239,68,68,0.35)'
+    : isWarning
+      ? '0 2px 8px rgba(245,158,11,0.35)'
+      : '0 2px 8px rgba(31,78,158,0.28)';
+
+  return (
+    <div
+      onClick={onClose}
+      style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.45)', backdropFilter:'blur(4px)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:1200, padding:'20px' }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{ background:'#fff', borderRadius:'var(--radius-lg)', width:'100%', maxWidth:'440px', boxShadow:'0 24px 64px rgba(0,0,0,0.22)', overflow:'hidden', animation:'modalIn 0.22s ease both' }}
+      >
+        <div style={{ background:accentBg, padding:'20px 24px', borderBottom:`1px solid ${accentBorder}`, display:'flex', alignItems:'center', gap:'14px' }}>
+          <div style={{ width:'44px', height:'44px', background:iconBg, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, boxShadow:`0 4px 12px ${iconBg}40` }}>
+            <AlertTriangle style={{ width:'22px', height:'22px', color:'#fff' }} />
+          </div>
+          <div>
+            <h3 style={{ fontSize:'17px', fontWeight:800, color:titleColor, fontFamily:"'Plus Jakarta Sans', sans-serif", margin:'0 0 2px' }}>
+              {config.title}
+            </h3>
+            <p style={{ fontSize:'13px', color:subtitleColor, margin:0, fontFamily:"'DM Sans', sans-serif", fontWeight:500 }}>
+              {config.subtitle || 'Esta acción puede revertirse más adelante'}
+            </p>
+          </div>
+        </div>
+        <div style={{ padding:'20px 24px' }}>
+          {config.message && (
+            <div style={{ background:'var(--gray-50)', border:'1px solid var(--border)', borderRadius:'var(--radius-md)', padding:'14px 16px', marginBottom:'20px' }}>
+              <p style={{ fontSize:'14px', color:'var(--gray-700)', margin:0, fontFamily:"'DM Sans', sans-serif", lineHeight:1.5 }}>
+                {config.message}
+              </p>
+            </div>
+          )}
+          <div style={{ display:'flex', gap:'10px', justifyContent:'flex-end' }}>
+            <button
+              onClick={onClose}
+              style={{ padding:'9px 18px', border:'1px solid var(--border)', borderRadius:'var(--radius-md)', background:'#fff', color:'var(--gray-700)', fontSize:'14px', fontWeight:600, fontFamily:"'DM Sans', sans-serif", cursor:'pointer', transition:'all 150ms ease' }}
+              onMouseEnter={e => e.currentTarget.style.background = 'var(--gray-100)'}
+              onMouseLeave={e => e.currentTarget.style.background = '#fff'}
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={() => { config.onConfirm(); onClose(); }}
+              style={{ padding:'9px 22px', border:'none', borderRadius:'var(--radius-md)', background:btnBg, color:'#fff', fontSize:'14px', fontWeight:600, fontFamily:"'DM Sans', sans-serif", cursor:'pointer', boxShadow:btnShadow, transition:'all 150ms ease' }}
+              onMouseEnter={e => e.currentTarget.style.opacity = '0.9'}
+              onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+            >
+              {config.confirmLabel || 'Confirmar'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 const SectionTitle = ({ icon: Icon, text }) => (
   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
@@ -121,11 +198,16 @@ const Postulaciones = () => {
   const [submitting, setSubmitting] = useState(false);
 
   // ── Modales ───────────────────────────────────────────────────────────────
-  const [showModal, setShowModal] = useState(false);       // crear / editar
-  const [showDetalle, setShowDetalle] = useState(false);   // ver detalle
-  const [showEstado, setShowEstado] = useState(false);     // cambiar estado
+  const [showModal, setShowModal] = useState(false);
+  const [showDetalle, setShowDetalle] = useState(false);
+  const [showEstado, setShowEstado] = useState(false);
   const [modalMode, setModalMode] = useState('create');
   const [selectedPost, setSelectedPost] = useState(null);
+
+  // ── Modal de confirmación ─────────────────────────────────────────────────
+  const [confirmConfig, setConfirmConfig] = useState({ show: false });
+  const showConfirm = (cfg) => setConfirmConfig({ show: true, ...cfg });
+  const closeConfirm = () => setConfirmConfig({ show: false });
 
   // ── Filtros ───────────────────────────────────────────────────────────────
   const [searchTerm, setSearchTerm] = useState('');
@@ -192,7 +274,7 @@ const Postulaciones = () => {
     }
   };
 
-  // ─── Filtrado local (búsqueda por texto) ──────────────────────────────────
+  // ─── Filtrado local ───────────────────────────────────────────────────────
   const postulacionesFiltradas = postulaciones.filter(p => {
     const texto = searchTerm.toLowerCase();
     return (
@@ -266,7 +348,6 @@ const Postulaciones = () => {
     const errors = {};
     if (!formData.negocioId) errors.negocioId = 'Selecciona un negocio';
     if (!formData.programaId) errors.programaId = 'Selecciona un programa';
-    // usuarioId ya no es un campo manual - se toma del propietario del negocio
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -276,7 +357,6 @@ const Postulaciones = () => {
     if (name === 'estadoGeo') {
       setFormData(prev => ({ ...prev, estadoGeo: value, municipio: '' }));
     } else if (name === 'negocioId') {
-      // Al seleccionar negocio → auto-llenar usuarioId con el propietario del negocio
       const negocioSeleccionado = negocios.find(n => n.id === parseInt(value));
       setFormData(prev => ({
         ...prev,
@@ -295,10 +375,8 @@ const Postulaciones = () => {
     setSubmitting(true);
     try {
       if (modalMode === 'create') {
-        // Al crear: usuarioId es el propietario del negocio seleccionado
         const negocioSeleccionado = negocios.find(n => n.id === parseInt(formData.negocioId));
         const propietarioId = negocioSeleccionado?.usuarioId || negocioSeleccionado?.usuario?.id;
-
         const dataToSend = {
           negocioId: parseInt(formData.negocioId),
           programaId: parseInt(formData.programaId),
@@ -309,7 +387,6 @@ const Postulaciones = () => {
         await postulacionesService.create(dataToSend);
         toast.success('Postulación creada exitosamente');
       } else {
-        // Al editar: admin puede cambiar negocio y programa también
         const dataToSend = {
           estadoGeo: formData.estadoGeo || null,
           municipio: formData.municipio || null,
@@ -317,7 +394,6 @@ const Postulaciones = () => {
         if (currentUser.rol === 'admin') {
           if (formData.negocioId) dataToSend.negocioId = parseInt(formData.negocioId);
           if (formData.programaId) dataToSend.programaId = parseInt(formData.programaId);
-          // Si cambió el negocio, actualizar también el usuarioId al propietario del nuevo negocio
           if (formData.negocioId && formData.negocioId !== String(selectedPost.negocioId)) {
             const negocioNuevo = negocios.find(n => n.id === parseInt(formData.negocioId));
             const nuevoPropietario = negocioNuevo?.usuarioId || negocioNuevo?.usuario?.id;
@@ -348,18 +424,27 @@ const Postulaciones = () => {
     }
   };
 
-  // ─── Toggle activo (admin) ────────────────────────────────────────────────
-  const handleToggleActivo = async (post) => {
-    const nuevoEstado = post.estado === 'completada' ? 'pendiente' : 'completada';
-    const accion = post.estado === 'completada' ? 'marcar como pendiente' : 'marcar como completada';
-    if (!window.confirm(`¿Seguro que deseas ${accion} esta postulación?`)) return;
-    try {
-      await postulacionesService.toggleActivo(post.id);
-      toast.success('Estado cambiado exitosamente');
-      cargarDatos();
-    } catch {
-      toast.error('Error al cambiar estado');
-    }
+  // ─── Toggle activo con ConfirmModal ───────────────────────────────────────
+  const handleToggleActivo = (post) => {
+    const marcarCompletada = post.estado !== 'completada';
+    showConfirm({
+      variant: marcarCompletada ? 'warning' : 'danger',
+      title: marcarCompletada ? 'Marcar como completada' : 'Marcar como pendiente',
+      subtitle: marcarCompletada
+        ? 'La postulación pasará al estado completada'
+        : 'La postulación volverá al estado pendiente',
+      message: `¿Confirmas cambiar el estado de la postulación de "${post.negocio?.nombreNegocio}"?`,
+      confirmLabel: marcarCompletada ? 'Sí, completar' : 'Sí, marcar pendiente',
+      onConfirm: async () => {
+        try {
+          await postulacionesService.toggleActivo(post.id);
+          toast.success('Estado cambiado exitosamente');
+          cargarDatos();
+        } catch {
+          toast.error('Error al cambiar estado');
+        }
+      },
+    });
   };
 
   // ─── Render estado badge ──────────────────────────────────────────────────
@@ -466,13 +551,11 @@ const Postulaciones = () => {
           display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap',
           boxShadow: 'var(--shadow-sm)',
         }}>
-          {/* Buscar */}
           <div style={{ position: 'relative', flex: '1', minWidth: '180px' }}>
             <Search style={{ position: 'absolute', left: '11px', top: '50%', transform: 'translateY(-50%)', width: '15px', height: '15px', color: 'var(--gray-400)', pointerEvents: 'none' }} />
             <input type="text" placeholder="Buscar negocio, programa, cliente…" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} style={inputWithIconStyle} />
           </div>
 
-          {/* Programa */}
           <div style={{ position: 'relative', minWidth: '160px' }}>
             <select value={filterPrograma} onChange={e => setFilterPrograma(e.target.value)} style={{ ...selectStyle, width: '100%' }}>
               <option value="">Todos los programas</option>
@@ -481,20 +564,14 @@ const Postulaciones = () => {
             <ChevronDown style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', width: '14px', height: '14px', color: 'var(--gray-400)', pointerEvents: 'none' }} />
           </div>
 
-          {/* Estado geográfico */}
           <div style={{ position: 'relative', minWidth: '155px' }}>
-            <select
-              value={filterEstadoGeo}
-              onChange={e => { setFilterEstadoGeo(e.target.value); setFilterMunicipio(''); }}
-              style={{ ...selectStyle, width: '100%' }}
-            >
+            <select value={filterEstadoGeo} onChange={e => { setFilterEstadoGeo(e.target.value); setFilterMunicipio(''); }} style={{ ...selectStyle, width: '100%' }}>
               <option value="">Todos los estados</option>
               {ESTADOS_MEXICO.map(e => <option key={e.nombre} value={e.nombre}>{e.nombre}</option>)}
             </select>
             <ChevronDown style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', width: '14px', height: '14px', color: 'var(--gray-400)', pointerEvents: 'none' }} />
           </div>
 
-          {/* Municipio */}
           <div style={{ position: 'relative', minWidth: '155px' }}>
             <select value={filterMunicipio} onChange={e => setFilterMunicipio(e.target.value)} style={{ ...selectStyle, width: '100%', opacity: filterEstadoGeo ? 1 : 0.5 }} disabled={!filterEstadoGeo}>
               <option value="">Todos los municipios</option>
@@ -503,7 +580,6 @@ const Postulaciones = () => {
             <ChevronDown style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', width: '14px', height: '14px', color: 'var(--gray-400)', pointerEvents: 'none' }} />
           </div>
 
-          {/* Estado postulación */}
           <div style={{ position: 'relative', minWidth: '145px' }}>
             <select value={filterEstadoPost} onChange={e => setFilterEstadoPost(e.target.value)} style={{ ...selectStyle, width: '100%' }}>
               <option value="">Todos los estados</option>
@@ -512,7 +588,6 @@ const Postulaciones = () => {
             <ChevronDown style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', width: '14px', height: '14px', color: 'var(--gray-400)', pointerEvents: 'none' }} />
           </div>
 
-          {/* View toggle */}
           <div style={{ display: 'flex', gap: '4px', background: 'var(--gray-100)', borderRadius: 'var(--radius-sm)', padding: '3px', marginLeft: 'auto' }}>
             {[{ mode: 'grid', Icon: LayoutGrid }, { mode: 'list', Icon: List }].map(({ mode, Icon }) => (
               <button key={mode} onClick={() => setViewMode(mode)} style={{
@@ -540,76 +615,41 @@ const Postulaciones = () => {
           // ── GRID VIEW ────────────────────────────────────────────────────
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '16px' }}>
             {postulacionesFiltradas.map((post, idx) => (
-              <div
-                key={post.id}
-                className="post-card"
-                style={{
-                  background: '#fff', border: '1px solid var(--border)',
-                  borderRadius: 'var(--radius-lg)', padding: '18px 20px',
-                  boxShadow: 'var(--shadow-sm)', transition: 'all 200ms ease',
-                  animationDelay: `${idx * 0.04}s`,
-                }}
-              >
-                {/* Card header */}
+              <div key={post.id} className="post-card" style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '18px 20px', boxShadow: 'var(--shadow-sm)', transition: 'all 200ms ease', animationDelay: `${idx * 0.04}s` }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
                   <EstadoBadge estado={post.estado} />
-                  <span style={{ fontSize: '11px', color: 'var(--gray-400)', fontFamily: "'DM Sans', sans-serif" }}>
-                    #{post.id}
-                  </span>
+                  <span style={{ fontSize: '11px', color: 'var(--gray-400)', fontFamily: "'DM Sans', sans-serif" }}>#{post.id}</span>
                 </div>
-
-                {/* Negocio */}
                 <div style={{ marginBottom: '8px' }}>
-                  <p style={{ fontSize: '15px', fontWeight: 700, color: 'var(--gray-900)', fontFamily: "'Plus Jakarta Sans', sans-serif", margin: 0, lineHeight: 1.3 }}>
-                    {post.negocio?.nombreNegocio}
-                  </p>
-                  {post.negocio?.categoria && (
-                    <p style={{ fontSize: '12px', color: 'var(--gray-500)', fontFamily: "'DM Sans', sans-serif", margin: '2px 0 0' }}>
-                      {post.negocio.categoria.nombre}
-                    </p>
-                  )}
+                  <p style={{ fontSize: '15px', fontWeight: 700, color: 'var(--gray-900)', fontFamily: "'Plus Jakarta Sans', sans-serif", margin: 0, lineHeight: 1.3 }}>{post.negocio?.nombreNegocio}</p>
+                  {post.negocio?.categoria && <p style={{ fontSize: '12px', color: 'var(--gray-500)', fontFamily: "'DM Sans', sans-serif", margin: '2px 0 0' }}>{post.negocio.categoria.nombre}</p>}
                 </div>
-
-                {/* Info rows */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '14px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
                     <FileText style={{ width: '13px', height: '13px', color: 'var(--capyme-blue-mid)', flexShrink: 0 }} />
-                    <span style={{ fontSize: '12px', color: 'var(--gray-700)', fontFamily: "'DM Sans', sans-serif", fontWeight: 500 }}>
-                      {post.programa?.nombre}
-                    </span>
+                    <span style={{ fontSize: '12px', color: 'var(--gray-700)', fontFamily: "'DM Sans', sans-serif", fontWeight: 500 }}>{post.programa?.nombre}</span>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
                     <User style={{ width: '13px', height: '13px', color: 'var(--gray-400)', flexShrink: 0 }} />
-                    <span style={{ fontSize: '12px', color: 'var(--gray-500)', fontFamily: "'DM Sans', sans-serif" }}>
-                      {post.usuario?.nombre} {post.usuario?.apellido}
-                    </span>
+                    <span style={{ fontSize: '12px', color: 'var(--gray-500)', fontFamily: "'DM Sans', sans-serif" }}>{post.usuario?.nombre} {post.usuario?.apellido}</span>
                   </div>
                   {(post.estadoGeo || post.municipio) && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
                       <MapPin style={{ width: '13px', height: '13px', color: 'var(--gray-400)', flexShrink: 0 }} />
-                      <span style={{ fontSize: '12px', color: 'var(--gray-500)', fontFamily: "'DM Sans', sans-serif" }}>
-                        {[post.municipio, post.estadoGeo].filter(Boolean).join(', ')}
-                      </span>
+                      <span style={{ fontSize: '12px', color: 'var(--gray-500)', fontFamily: "'DM Sans', sans-serif" }}>{[post.municipio, post.estadoGeo].filter(Boolean).join(', ')}</span>
                     </div>
                   )}
                   <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
                     <Calendar style={{ width: '13px', height: '13px', color: 'var(--gray-400)', flexShrink: 0 }} />
-                    <span style={{ fontSize: '12px', color: 'var(--gray-500)', fontFamily: "'DM Sans', sans-serif" }}>
-                      {formatDate(post.fechaPostulacion)}
-                    </span>
+                    <span style={{ fontSize: '12px', color: 'var(--gray-500)', fontFamily: "'DM Sans', sans-serif" }}>{formatDate(post.fechaPostulacion)}</span>
                   </div>
                 </div>
-
-                {/* Acciones */}
                 <div style={{ display: 'flex', gap: '6px', paddingTop: '12px', borderTop: '1px solid var(--gray-100)' }}>
-                  {/* Ver */}
                   <button onClick={() => handleOpenDetalle(post.id)} title="Ver detalle" style={{ width: '32px', height: '32px', border: 'none', borderRadius: 'var(--radius-sm)', background: 'transparent', cursor: 'pointer', color: 'var(--gray-400)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 150ms ease' }}
                     onMouseEnter={e => { e.currentTarget.style.background = '#EEF4FF'; e.currentTarget.style.color = 'var(--capyme-blue-mid)'; }}
                     onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gray-400)'; }}>
                     <Eye style={{ width: '14px', height: '14px' }} />
                   </button>
-
-                  {/* Editar (admin y colaborador) */}
                   {['admin', 'colaborador'].includes(currentUser.rol) && (
                     <button onClick={() => handleOpenEdit(post)} title="Editar" style={{ width: '32px', height: '32px', border: 'none', borderRadius: 'var(--radius-sm)', background: 'transparent', cursor: 'pointer', color: 'var(--gray-400)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 150ms ease' }}
                       onMouseEnter={e => { e.currentTarget.style.background = '#EEF4FF'; e.currentTarget.style.color = 'var(--capyme-blue-mid)'; }}
@@ -617,21 +657,13 @@ const Postulaciones = () => {
                       <Edit style={{ width: '14px', height: '14px' }} />
                     </button>
                   )}
-
-                  {/* Cambiar estado (admin y colaborador) */}
                   {['admin', 'colaborador'].includes(currentUser.rol) && (
-                    <button onClick={() => handleOpenEstado(post)} style={{
-                      flex: 1, padding: '6px 10px', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)',
-                      background: '#fff', color: 'var(--gray-600)', fontSize: '12px', fontWeight: 600,
-                      fontFamily: "'DM Sans', sans-serif", cursor: 'pointer', transition: 'all 150ms ease',
-                    }}
+                    <button onClick={() => handleOpenEstado(post)} style={{ flex: 1, padding: '6px 10px', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', background: '#fff', color: 'var(--gray-600)', fontSize: '12px', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", cursor: 'pointer', transition: 'all 150ms ease' }}
                       onMouseEnter={e => { e.currentTarget.style.background = '#EEF4FF'; e.currentTarget.style.borderColor = 'var(--capyme-blue-mid)'; e.currentTarget.style.color = 'var(--capyme-blue-mid)'; }}
                       onMouseLeave={e => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--gray-600)'; }}>
                       Cambiar estado
                     </button>
                   )}
-
-                  {/* Toggle / activar-desactivar (solo admin) */}
                   {currentUser.rol === 'admin' && (
                     <button onClick={() => handleToggleActivo(post)} title={post.estado === 'completada' ? 'Marcar pendiente' : 'Marcar completada'}
                       style={{ width: '32px', height: '32px', border: 'none', borderRadius: 'var(--radius-sm)', background: 'transparent', cursor: 'pointer', color: post.estado === 'completada' ? '#5B21B6' : 'var(--gray-400)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 150ms ease' }}
@@ -659,13 +691,7 @@ const Postulaciones = () => {
               </thead>
               <tbody>
                 {postulacionesFiltradas.map(post => (
-                  <tr
-                    key={post.id}
-                    onMouseEnter={() => setHoveredRow(post.id)}
-                    onMouseLeave={() => setHoveredRow(null)}
-                    style={{ borderBottom: '1px solid var(--gray-100)', background: hoveredRow === post.id ? 'var(--gray-50)' : '#fff', transition: 'background 150ms ease' }}
-                  >
-                    {/* Negocio */}
+                  <tr key={post.id} onMouseEnter={() => setHoveredRow(post.id)} onMouseLeave={() => setHoveredRow(null)} style={{ borderBottom: '1px solid var(--gray-100)', background: hoveredRow === post.id ? 'var(--gray-50)' : '#fff', transition: 'background 150ms ease' }}>
                     <td style={{ padding: '12px 16px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <div style={{ width: '30px', height: '30px', background: '#EEF4FF', borderRadius: 'var(--radius-sm)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -677,48 +703,30 @@ const Postulaciones = () => {
                         </div>
                       </div>
                     </td>
-
-                    {/* Programa */}
                     <td style={{ padding: '12px 16px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
                         <FileText style={{ width: '13px', height: '13px', color: 'var(--gray-400)', flexShrink: 0 }} />
-                        <span style={{ fontSize: '13px', color: 'var(--gray-700)', fontFamily: "'DM Sans', sans-serif", maxWidth: '160px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {post.programa?.nombre}
-                        </span>
+                        <span style={{ fontSize: '13px', color: 'var(--gray-700)', fontFamily: "'DM Sans', sans-serif", maxWidth: '160px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{post.programa?.nombre}</span>
                       </div>
                     </td>
-
-                    {/* Cliente */}
                     <td style={{ padding: '12px 16px' }}>
                       <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--gray-900)', margin: 0, fontFamily: "'DM Sans', sans-serif" }}>{post.usuario?.nombre} {post.usuario?.apellido}</p>
                       <p style={{ fontSize: '11px', color: 'var(--gray-400)', margin: 0, fontFamily: "'DM Sans', sans-serif" }}>{post.usuario?.email}</p>
                     </td>
-
-                    {/* Ubicación */}
                     <td style={{ padding: '12px 16px' }}>
                       {(post.estadoGeo || post.municipio) ? (
                         <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
                           <MapPin style={{ width: '12px', height: '12px', color: 'var(--gray-400)', flexShrink: 0 }} />
-                          <span style={{ fontSize: '12px', color: 'var(--gray-600)', fontFamily: "'DM Sans', sans-serif" }}>
-                            {[post.municipio, post.estadoGeo].filter(Boolean).join(', ')}
-                          </span>
+                          <span style={{ fontSize: '12px', color: 'var(--gray-600)', fontFamily: "'DM Sans', sans-serif" }}>{[post.municipio, post.estadoGeo].filter(Boolean).join(', ')}</span>
                         </div>
                       ) : (
                         <span style={{ fontSize: '12px', color: 'var(--gray-300)', fontFamily: "'DM Sans', sans-serif" }}>—</span>
                       )}
                     </td>
-
-                    {/* Estado */}
-                    <td style={{ padding: '12px 16px' }}>
-                      <EstadoBadge estado={post.estado} />
-                    </td>
-
-                    {/* Fecha */}
+                    <td style={{ padding: '12px 16px' }}><EstadoBadge estado={post.estado} /></td>
                     <td style={{ padding: '12px 16px' }}>
                       <span style={{ fontSize: '12px', color: 'var(--gray-500)', fontFamily: "'DM Sans', sans-serif" }}>{formatDate(post.fechaPostulacion)}</span>
                     </td>
-
-                    {/* Acciones */}
                     <td style={{ padding: '12px 16px', textAlign: 'right' }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '4px' }}>
                         <button onClick={() => handleOpenDetalle(post.id)} title="Ver" style={{ width: '30px', height: '30px', border: 'none', borderRadius: 'var(--radius-sm)', background: 'transparent', cursor: 'pointer', color: 'var(--gray-400)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 150ms ease' }}
@@ -726,7 +734,6 @@ const Postulaciones = () => {
                           onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gray-400)'; }}>
                           <Eye style={{ width: '14px', height: '14px' }} />
                         </button>
-
                         {['admin', 'colaborador'].includes(currentUser.rol) && (
                           <>
                             <button onClick={() => handleOpenEdit(post)} title="Editar" style={{ width: '30px', height: '30px', border: 'none', borderRadius: 'var(--radius-sm)', background: 'transparent', cursor: 'pointer', color: 'var(--gray-400)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 150ms ease' }}
@@ -734,18 +741,13 @@ const Postulaciones = () => {
                               onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gray-400)'; }}>
                               <Edit style={{ width: '14px', height: '14px' }} />
                             </button>
-                            <button onClick={() => handleOpenEstado(post)} style={{
-                              padding: '4px 10px', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)',
-                              background: '#fff', color: 'var(--gray-600)', fontSize: '11px', fontWeight: 600,
-                              fontFamily: "'DM Sans', sans-serif", cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all 150ms ease',
-                            }}
+                            <button onClick={() => handleOpenEstado(post)} style={{ padding: '4px 10px', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', background: '#fff', color: 'var(--gray-600)', fontSize: '11px', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all 150ms ease' }}
                               onMouseEnter={e => { e.currentTarget.style.background = '#EEF4FF'; e.currentTarget.style.borderColor = 'var(--capyme-blue-mid)'; e.currentTarget.style.color = 'var(--capyme-blue-mid)'; }}
                               onMouseLeave={e => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--gray-600)'; }}>
                               Estado
                             </button>
                           </>
                         )}
-
                         {currentUser.rol === 'admin' && (
                           <button onClick={() => handleToggleActivo(post)} title={post.estado === 'completada' ? 'Marcar pendiente' : 'Marcar completada'}
                             style={{ width: '30px', height: '30px', border: 'none', borderRadius: 'var(--radius-sm)', background: 'transparent', cursor: 'pointer', color: post.estado === 'completada' ? '#5B21B6' : 'var(--gray-400)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 150ms ease' }}
@@ -764,20 +766,10 @@ const Postulaciones = () => {
         )}
       </div>
 
-      {/* ════════════════════════════════════════════════════════════
-          MODAL CREAR / EDITAR
-      ════════════════════════════════════════════════════════════ */}
+      {/* ════ MODAL CREAR / EDITAR ════ */}
       {showModal && (
-        <div
-          onClick={handleCloseAll}
-          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}
-        >
-          <div
-            className="post-modal"
-            onClick={e => e.stopPropagation()}
-            style={{ background: '#fff', borderRadius: 'var(--radius-xl)', width: '100%', maxWidth: '580px', maxHeight: '90vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 24px 64px rgba(0,0,0,0.18)' }}
-          >
-            {/* Header */}
+        <div onClick={handleCloseAll} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
+          <div className="post-modal" onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 'var(--radius-xl)', width: '100%', maxWidth: '580px', maxHeight: '90vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 24px 64px rgba(0,0,0,0.18)' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 24px', background: 'var(--gray-50)', borderBottom: '1px solid var(--border)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <div style={{ width: '34px', height: '34px', background: 'linear-gradient(135deg, var(--capyme-blue-mid), var(--capyme-blue))', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -791,94 +783,45 @@ const Postulaciones = () => {
                 <X style={{ width: '16px', height: '16px' }} />
               </button>
             </div>
-
-            {/* Body */}
             <div style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
-
-              {/* SECCIÓN: Negocio y Programa */}
               <div>
                 <SectionTitle icon={Building2} text="Negocio y Programa" />
                 <div style={{ marginTop: '14px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
-
-                  {/* Negocio — editable en crear siempre; en editar solo admin */}
                   <div>
                     <label style={labelStyle}>Negocio <span style={{ color: '#EF4444' }}>*</span></label>
                     <div style={{ position: 'relative' }}>
-                      <select
-                        name="negocioId"
-                        value={formData.negocioId}
-                        onChange={handleChange}
-                        disabled={modalMode === 'edit' && currentUser.rol !== 'admin'}
-                        style={{
-                          ...selectStyle,
-                          ...(formErrors.negocioId ? inputErrorStyle : {}),
-                          opacity: (modalMode === 'edit' && currentUser.rol !== 'admin') ? 0.6 : 1,
-                        }}
-                      >
+                      <select name="negocioId" value={formData.negocioId} onChange={handleChange} disabled={modalMode === 'edit' && currentUser.rol !== 'admin'} style={{ ...selectStyle, ...(formErrors.negocioId ? inputErrorStyle : {}), opacity: (modalMode === 'edit' && currentUser.rol !== 'admin') ? 0.6 : 1 }}>
                         <option value="">Selecciona un negocio</option>
                         {negocios.map(n => <option key={n.id} value={n.id}>{n.nombreNegocio}</option>)}
                       </select>
                       <ChevronDown style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', width: '14px', height: '14px', color: 'var(--gray-400)', pointerEvents: 'none' }} />
                     </div>
-                    {modalMode === 'edit' && currentUser.rol !== 'admin' && (
-                      <p style={{ fontSize: '11px', color: 'var(--gray-400)', marginTop: '4px', fontFamily: "'DM Sans', sans-serif" }}>
-                        Solo el admin puede reasignar el negocio
-                      </p>
-                    )}
+                    {modalMode === 'edit' && currentUser.rol !== 'admin' && <p style={{ fontSize: '11px', color: 'var(--gray-400)', marginTop: '4px', fontFamily: "'DM Sans', sans-serif" }}>Solo el admin puede reasignar el negocio</p>}
                     <ErrorMsg msg={formErrors.negocioId} />
                   </div>
-
-                  {/* Programa — editable en crear siempre; en editar solo admin */}
                   <div>
                     <label style={labelStyle}>Programa <span style={{ color: '#EF4444' }}>*</span></label>
                     <div style={{ position: 'relative' }}>
-                      <select
-                        name="programaId"
-                        value={formData.programaId}
-                        onChange={handleChange}
-                        disabled={modalMode === 'edit' && currentUser.rol !== 'admin'}
-                        style={{
-                          ...selectStyle,
-                          ...(formErrors.programaId ? inputErrorStyle : {}),
-                          opacity: (modalMode === 'edit' && currentUser.rol !== 'admin') ? 0.6 : 1,
-                        }}
-                      >
+                      <select name="programaId" value={formData.programaId} onChange={handleChange} disabled={modalMode === 'edit' && currentUser.rol !== 'admin'} style={{ ...selectStyle, ...(formErrors.programaId ? inputErrorStyle : {}), opacity: (modalMode === 'edit' && currentUser.rol !== 'admin') ? 0.6 : 1 }}>
                         <option value="">Selecciona un programa</option>
                         {programas.filter(p => p.activo).map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
                       </select>
                       <ChevronDown style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', width: '14px', height: '14px', color: 'var(--gray-400)', pointerEvents: 'none' }} />
                     </div>
-                    {modalMode === 'edit' && currentUser.rol !== 'admin' && (
-                      <p style={{ fontSize: '11px', color: 'var(--gray-400)', marginTop: '4px', fontFamily: "'DM Sans', sans-serif" }}>
-                        Solo el admin puede reasignar el programa
-                      </p>
-                    )}
+                    {modalMode === 'edit' && currentUser.rol !== 'admin' && <p style={{ fontSize: '11px', color: 'var(--gray-400)', marginTop: '4px', fontFamily: "'DM Sans', sans-serif" }}>Solo el admin puede reasignar el programa</p>}
                     <ErrorMsg msg={formErrors.programaId} />
                   </div>
                 </div>
-
-                {/* Usuario responsable: se auto-llena al seleccionar negocio, solo lectura */}
                 {formData.negocioId && (() => {
                   const negSel = negocios.find(n => n.id === parseInt(formData.negocioId));
                   const propietario = negSel?.usuario;
                   if (!propietario && !negSel?.usuarioId) return null;
-                  const nombre = propietario
-                    ? `${propietario.nombre} ${propietario.apellido}`
-                    : `Usuario #${negSel.usuarioId}`;
+                  const nombre = propietario ? `${propietario.nombre} ${propietario.apellido}` : `Usuario #${negSel.usuarioId}`;
                   const email = propietario?.email || '';
                   return (
                     <div style={{ marginTop: '14px' }}>
-                      <label style={labelStyle}>
-                        Usuario responsable del negocio
-                        <span style={{ marginLeft: '6px', fontSize: '11px', fontWeight: 400, color: 'var(--gray-400)' }}>(se asigna automáticamente)</span>
-                      </label>
-                      <div style={{
-                        display: 'flex', alignItems: 'center', gap: '10px',
-                        padding: '10px 14px',
-                        background: '#F8FAFC',
-                        border: '1px solid var(--border)',
-                        borderRadius: 'var(--radius-md)',
-                      }}>
+                      <label style={labelStyle}>Usuario responsable del negocio<span style={{ marginLeft: '6px', fontSize: '11px', fontWeight: 400, color: 'var(--gray-400)' }}>(se asigna automáticamente)</span></label>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 14px', background: '#F8FAFC', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)' }}>
                         <div style={{ width: '30px', height: '30px', borderRadius: '50%', background: '#EEF4FF', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                           <User style={{ width: '14px', height: '14px', color: 'var(--capyme-blue-mid)' }} />
                         </div>
@@ -886,16 +829,12 @@ const Postulaciones = () => {
                           <p style={{ margin: 0, fontSize: '13px', fontWeight: 600, color: 'var(--gray-900)', fontFamily: "'DM Sans', sans-serif" }}>{nombre}</p>
                           {email && <p style={{ margin: 0, fontSize: '11px', color: 'var(--gray-500)', fontFamily: "'DM Sans', sans-serif" }}>{email}</p>}
                         </div>
-                        <span style={{ marginLeft: 'auto', fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '99px', background: '#EEF4FF', color: 'var(--capyme-blue-mid)', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-                          PROPIETARIO
-                        </span>
+                        <span style={{ marginLeft: 'auto', fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '99px', background: '#EEF4FF', color: 'var(--capyme-blue-mid)', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>PROPIETARIO</span>
                       </div>
                     </div>
                   );
                 })()}
               </div>
-
-              {/* SECCIÓN: Ubicación */}
               <div style={{ marginTop: '24px' }}>
                 <SectionTitle icon={MapPin} text="Ubicación geográfica" />
                 <div style={{ marginTop: '14px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
@@ -912,25 +851,15 @@ const Postulaciones = () => {
                   <div>
                     <label style={labelStyle}>Municipio</label>
                     <div style={{ position: 'relative' }}>
-                      <select
-                        name="municipio"
-                        value={formData.municipio}
-                        onChange={handleChange}
-                        disabled={!formData.estadoGeo}
-                        style={{ ...selectStyle, opacity: formData.estadoGeo ? 1 : 0.5 }}
-                      >
+                      <select name="municipio" value={formData.municipio} onChange={handleChange} disabled={!formData.estadoGeo} style={{ ...selectStyle, opacity: formData.estadoGeo ? 1 : 0.5 }}>
                         <option value="">Todos los municipios</option>
-                        {formData.estadoGeo && ESTADOS_MEXICO.find(e => e.nombre === formData.estadoGeo)?.municipios.map(m => (
-                          <option key={m} value={m}>{m}</option>
-                        ))}
+                        {formData.estadoGeo && ESTADOS_MEXICO.find(e => e.nombre === formData.estadoGeo)?.municipios.map(m => <option key={m} value={m}>{m}</option>)}
                       </select>
                       <ChevronDown style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', width: '14px', height: '14px', color: 'var(--gray-400)', pointerEvents: 'none' }} />
                     </div>
                   </div>
                 </div>
               </div>
-
-              {/* Info del programa seleccionado */}
               {formData.programaId && (() => {
                 const prog = programas.find(p => p.id === parseInt(formData.programaId));
                 if (!prog) return null;
@@ -950,22 +879,9 @@ const Postulaciones = () => {
                 );
               })()}
             </div>
-
-            {/* Footer */}
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', padding: '16px 24px', background: 'var(--gray-50)', borderTop: '1px solid var(--border)' }}>
-              <button onClick={handleCloseAll} style={{ padding: '9px 18px', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', background: '#fff', color: 'var(--gray-700)', fontSize: '14px', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", cursor: 'pointer' }}>
-                Cancelar
-              </button>
-              <button
-                onClick={handleSubmit}
-                disabled={submitting}
-                style={{
-                  padding: '9px 22px', border: 'none', borderRadius: 'var(--radius-md)',
-                  background: submitting ? 'var(--gray-300)' : 'linear-gradient(135deg, var(--capyme-blue-mid), var(--capyme-blue))',
-                  color: '#fff', fontSize: '14px', fontWeight: 600, fontFamily: "'DM Sans', sans-serif",
-                  cursor: submitting ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: '8px',
-                }}
-              >
+              <button onClick={handleCloseAll} style={{ padding: '9px 18px', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', background: '#fff', color: 'var(--gray-700)', fontSize: '14px', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", cursor: 'pointer' }}>Cancelar</button>
+              <button onClick={handleSubmit} disabled={submitting} style={{ padding: '9px 22px', border: 'none', borderRadius: 'var(--radius-md)', background: submitting ? 'var(--gray-300)' : 'linear-gradient(135deg, var(--capyme-blue-mid), var(--capyme-blue))', color: '#fff', fontSize: '14px', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", cursor: submitting ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 {submitting && <div style={{ width: '14px', height: '14px', border: '2px solid rgba(255,255,255,0.4)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />}
                 {modalMode === 'create' ? 'Crear Postulación' : 'Guardar Cambios'}
               </button>
@@ -974,215 +890,128 @@ const Postulaciones = () => {
         </div>
       )}
 
-      {/* ════════════════════════════════════════════════════════════
-          MODAL DETALLE
-      ════════════════════════════════════════════════════════════ */}
+      {/* ════ MODAL DETALLE ════ */}
       {showDetalle && selectedPost && (
-        <div
-          onClick={handleCloseAll}
-          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}
-        >
-          <div
-            className="post-modal"
-            onClick={e => e.stopPropagation()}
-            style={{ background: '#fff', borderRadius: 'var(--radius-xl)', width: '100%', maxWidth: '720px', maxHeight: '90vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 24px 64px rgba(0,0,0,0.18)' }}
-          >
-            {/* Header */}
+        <div onClick={handleCloseAll} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
+          <div className="post-modal" onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 'var(--radius-xl)', width: '100%', maxWidth: '720px', maxHeight: '90vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 24px 64px rgba(0,0,0,0.18)' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 24px', background: 'var(--gray-50)', borderBottom: '1px solid var(--border)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <h2 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--gray-900)', margin: 0, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-                  Detalle de Postulación #{selectedPost.id}
-                </h2>
+                <h2 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--gray-900)', margin: 0, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Detalle de Postulación #{selectedPost.id}</h2>
                 <EstadoBadge estado={selectedPost.estado} />
               </div>
               <button onClick={handleCloseAll} style={{ width: '30px', height: '30px', border: 'none', borderRadius: 'var(--radius-sm)', background: 'transparent', cursor: 'pointer', color: 'var(--gray-400)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <X style={{ width: '16px', height: '16px' }} />
               </button>
             </div>
-
-            {/* Body */}
             <div style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
-
-              {/* Grid de info principal */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px' }}>
-
-                {/* Negocio */}
                 <div style={{ background: 'var(--gray-50)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '14px 16px' }}>
                   <p style={{ fontSize: '11px', fontWeight: 700, color: 'var(--gray-400)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 8px', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Negocio</p>
                   <p style={{ fontSize: '14px', fontWeight: 700, color: 'var(--gray-900)', margin: '0 0 4px', fontFamily: "'DM Sans', sans-serif" }}>{selectedPost.negocio?.nombreNegocio}</p>
                   {selectedPost.negocio?.rfc && <p style={{ fontSize: '12px', color: 'var(--gray-500)', margin: '0 0 2px', fontFamily: "'DM Sans', sans-serif" }}>RFC: {selectedPost.negocio.rfc}</p>}
                   {selectedPost.negocio?.categoria && <p style={{ fontSize: '12px', color: 'var(--gray-500)', margin: 0, fontFamily: "'DM Sans', sans-serif" }}>{selectedPost.negocio.categoria.nombre}</p>}
                 </div>
-
-                {/* Programa */}
                 <div style={{ background: '#F0F7FF', border: '1px solid #BFDBFE', borderRadius: 'var(--radius-md)', padding: '14px 16px' }}>
                   <p style={{ fontSize: '11px', fontWeight: 700, color: '#1E40AF', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 8px', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Programa</p>
                   <p style={{ fontSize: '14px', fontWeight: 700, color: 'var(--capyme-blue-mid)', margin: '0 0 4px', fontFamily: "'DM Sans', sans-serif" }}>{selectedPost.programa?.nombre}</p>
                   {selectedPost.programa?.tipoPrograma && <p style={{ fontSize: '12px', color: '#1E40AF', margin: '0 0 2px', fontFamily: "'DM Sans', sans-serif" }}>{selectedPost.programa.tipoPrograma}</p>}
                   {selectedPost.programa?.montoApoyo && <p style={{ fontSize: '12px', color: '#065F46', fontWeight: 600, margin: 0, fontFamily: "'DM Sans', sans-serif" }}>💰 ${Number(selectedPost.programa.montoApoyo).toLocaleString('es-MX')}</p>}
                 </div>
-
-                {/* Cliente */}
                 <div style={{ background: 'var(--gray-50)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '14px 16px' }}>
                   <p style={{ fontSize: '11px', fontWeight: 700, color: 'var(--gray-400)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 8px', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Cliente / Usuario</p>
                   <p style={{ fontSize: '14px', fontWeight: 700, color: 'var(--gray-900)', margin: '0 0 4px', fontFamily: "'DM Sans', sans-serif" }}>{selectedPost.usuario?.nombre} {selectedPost.usuario?.apellido}</p>
                   <p style={{ fontSize: '12px', color: 'var(--gray-500)', margin: '0 0 2px', fontFamily: "'DM Sans', sans-serif" }}>{selectedPost.usuario?.email}</p>
                   {selectedPost.usuario?.telefono && <p style={{ fontSize: '12px', color: 'var(--gray-500)', margin: 0, fontFamily: "'DM Sans', sans-serif" }}>{selectedPost.usuario.telefono}</p>}
                 </div>
-
-                {/* Ubicación y fechas */}
                 <div style={{ background: 'var(--gray-50)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '14px 16px' }}>
                   <p style={{ fontSize: '11px', fontWeight: 700, color: 'var(--gray-400)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 8px', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Detalles</p>
                   {(selectedPost.estadoGeo || selectedPost.municipio) && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
                       <MapPin style={{ width: '13px', height: '13px', color: 'var(--gray-400)' }} />
-                      <span style={{ fontSize: '13px', color: 'var(--gray-700)', fontFamily: "'DM Sans', sans-serif" }}>
-                        {[selectedPost.municipio, selectedPost.estadoGeo].filter(Boolean).join(', ')}
-                      </span>
+                      <span style={{ fontSize: '13px', color: 'var(--gray-700)', fontFamily: "'DM Sans', sans-serif" }}>{[selectedPost.municipio, selectedPost.estadoGeo].filter(Boolean).join(', ')}</span>
                     </div>
                   )}
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <Calendar style={{ width: '13px', height: '13px', color: 'var(--gray-400)' }} />
-                    <span style={{ fontSize: '13px', color: 'var(--gray-700)', fontFamily: "'DM Sans', sans-serif" }}>
-                      {formatDate(selectedPost.fechaPostulacion)}
-                    </span>
+                    <span style={{ fontSize: '13px', color: 'var(--gray-700)', fontFamily: "'DM Sans', sans-serif" }}>{formatDate(selectedPost.fechaPostulacion)}</span>
                   </div>
                 </div>
               </div>
-
-              {/* Respuestas */}
               {selectedPost.respuestas?.length > 0 && (
                 <div style={{ marginBottom: '20px' }}>
                   <SectionTitle icon={FileText} text="Respuestas del formulario" />
                   <div style={{ marginTop: '14px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                     {selectedPost.respuestas.map(r => (
                       <div key={r.id} style={{ background: 'var(--gray-50)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '12px 14px' }}>
-                        <p style={{ fontSize: '12px', fontWeight: 600, color: 'var(--gray-600)', margin: '0 0 6px', fontFamily: "'DM Sans', sans-serif" }}>
-                          {r.pregunta?.pregunta}
-                        </p>
-                        <p style={{ fontSize: '13px', color: 'var(--gray-900)', margin: 0, fontFamily: "'DM Sans', sans-serif" }}>
-                          {r.respuesta || <em style={{ color: 'var(--gray-400)' }}>Sin respuesta</em>}
-                        </p>
+                        <p style={{ fontSize: '12px', fontWeight: 600, color: 'var(--gray-600)', margin: '0 0 6px', fontFamily: "'DM Sans', sans-serif" }}>{r.pregunta?.pregunta}</p>
+                        <p style={{ fontSize: '13px', color: 'var(--gray-900)', margin: 0, fontFamily: "'DM Sans', sans-serif" }}>{r.respuesta || <em style={{ color: 'var(--gray-400)' }}>Sin respuesta</em>}</p>
                       </div>
                     ))}
                   </div>
                 </div>
               )}
-
-              {/* Notas admin */}
               {selectedPost.notasAdmin && (
                 <div>
                   <SectionTitle icon={Tag} text="Notas administrativas" />
                   <div style={{ marginTop: '14px', background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 'var(--radius-md)', padding: '14px 16px' }}>
-                    <p style={{ fontSize: '13px', color: 'var(--gray-800)', margin: 0, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6 }}>
-                      {selectedPost.notasAdmin}
-                    </p>
+                    <p style={{ fontSize: '13px', color: 'var(--gray-800)', margin: 0, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6 }}>{selectedPost.notasAdmin}</p>
                   </div>
                 </div>
               )}
             </div>
-
-            {/* Footer */}
             <div style={{ padding: '14px 24px', background: 'var(--gray-50)', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
               {['admin', 'colaborador'].includes(currentUser.rol) && (
-                <button onClick={() => { handleCloseAll(); setTimeout(() => handleOpenEstado(selectedPost), 50); }}
-                  style={{ padding: '8px 16px', border: '1px solid var(--capyme-blue-mid)', borderRadius: 'var(--radius-md)', background: '#EEF4FF', color: 'var(--capyme-blue-mid)', fontSize: '13px', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", cursor: 'pointer' }}>
+                <button onClick={() => { handleCloseAll(); setTimeout(() => handleOpenEstado(selectedPost), 50); }} style={{ padding: '8px 16px', border: '1px solid var(--capyme-blue-mid)', borderRadius: 'var(--radius-md)', background: '#EEF4FF', color: 'var(--capyme-blue-mid)', fontSize: '13px', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", cursor: 'pointer' }}>
                   Cambiar Estado
                 </button>
               )}
-              <button onClick={handleCloseAll} style={{ padding: '8px 16px', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', background: '#fff', color: 'var(--gray-700)', fontSize: '13px', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", cursor: 'pointer' }}>
-                Cerrar
-              </button>
+              <button onClick={handleCloseAll} style={{ padding: '8px 16px', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', background: '#fff', color: 'var(--gray-700)', fontSize: '13px', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", cursor: 'pointer' }}>Cerrar</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* ════════════════════════════════════════════════════════════
-          MODAL CAMBIAR ESTADO
-      ════════════════════════════════════════════════════════════ */}
+      {/* ════ MODAL CAMBIAR ESTADO ════ */}
       {showEstado && selectedPost && (
-        <div
-          onClick={handleCloseAll}
-          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}
-        >
-          <div
-            className="post-modal"
-            onClick={e => e.stopPropagation()}
-            style={{ background: '#fff', borderRadius: 'var(--radius-xl)', width: '100%', maxWidth: '440px', overflow: 'hidden', boxShadow: '0 24px 64px rgba(0,0,0,0.18)' }}
-          >
-            {/* Header */}
+        <div onClick={handleCloseAll} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
+          <div className="post-modal" onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 'var(--radius-xl)', width: '100%', maxWidth: '440px', overflow: 'hidden', boxShadow: '0 24px 64px rgba(0,0,0,0.18)' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 22px', background: 'var(--gray-50)', borderBottom: '1px solid var(--border)' }}>
-              <h2 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--gray-900)', margin: 0, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-                Cambiar Estado
-              </h2>
+              <h2 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--gray-900)', margin: 0, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Cambiar Estado</h2>
               <button onClick={handleCloseAll} style={{ width: '28px', height: '28px', border: 'none', borderRadius: 'var(--radius-sm)', background: 'transparent', cursor: 'pointer', color: 'var(--gray-400)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <X style={{ width: '15px', height: '15px' }} />
               </button>
             </div>
-
-            {/* Body */}
             <div style={{ padding: '22px' }}>
               <p style={{ fontSize: '13px', color: 'var(--gray-500)', margin: '0 0 18px', fontFamily: "'DM Sans', sans-serif" }}>
                 <strong style={{ color: 'var(--gray-800)' }}>{selectedPost.negocio?.nombreNegocio}</strong> → {selectedPost.programa?.nombre}
               </p>
-
-              {/* Selección visual de estado */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '16px' }}>
                 {Object.entries(ESTADOS_CONFIG).map(([key, cfg]) => {
                   const { Icon } = cfg;
                   const isActive = estadoData.estado === key;
                   return (
-                    <button
-                      key={key}
-                      onClick={() => setEstadoData(prev => ({ ...prev, estado: key }))}
-                      style={{
-                        padding: '10px 12px', border: `2px solid ${isActive ? cfg.color : 'var(--border)'}`,
-                        borderRadius: 'var(--radius-md)', background: isActive ? cfg.bg : '#fff',
-                        color: isActive ? cfg.color : 'var(--gray-600)',
-                        cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '7px',
-                        fontSize: '13px', fontWeight: isActive ? 700 : 500,
-                        fontFamily: "'DM Sans', sans-serif", transition: 'all 150ms ease',
-                      }}
-                    >
+                    <button key={key} onClick={() => setEstadoData(prev => ({ ...prev, estado: key }))} style={{ padding: '10px 12px', border: `2px solid ${isActive ? cfg.color : 'var(--border)'}`, borderRadius: 'var(--radius-md)', background: isActive ? cfg.bg : '#fff', color: isActive ? cfg.color : 'var(--gray-600)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '7px', fontSize: '13px', fontWeight: isActive ? 700 : 500, fontFamily: "'DM Sans', sans-serif", transition: 'all 150ms ease' }}>
                       <Icon style={{ width: '14px', height: '14px', flexShrink: 0 }} />
                       {cfg.label}
                     </button>
                   );
                 })}
               </div>
-
               <div>
                 <label style={labelStyle}>Notas administrativas</label>
-                <textarea
-                  value={estadoData.notasAdmin}
-                  onChange={e => setEstadoData(prev => ({ ...prev, notasAdmin: e.target.value }))}
-                  placeholder="Agrega observaciones sobre esta postulación..."
-                  style={textareaStyle}
-                />
+                <textarea value={estadoData.notasAdmin} onChange={e => setEstadoData(prev => ({ ...prev, notasAdmin: e.target.value }))} placeholder="Agrega observaciones sobre esta postulación..." style={textareaStyle} />
               </div>
             </div>
-
-            {/* Footer */}
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', padding: '14px 22px', background: 'var(--gray-50)', borderTop: '1px solid var(--border)' }}>
-              <button onClick={handleCloseAll} style={{ padding: '8px 16px', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', background: '#fff', color: 'var(--gray-700)', fontSize: '13px', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", cursor: 'pointer' }}>
-                Cancelar
-              </button>
-              <button
-                onClick={handleActualizarEstado}
-                style={{
-                  padding: '8px 18px', border: 'none', borderRadius: 'var(--radius-md)',
-                  background: 'linear-gradient(135deg, var(--capyme-blue-mid), var(--capyme-blue))',
-                  color: '#fff', fontSize: '13px', fontWeight: 600,
-                  fontFamily: "'DM Sans', sans-serif", cursor: 'pointer',
-                }}
-              >
-                Guardar Estado
-              </button>
+              <button onClick={handleCloseAll} style={{ padding: '8px 16px', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', background: '#fff', color: 'var(--gray-700)', fontSize: '13px', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", cursor: 'pointer' }}>Cancelar</button>
+              <button onClick={handleActualizarEstado} style={{ padding: '8px 18px', border: 'none', borderRadius: 'var(--radius-md)', background: 'linear-gradient(135deg, var(--capyme-blue-mid), var(--capyme-blue))', color: '#fff', fontSize: '13px', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", cursor: 'pointer' }}>Guardar Estado</button>
             </div>
           </div>
         </div>
       )}
+
+      {/* ════ MODAL CONFIRMACIÓN ════ */}
+      <ConfirmModal config={confirmConfig} onClose={closeConfirm} />
     </Layout>
   );
 };

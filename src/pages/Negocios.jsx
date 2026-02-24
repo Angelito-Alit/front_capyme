@@ -5,11 +5,10 @@ import api from '../services/axios';
 import {
   Building2, Plus, Search, Edit, X, MapPin, Phone, Mail,
   Users, Calendar, FileText, ChevronDown, AlertCircle,
-  CheckCircle, Trash2, User,
+  CheckCircle, Trash2, User, AlertTriangle,
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
-// ─── Datos estáticos ───────────────────────────────────────────────────────────
 const estadosMexico = [
   'Aguascalientes', 'Baja California', 'Baja California Sur', 'Campeche',
   'Chiapas', 'Chihuahua', 'Ciudad de México', 'Coahuila', 'Colima',
@@ -23,7 +22,7 @@ const estadosMexico = [
 const initialFormData = {
   nombreNegocio: '',
   categoriaId: '',
-  usuarioId: '',       // propietario del negocio
+  usuarioId: '',
   rfc: '',
   razonSocial: '',
   giroComercial: '',
@@ -38,7 +37,83 @@ const initialFormData = {
   descripcion: '',
 };
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+/* ─── Modal de confirmación reutilizable ─────────────────── */
+const ConfirmModal = ({ config, onClose }) => {
+  if (!config?.show) return null;
+  const isDanger  = config.variant === 'danger';
+  const isWarning = config.variant === 'warning';
+
+  const accentBg     = isDanger ? '#FEF2F2' : isWarning ? '#FFFBEB' : '#EEF4FF';
+  const accentBorder = isDanger ? '#FECACA' : isWarning ? '#FDE68A' : 'var(--border)';
+  const iconBg       = isDanger ? '#EF4444' : isWarning ? '#F59E0B' : 'var(--capyme-blue-mid)';
+  const titleColor   = isDanger ? '#B91C1C' : isWarning ? '#92400E' : 'var(--gray-900)';
+  const subtitleColor= isDanger ? '#DC2626' : isWarning ? '#B45309' : 'var(--gray-500)';
+  const btnBg        = isDanger
+    ? 'linear-gradient(135deg,#EF4444,#DC2626)'
+    : isWarning
+      ? 'linear-gradient(135deg,#F59E0B,#D97706)'
+      : 'linear-gradient(135deg,var(--capyme-blue-mid),var(--capyme-blue))';
+  const btnShadow    = isDanger
+    ? '0 2px 8px rgba(239,68,68,0.35)'
+    : isWarning
+      ? '0 2px 8px rgba(245,158,11,0.35)'
+      : '0 2px 8px rgba(31,78,158,0.28)';
+
+  return (
+    <div
+      onClick={onClose}
+      style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.45)', backdropFilter:'blur(4px)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:1200, padding:'20px' }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{ background:'#fff', borderRadius:'var(--radius-lg)', width:'100%', maxWidth:'440px', boxShadow:'0 24px 64px rgba(0,0,0,0.22)', overflow:'hidden', animation:'modalIn 0.22s ease both' }}
+      >
+        <div style={{ background:accentBg, padding:'20px 24px', borderBottom:`1px solid ${accentBorder}`, display:'flex', alignItems:'center', gap:'14px' }}>
+          <div style={{ width:'44px', height:'44px', background:iconBg, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, boxShadow:`0 4px 12px ${iconBg}40` }}>
+            <AlertTriangle style={{ width:'22px', height:'22px', color:'#fff' }} />
+          </div>
+          <div>
+            <h3 style={{ fontSize:'17px', fontWeight:800, color:titleColor, fontFamily:"'Plus Jakarta Sans', sans-serif", margin:'0 0 2px' }}>
+              {config.title}
+            </h3>
+            <p style={{ fontSize:'13px', color:subtitleColor, margin:0, fontFamily:"'DM Sans', sans-serif", fontWeight:500 }}>
+              {config.subtitle || 'Esta acción puede revertirse más adelante'}
+            </p>
+          </div>
+        </div>
+        <div style={{ padding:'20px 24px' }}>
+          {config.message && (
+            <div style={{ background:'var(--gray-50)', border:'1px solid var(--border)', borderRadius:'var(--radius-md)', padding:'14px 16px', marginBottom:'20px' }}>
+              <p style={{ fontSize:'14px', color:'var(--gray-700)', margin:0, fontFamily:"'DM Sans', sans-serif", lineHeight:1.5 }}>
+                {config.message}
+              </p>
+            </div>
+          )}
+          <div style={{ display:'flex', gap:'10px', justifyContent:'flex-end' }}>
+            <button
+              onClick={onClose}
+              style={{ padding:'9px 18px', border:'1px solid var(--border)', borderRadius:'var(--radius-md)', background:'#fff', color:'var(--gray-700)', fontSize:'14px', fontWeight:600, fontFamily:"'DM Sans', sans-serif", cursor:'pointer', transition:'all 150ms ease' }}
+              onMouseEnter={e => e.currentTarget.style.background = 'var(--gray-100)'}
+              onMouseLeave={e => e.currentTarget.style.background = '#fff'}
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={() => { config.onConfirm(); onClose(); }}
+              style={{ padding:'9px 22px', border:'none', borderRadius:'var(--radius-md)', background:btnBg, color:'#fff', fontSize:'14px', fontWeight:600, fontFamily:"'DM Sans', sans-serif", cursor:'pointer', boxShadow:btnShadow, transition:'all 150ms ease' }}
+              onMouseEnter={e => e.currentTarget.style.opacity = '0.9'}
+              onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+            >
+              {config.confirmLabel || 'Confirmar'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* ─── Helpers ──────────────────────────────────────────────────────────────────────── */
 const SectionTitle = ({ icon: Icon, text }) => (
   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', paddingBottom: '4px' }}>
     <Icon style={{ width: '14px', height: '14px', color: 'var(--capyme-blue-mid)' }} />
@@ -53,14 +128,14 @@ const ErrorMsg = ({ text }) => (
   </p>
 );
 
-// ─── Componente principal ──────────────────────────────────────────────────────
+/* ─── Componente principal ──────────────────────────────────────────────────────────── */
 const Negocios = () => {
   const authStorage = JSON.parse(localStorage.getItem('auth-storage') || '{}');
   const currentUser = authStorage?.state?.user || {};
 
   const [negocios, setNegocios] = useState([]);
   const [categorias, setCategorias] = useState([]);
-  const [clientes, setClientes] = useState([]);   // lista de usuarios para filtro y form
+  const [clientes, setClientes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [showModal, setShowModal] = useState(false);
@@ -70,12 +145,16 @@ const Negocios = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategoria, setFilterCategoria] = useState('');
   const [filterActivo, setFilterActivo] = useState('');
-  const [filterCliente, setFilterCliente] = useState('');   // ← nuevo filtro
+  const [filterCliente, setFilterCliente] = useState('');
 
   const [formData, setFormData] = useState(initialFormData);
   const [formErrors, setFormErrors] = useState({});
 
-  // ─── Estilos base ───────────────────────────────────────────────────────────
+  /* ── Modal de confirmación genérico ── */
+  const [confirmConfig, setConfirmConfig] = useState({ show: false });
+  const showConfirm = (cfg) => setConfirmConfig({ show: true, ...cfg });
+  const closeConfirm = () => setConfirmConfig({ show: false });
+
   const inputBaseStyle = {
     width: '100%', padding: '10px 12px',
     border: '1px solid var(--border)', borderRadius: 'var(--radius-md)',
@@ -88,11 +167,9 @@ const Negocios = () => {
   const labelStyle = { display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--gray-600)', marginBottom: '6px', fontFamily: "'DM Sans', sans-serif" };
   const selectStyle = { ...inputBaseStyle, appearance: 'none', paddingRight: '36px', cursor: 'pointer' };
 
-  // Focus helpers
   const onFocus = (e) => { e.target.style.borderColor = 'var(--capyme-blue-mid)'; e.target.style.boxShadow = '0 0 0 3px rgba(43,91,166,0.12)'; };
   const onBlur  = (e) => { e.target.style.borderColor = 'var(--border)'; e.target.style.boxShadow = 'none'; };
 
-  // ─── Carga ──────────────────────────────────────────────────────────────────
   useEffect(() => { cargarDatos(); }, [filterCategoria, filterActivo, filterCliente]);
 
   const cargarDatos = async () => {
@@ -103,10 +180,7 @@ const Negocios = () => {
       if (filterActivo !== '') params.activo = filterActivo;
       if (filterCliente) params.usuarioId = filterCliente;
 
-      const requests = [
-        negociosService.getAll(params),
-        api.get('/categorias'),
-      ];
+      const requests = [negociosService.getAll(params), api.get('/categorias')];
       if (['admin', 'colaborador'].includes(currentUser.rol)) {
         requests.push(api.get('/usuarios'));
       }
@@ -122,29 +196,20 @@ const Negocios = () => {
     }
   };
 
-  // ─── Validación ─────────────────────────────────────────────────────────────
   const validateForm = () => {
     const errors = {};
     if (!formData.nombreNegocio.trim()) errors.nombreNegocio = 'El nombre es requerido';
     if (!formData.categoriaId) errors.categoriaId = 'La categoría es requerida';
-    // Admin y colaborador deben elegir propietario al crear
     if (['admin', 'colaborador'].includes(currentUser.rol) && !formData.usuarioId) {
       errors.usuarioId = 'Selecciona el propietario del negocio';
     }
-    if (formData.rfc && !/^[A-ZÑ&]{3,4}\d{6}[A-Z\d]{3}$/i.test(formData.rfc)) {
-      errors.rfc = 'RFC no válido';
-    }
-    if (formData.emailNegocio && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.emailNegocio)) {
-      errors.emailNegocio = 'Email no válido';
-    }
-    if (formData.codigoPostal && !/^\d{5}$/.test(formData.codigoPostal)) {
-      errors.codigoPostal = 'Código postal debe ser de 5 dígitos';
-    }
+    if (formData.rfc && !/^[A-ZÑ&]{3,4}\d{6}[A-Z\d]{3}$/i.test(formData.rfc)) errors.rfc = 'RFC no válido';
+    if (formData.emailNegocio && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.emailNegocio)) errors.emailNegocio = 'Email no válido';
+    if (formData.codigoPostal && !/^\d{5}$/.test(formData.codigoPostal)) errors.codigoPostal = 'Código postal debe ser de 5 dígitos';
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
 
-  // ─── Handlers ───────────────────────────────────────────────────────────────
   const handleOpenModal = (mode, negocio = null) => {
     setModalMode(mode);
     setSelectedNegocio(negocio);
@@ -153,7 +218,7 @@ const Negocios = () => {
       setFormData({
         nombreNegocio:    negocio.nombreNegocio    || '',
         categoriaId:      negocio.categoriaId      || '',
-        usuarioId:        negocio.usuarioId        || '',   // propietario actual
+        usuarioId:        negocio.usuarioId        || '',
         rfc:              negocio.rfc              || '',
         razonSocial:      negocio.razonSocial      || '',
         giroComercial:    negocio.giroComercial    || '',
@@ -173,11 +238,7 @@ const Negocios = () => {
     setShowModal(true);
   };
 
-  const handleCloseModal = () => {
-    setShowModal(false);
-    setSelectedNegocio(null);
-    setFormErrors({});
-  };
+  const handleCloseModal = () => { setShowModal(false); setSelectedNegocio(null); setFormErrors({}); };
 
   const handleChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -192,12 +253,11 @@ const Negocios = () => {
       const { activo, ...restFormData } = formData;
       const dataToSend = {
         ...restFormData,
-        categoriaId:    parseInt(formData.categoriaId),
-        usuarioId:      formData.usuarioId ? parseInt(formData.usuarioId) : undefined,
+        categoriaId:     parseInt(formData.categoriaId),
+        usuarioId:       formData.usuarioId ? parseInt(formData.usuarioId) : undefined,
         numeroEmpleados: parseInt(formData.numeroEmpleados) || 0,
-        anioFundacion:  formData.anioFundacion ? parseInt(formData.anioFundacion) : null,
+        anioFundacion:   formData.anioFundacion ? parseInt(formData.anioFundacion) : null,
       };
-
       if (modalMode === 'create') {
         await negociosService.create(dataToSend);
         toast.success('Negocio creado exitosamente');
@@ -214,19 +274,27 @@ const Negocios = () => {
     }
   };
 
-  const handleToggleActivo = async (negocio) => {
-    const accion = negocio.activo ? 'desactivar' : 'activar';
-    if (!window.confirm(`¿Seguro que deseas ${accion} "${negocio.nombreNegocio}"?`)) return;
-    try {
-      await negociosService.toggleActivo(negocio.id);
-      toast.success(`Negocio ${negocio.activo ? 'desactivado' : 'activado'} exitosamente`);
-      cargarDatos();
-    } catch {
-      toast.error('Error al cambiar estado del negocio');
-    }
+  /* ── toggle con modal en lugar de window.confirm ── */
+  const handleToggleActivo = (negocio) => {
+    const desactivar = negocio.activo;
+    showConfirm({
+      variant: desactivar ? 'danger' : 'warning',
+      title: desactivar ? 'Desactivar negocio' : 'Activar negocio',
+      subtitle: desactivar ? 'El negocio dejará de estar visible' : 'El negocio volverá a estar activo',
+      message: `¿Confirmas que deseas ${desactivar ? 'desactivar' : 'activar'} "${negocio.nombreNegocio}"?`,
+      confirmLabel: desactivar ? 'Sí, desactivar' : 'Sí, activar',
+      onConfirm: async () => {
+        try {
+          await negociosService.toggleActivo(negocio.id);
+          toast.success(`Negocio ${negocio.activo ? 'desactivado' : 'activado'} exitosamente`);
+          cargarDatos();
+        } catch {
+          toast.error('Error al cambiar estado del negocio');
+        }
+      },
+    });
   };
 
-  // ─── Filtrado local por texto ────────────────────────────────────────────────
   const negociosFiltrados = negocios.filter(n =>
     n.nombreNegocio?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     n.rfc?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -234,7 +302,6 @@ const Negocios = () => {
     `${n.usuario?.nombre} ${n.usuario?.apellido}`.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // ─── Loading ─────────────────────────────────────────────────────────────────
   if (loading) {
     return (
       <Layout>
@@ -246,10 +313,12 @@ const Negocios = () => {
     );
   }
 
-  // ─── Render ──────────────────────────────────────────────────────────────────
   return (
     <Layout>
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } } @keyframes modalIn { from { opacity:0; transform:scale(0.96) translateY(8px); } to { opacity:1; transform:scale(1) translateY(0); } }`}</style>
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes modalIn { from { opacity:0; transform:scale(0.96) translateY(8px); } to { opacity:1; transform:scale(1) translateY(0); } }
+      `}</style>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
 
@@ -276,19 +345,15 @@ const Negocios = () => {
           )}
         </div>
 
-        {/* ── TABLA + FILTROS ── */}
+        {/* ── TABLA ── */}
         <div style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-sm)', overflow: 'hidden' }}>
 
-          {/* Barra de filtros */}
+          {/* Filtros */}
           <div style={{ padding: '18px 24px', borderBottom: '1px solid var(--border)', display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
-
-            {/* Búsqueda */}
             <div style={{ position: 'relative', flex: '1', minWidth: '200px' }}>
               <Search style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', width: '15px', height: '15px', color: 'var(--gray-400)', pointerEvents: 'none' }} />
               <input type="text" placeholder="Buscar por nombre, RFC, razón social o propietario…" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} style={inputWithIconStyle} onFocus={onFocus} onBlur={onBlur} />
             </div>
-
-            {/* Categoría */}
             <div style={{ position: 'relative', minWidth: '160px' }}>
               <select value={filterCategoria} onChange={e => setFilterCategoria(e.target.value)} style={{ ...selectStyle, width: '100%' }}>
                 <option value="">Todas las categorías</option>
@@ -296,21 +361,15 @@ const Negocios = () => {
               </select>
               <ChevronDown style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', width: '14px', height: '14px', color: 'var(--gray-400)', pointerEvents: 'none' }} />
             </div>
-
-            {/* Filtro por cliente / propietario (solo admin y colaborador) */}
             {['admin', 'colaborador'].includes(currentUser.rol) && (
               <div style={{ position: 'relative', minWidth: '180px' }}>
                 <select value={filterCliente} onChange={e => setFilterCliente(e.target.value)} style={{ ...selectStyle, width: '100%' }}>
                   <option value="">Todos los propietarios</option>
-                  {clientes.map(u => (
-                    <option key={u.id} value={u.id}>{u.nombre} {u.apellido}</option>
-                  ))}
+                  {clientes.map(u => <option key={u.id} value={u.id}>{u.nombre} {u.apellido}</option>)}
                 </select>
                 <ChevronDown style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', width: '14px', height: '14px', color: 'var(--gray-400)', pointerEvents: 'none' }} />
               </div>
             )}
-
-            {/* Activo / inactivo */}
             <div style={{ position: 'relative', minWidth: '140px' }}>
               <select value={filterActivo} onChange={e => setFilterActivo(e.target.value)} style={{ ...selectStyle, width: '100%' }}>
                 <option value="">Activo / Inactivo</option>
@@ -333,13 +392,7 @@ const Negocios = () => {
               </thead>
               <tbody>
                 {negociosFiltrados.length > 0 ? negociosFiltrados.map(negocio => (
-                  <tr
-                    key={negocio.id}
-                    style={{ borderBottom: '1px solid var(--border)', transition: 'background 150ms ease' }}
-                    onMouseEnter={e => e.currentTarget.style.background = 'var(--gray-50)'}
-                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                  >
-                    {/* Negocio */}
+                  <tr key={negocio.id} style={{ borderBottom: '1px solid var(--border)', transition: 'background 150ms ease' }} onMouseEnter={e => e.currentTarget.style.background = 'var(--gray-50)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                     <td style={{ padding: '13px 20px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                         <div style={{ width: '36px', height: '36px', borderRadius: 'var(--radius-md)', background: 'linear-gradient(135deg, var(--capyme-blue-mid), var(--capyme-blue))', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '14px', fontWeight: 700, fontFamily: "'Plus Jakarta Sans', sans-serif", flexShrink: 0 }}>
@@ -356,73 +409,42 @@ const Negocios = () => {
                         </div>
                       </div>
                     </td>
-
-                    {/* RFC */}
                     <td style={{ padding: '13px 20px' }}>
                       <span style={{ fontSize: '12px', color: negocio.rfc ? 'var(--gray-700)' : 'var(--gray-300)', fontFamily: negocio.rfc ? "'JetBrains Mono', monospace" : "'DM Sans', sans-serif", fontStyle: negocio.rfc ? 'normal' : 'italic' }}>
                         {negocio.rfc || 'Sin RFC'}
                       </span>
                     </td>
-
-                    {/* Categoría */}
                     <td style={{ padding: '13px 20px' }}>
                       <span style={{ display: 'inline-block', padding: '3px 10px', background: 'var(--capyme-blue-pale)', color: 'var(--capyme-blue-mid)', borderRadius: 'var(--radius-sm)', fontSize: '11px', fontWeight: 700, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
                         {negocio.categoria?.nombre || 'Sin categoría'}
                       </span>
                     </td>
-
-                    {/* Propietario ← columna principal actualizada */}
                     <td style={{ padding: '13px 20px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: '#EEF4FF', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                           <User style={{ width: '13px', height: '13px', color: 'var(--capyme-blue-mid)' }} />
                         </div>
                         <div>
-                          <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--gray-800)', margin: 0, fontFamily: "'DM Sans', sans-serif" }}>
-                            {negocio.usuario?.nombre} {negocio.usuario?.apellido}
-                          </p>
-                          <p style={{ fontSize: '11px', color: 'var(--gray-400)', margin: 0, fontFamily: "'DM Sans', sans-serif" }}>
-                            {negocio.usuario?.email}
-                          </p>
+                          <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--gray-800)', margin: 0, fontFamily: "'DM Sans', sans-serif" }}>{negocio.usuario?.nombre} {negocio.usuario?.apellido}</p>
+                          <p style={{ fontSize: '11px', color: 'var(--gray-400)', margin: 0, fontFamily: "'DM Sans', sans-serif" }}>{negocio.usuario?.email}</p>
                         </div>
                       </div>
                     </td>
-
-                    {/* Estado activo */}
                     <td style={{ padding: '13px 20px', textAlign: 'center' }}>
                       <span style={{ display: 'inline-block', padding: '3px 10px', background: negocio.activo ? '#ECFDF5' : '#FEF2F2', color: negocio.activo ? '#065F46' : '#DC2626', borderRadius: '99px', fontSize: '11px', fontWeight: 700, fontFamily: "'Plus Jakarta Sans', sans-serif", textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                         {negocio.activo ? 'Activo' : 'Inactivo'}
                       </span>
                     </td>
-
-                    {/* Acciones */}
                     <td style={{ padding: '13px 20px', textAlign: 'right' }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '4px' }}>
-                        {/* Editar (admin y colaborador) */}
                         {['admin', 'colaborador'].includes(currentUser.rol) && (
-                          <button
-                            onClick={() => handleOpenModal('edit', negocio)}
-                            title="Editar"
-                            style={{ width: '34px', height: '34px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', borderRadius: 'var(--radius-sm)', background: 'transparent', cursor: 'pointer', color: 'var(--gray-400)', transition: 'all 150ms ease' }}
-                            onMouseEnter={e => { e.currentTarget.style.background = '#EEF4FF'; e.currentTarget.style.color = 'var(--capyme-blue-mid)'; }}
-                            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gray-400)'; }}
-                          >
+                          <button onClick={() => handleOpenModal('edit', negocio)} title="Editar" style={{ width: '34px', height: '34px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', borderRadius: 'var(--radius-sm)', background: 'transparent', cursor: 'pointer', color: 'var(--gray-400)', transition: 'all 150ms ease' }} onMouseEnter={e => { e.currentTarget.style.background = '#EEF4FF'; e.currentTarget.style.color = 'var(--capyme-blue-mid)'; }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gray-400)'; }}>
                             <Edit style={{ width: '15px', height: '15px' }} />
                           </button>
                         )}
-                        {/* Toggle activo (solo admin) */}
                         {currentUser.rol === 'admin' && (
-                          <button
-                            onClick={() => handleToggleActivo(negocio)}
-                            title={negocio.activo ? 'Desactivar' : 'Activar'}
-                            style={{ width: '34px', height: '34px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', borderRadius: 'var(--radius-sm)', background: 'transparent', cursor: 'pointer', color: 'var(--gray-400)', transition: 'all 150ms ease' }}
-                            onMouseEnter={e => { e.currentTarget.style.background = negocio.activo ? '#FEF2F2' : '#ECFDF5'; e.currentTarget.style.color = negocio.activo ? '#DC2626' : '#065F46'; }}
-                            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gray-400)'; }}
-                          >
-                            {negocio.activo
-                              ? <Trash2 style={{ width: '15px', height: '15px' }} />
-                              : <CheckCircle style={{ width: '15px', height: '15px' }} />
-                            }
+                          <button onClick={() => handleToggleActivo(negocio)} title={negocio.activo ? 'Desactivar' : 'Activar'} style={{ width: '34px', height: '34px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', borderRadius: 'var(--radius-sm)', background: 'transparent', cursor: 'pointer', color: 'var(--gray-400)', transition: 'all 150ms ease' }} onMouseEnter={e => { e.currentTarget.style.background = negocio.activo ? '#FEF2F2' : '#ECFDF5'; e.currentTarget.style.color = negocio.activo ? '#DC2626' : '#065F46'; }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gray-400)'; }}>
+                            {negocio.activo ? <Trash2 style={{ width: '15px', height: '15px' }} /> : <CheckCircle style={{ width: '15px', height: '15px' }} />}
                           </button>
                         )}
                       </div>
@@ -443,18 +465,10 @@ const Negocios = () => {
         </div>
       </div>
 
-      {/* ════════════════════════════════════════════════════════════
-          MODAL CREAR / EDITAR
-      ════════════════════════════════════════════════════════════ */}
+      {/* ═══ MODAL CREAR / EDITAR ═══ */}
       {showModal && (
-        <div
-          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: '16px' }}
-          onClick={handleCloseModal}
-        >
-          <div
-            style={{ background: '#fff', borderRadius: 'var(--radius-lg)', maxWidth: '720px', width: '100%', maxHeight: '90vh', display: 'flex', flexDirection: 'column', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', overflow: 'hidden', animation: 'modalIn 0.25s ease both' }}
-            onClick={e => e.stopPropagation()}
-          >
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: '16px' }} onClick={handleCloseModal}>
+          <div style={{ background: '#fff', borderRadius: 'var(--radius-lg)', maxWidth: '720px', width: '100%', maxHeight: '90vh', display: 'flex', flexDirection: 'column', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', overflow: 'hidden', animation: 'modalIn 0.25s ease both' }} onClick={e => e.stopPropagation()}>
             {/* Header */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 24px', borderBottom: '1px solid var(--border)', background: 'var(--gray-50)' }}>
               <div>
@@ -465,9 +479,7 @@ const Negocios = () => {
                   {modalMode === 'create' ? 'Registra un nuevo negocio vinculado a un propietario' : `Editando: ${selectedNegocio?.nombreNegocio}`}
                 </p>
               </div>
-              <button onClick={handleCloseModal} style={{ width: '34px', height: '34px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', borderRadius: 'var(--radius-sm)', background: 'transparent', cursor: 'pointer', color: 'var(--gray-400)' }}
-                onMouseEnter={e => { e.currentTarget.style.background = 'var(--gray-100)'; }}
-                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}>
+              <button onClick={handleCloseModal} style={{ width: '34px', height: '34px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', borderRadius: 'var(--radius-sm)', background: 'transparent', cursor: 'pointer', color: 'var(--gray-400)' }} onMouseEnter={e => e.currentTarget.style.background = 'var(--gray-100)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                 <X style={{ width: '18px', height: '18px' }} />
               </button>
             </div>
@@ -476,46 +488,24 @@ const Negocios = () => {
             <div style={{ overflowY: 'auto', flex: 1, padding: '24px' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '22px' }}>
 
-                {/* ── SECCIÓN: Propietario (solo admin/colaborador) ── */}
                 {['admin', 'colaborador'].includes(currentUser.rol) && (
                   <div>
                     <SectionTitle icon={User} text="Propietario del negocio" />
                     <div style={{ marginTop: '14px' }}>
-                      <label style={labelStyle}>
-                        Cliente propietario <span style={{ color: '#EF4444' }}>*</span>
-                      </label>
+                      <label style={labelStyle}>Cliente propietario <span style={{ color: '#EF4444' }}>*</span></label>
                       <div style={{ position: 'relative' }}>
-                        <select
-                          value={formData.usuarioId}
-                          onChange={e => handleChange('usuarioId', e.target.value)}
-                          // En edición solo admin puede reasignar
-                          disabled={modalMode === 'edit' && currentUser.rol !== 'admin'}
-                          style={{
-                            ...selectStyle,
-                            ...(formErrors.usuarioId ? inputErrorStyle : {}),
-                            opacity: (modalMode === 'edit' && currentUser.rol !== 'admin') ? 0.6 : 1,
-                          }}
-                        >
+                        <select value={formData.usuarioId} onChange={e => handleChange('usuarioId', e.target.value)} disabled={modalMode === 'edit' && currentUser.rol !== 'admin'} style={{ ...selectStyle, ...(formErrors.usuarioId ? inputErrorStyle : {}), opacity: (modalMode === 'edit' && currentUser.rol !== 'admin') ? 0.6 : 1 }}>
                           <option value="">Selecciona el propietario</option>
-                          {clientes.map(u => (
-                            <option key={u.id} value={u.id}>
-                              {u.nombre} {u.apellido} — {u.email} ({u.rol})
-                            </option>
-                          ))}
+                          {clientes.map(u => <option key={u.id} value={u.id}>{u.nombre} {u.apellido} — {u.email} ({u.rol})</option>)}
                         </select>
                         <ChevronDown style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', width: '14px', height: '14px', color: 'var(--gray-400)', pointerEvents: 'none' }} />
                       </div>
                       {formErrors.usuarioId && <ErrorMsg text={formErrors.usuarioId} />}
-                      {modalMode === 'edit' && currentUser.rol !== 'admin' && (
-                        <p style={{ fontSize: '11px', color: 'var(--gray-400)', marginTop: '4px', fontFamily: "'DM Sans', sans-serif" }}>
-                          Solo el admin puede reasignar el propietario.
-                        </p>
-                      )}
+                      {modalMode === 'edit' && currentUser.rol !== 'admin' && <p style={{ fontSize: '11px', color: 'var(--gray-400)', marginTop: '4px', fontFamily: "'DM Sans', sans-serif" }}>Solo el admin puede reasignar el propietario.</p>}
                     </div>
                   </div>
                 )}
 
-                {/* ── SECCIÓN: Información general ── */}
                 <div>
                   <SectionTitle icon={Building2} text="Información General" />
                   <div style={{ marginTop: '14px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
@@ -527,7 +517,6 @@ const Negocios = () => {
                       </div>
                       {formErrors.nombreNegocio && <ErrorMsg text={formErrors.nombreNegocio} />}
                     </div>
-
                     <div>
                       <label style={labelStyle}>Categoría <span style={{ color: '#EF4444' }}>*</span></label>
                       <div style={{ position: 'relative' }}>
@@ -539,18 +528,15 @@ const Negocios = () => {
                       </div>
                       {formErrors.categoriaId && <ErrorMsg text={formErrors.categoriaId} />}
                     </div>
-
                     <div>
                       <label style={labelStyle}>RFC</label>
                       <input type="text" value={formData.rfc} onChange={e => handleChange('rfc', e.target.value.toUpperCase())} placeholder="XAXX010101000" maxLength={13} style={{ ...inputBaseStyle, ...(formErrors.rfc ? inputErrorStyle : {}) }} onFocus={onFocus} onBlur={onBlur} />
                       {formErrors.rfc && <ErrorMsg text={formErrors.rfc} />}
                     </div>
-
                     <div>
                       <label style={labelStyle}>Razón Social</label>
                       <input type="text" value={formData.razonSocial} onChange={e => handleChange('razonSocial', e.target.value)} placeholder="Razón social del negocio" style={inputBaseStyle} onFocus={onFocus} onBlur={onBlur} />
                     </div>
-
                     <div>
                       <label style={labelStyle}>Giro Comercial</label>
                       <input type="text" value={formData.giroComercial} onChange={e => handleChange('giroComercial', e.target.value)} placeholder="Ej: Comercio, Servicios…" style={inputBaseStyle} onFocus={onFocus} onBlur={onBlur} />
@@ -558,7 +544,6 @@ const Negocios = () => {
                   </div>
                 </div>
 
-                {/* ── SECCIÓN: Ubicación ── */}
                 <div>
                   <SectionTitle icon={MapPin} text="Ubicación" />
                   <div style={{ marginTop: '14px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
@@ -591,7 +576,6 @@ const Negocios = () => {
                   </div>
                 </div>
 
-                {/* ── SECCIÓN: Contacto ── */}
                 <div>
                   <SectionTitle icon={Phone} text="Contacto" />
                   <div style={{ marginTop: '14px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
@@ -613,7 +597,6 @@ const Negocios = () => {
                   </div>
                 </div>
 
-                {/* ── SECCIÓN: Detalles ── */}
                 <div>
                   <SectionTitle icon={FileText} text="Detalles" />
                   <div style={{ marginTop: '14px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
@@ -637,7 +620,6 @@ const Negocios = () => {
                     </div>
                   </div>
                 </div>
-
               </div>
             </div>
 
@@ -646,9 +628,7 @@ const Negocios = () => {
               <button type="button" onClick={handleCloseModal} disabled={submitting} style={{ padding: '10px 20px', fontSize: '14px', fontWeight: 600, fontFamily: "'Plus Jakarta Sans', sans-serif", color: 'var(--gray-600)', background: '#fff', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', cursor: submitting ? 'not-allowed' : 'pointer', opacity: submitting ? 0.5 : 1, transition: 'all 150ms ease' }}>
                 Cancelar
               </button>
-              <button type="button" onClick={handleSubmit} disabled={submitting} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 24px', fontSize: '14px', fontWeight: 600, fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#fff', background: 'linear-gradient(135deg, var(--capyme-blue-mid), var(--capyme-blue))', border: 'none', borderRadius: 'var(--radius-md)', cursor: submitting ? 'not-allowed' : 'pointer', opacity: submitting ? 0.7 : 1, boxShadow: '0 2px 8px rgba(31,78,158,0.28)', transition: 'all 200ms ease' }}
-                onMouseEnter={e => { if (!submitting) e.currentTarget.style.transform = 'translateY(-1px)'; }}
-                onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}>
+              <button type="button" onClick={handleSubmit} disabled={submitting} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 24px', fontSize: '14px', fontWeight: 600, fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#fff', background: 'linear-gradient(135deg, var(--capyme-blue-mid), var(--capyme-blue))', border: 'none', borderRadius: 'var(--radius-md)', cursor: submitting ? 'not-allowed' : 'pointer', opacity: submitting ? 0.7 : 1, boxShadow: '0 2px 8px rgba(31,78,158,0.28)', transition: 'all 200ms ease' }} onMouseEnter={e => { if (!submitting) e.currentTarget.style.transform = 'translateY(-1px)'; }} onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}>
                 {submitting && <div style={{ width: '14px', height: '14px', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 700ms linear infinite' }} />}
                 {modalMode === 'create' ? 'Crear Negocio' : 'Guardar Cambios'}
               </button>
@@ -656,6 +636,9 @@ const Negocios = () => {
           </div>
         </div>
       )}
+
+      {/* ═══ MODAL CONFIRM GENÉRICO ═══ */}
+      <ConfirmModal config={confirmConfig} onClose={closeConfirm} />
     </Layout>
   );
 };

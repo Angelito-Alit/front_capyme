@@ -16,6 +16,7 @@ import {
   Tag,
   Link,
   ChevronDown,
+  AlertTriangle,
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
@@ -27,6 +28,97 @@ const initialFormData = {
   linkExterno: '',
   fechaExpiracion: '',
 };
+
+/* ─── Modal de confirmación reutilizable ─────────────────── */
+const ConfirmModal = ({ config, onClose }) => {
+  if (!config?.show) return null;
+  const isDanger  = config.variant === 'danger';
+  const isWarning = config.variant === 'warning';
+
+  const accentBg     = isDanger ? '#FEF2F2' : isWarning ? '#FFFBEB' : '#EEF4FF';
+  const accentBorder = isDanger ? '#FECACA' : isWarning ? '#FDE68A' : 'var(--border)';
+  const iconBg       = isDanger ? '#EF4444' : isWarning ? '#F59E0B' : 'var(--capyme-blue-mid)';
+  const titleColor   = isDanger ? '#B91C1C' : isWarning ? '#92400E' : 'var(--gray-900)';
+  const subtitleColor= isDanger ? '#DC2626' : isWarning ? '#B45309' : 'var(--gray-500)';
+  const btnBg        = isDanger
+    ? 'linear-gradient(135deg,#EF4444,#DC2626)'
+    : isWarning
+      ? 'linear-gradient(135deg,#F59E0B,#D97706)'
+      : 'linear-gradient(135deg,var(--capyme-blue-mid),var(--capyme-blue))';
+  const btnShadow    = isDanger
+    ? '0 2px 8px rgba(239,68,68,0.35)'
+    : isWarning
+      ? '0 2px 8px rgba(245,158,11,0.35)'
+      : '0 2px 8px rgba(31,78,158,0.28)';
+
+  return (
+    <div
+      onClick={onClose}
+      style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.45)', backdropFilter:'blur(4px)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:1200, padding:'20px' }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{ background:'#fff', borderRadius:'var(--radius-lg)', width:'100%', maxWidth:'440px', boxShadow:'0 24px 64px rgba(0,0,0,0.22)', overflow:'hidden', animation:'modalIn 0.22s ease both' }}
+      >
+        <div style={{ background:accentBg, padding:'20px 24px', borderBottom:`1px solid ${accentBorder}`, display:'flex', alignItems:'center', gap:'14px' }}>
+          <div style={{ width:'44px', height:'44px', background:iconBg, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, boxShadow:`0 4px 12px ${iconBg}40` }}>
+            <AlertTriangle style={{ width:'22px', height:'22px', color:'#fff' }} />
+          </div>
+          <div>
+            <h3 style={{ fontSize:'17px', fontWeight:800, color:titleColor, fontFamily:"'Plus Jakarta Sans', sans-serif", margin:'0 0 2px' }}>
+              {config.title}
+            </h3>
+            <p style={{ fontSize:'13px', color:subtitleColor, margin:0, fontFamily:"'DM Sans', sans-serif", fontWeight:500 }}>
+              {config.subtitle || 'Esta acción puede revertirse más adelante'}
+            </p>
+          </div>
+        </div>
+        <div style={{ padding:'20px 24px' }}>
+          {config.message && (
+            <div style={{ background:'var(--gray-50)', border:'1px solid var(--border)', borderRadius:'var(--radius-md)', padding:'14px 16px', marginBottom:'20px' }}>
+              <p style={{ fontSize:'14px', color:'var(--gray-700)', margin:0, fontFamily:"'DM Sans', sans-serif", lineHeight:1.5 }}>
+                {config.message}
+              </p>
+            </div>
+          )}
+          <div style={{ display:'flex', gap:'10px', justifyContent:'flex-end' }}>
+            <button
+              onClick={onClose}
+              style={{ padding:'9px 18px', border:'1px solid var(--border)', borderRadius:'var(--radius-md)', background:'#fff', color:'var(--gray-700)', fontSize:'14px', fontWeight:600, fontFamily:"'DM Sans', sans-serif", cursor:'pointer', transition:'all 150ms ease' }}
+              onMouseEnter={e => e.currentTarget.style.background = 'var(--gray-100)'}
+              onMouseLeave={e => e.currentTarget.style.background = '#fff'}
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={() => { config.onConfirm(); onClose(); }}
+              style={{ padding:'9px 22px', border:'none', borderRadius:'var(--radius-md)', background:btnBg, color:'#fff', fontSize:'14px', fontWeight:600, fontFamily:"'DM Sans', sans-serif", cursor:'pointer', boxShadow:btnShadow, transition:'all 150ms ease' }}
+              onMouseEnter={e => e.currentTarget.style.opacity = '0.9'}
+              onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+            >
+              {config.confirmLabel || 'Confirmar'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const SectionTitle = ({ icon: Icon, text }) => (
+  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', paddingBottom: '4px', borderBottom: '1px solid var(--gray-100)' }}>
+    <Icon style={{ width: '14px', height: '14px', color: 'var(--gray-400)' }} />
+    <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--gray-400)', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+      {text}
+    </span>
+  </div>
+);
+
+const ErrorMsg = ({ text }) => (
+  <p style={{ marginTop: '4px', fontSize: '12px', color: '#EF4444', display: 'flex', alignItems: 'center', gap: '4px', fontFamily: "'DM Sans', sans-serif" }}>
+    <AlertCircle style={{ width: '12px', height: '12px' }} /> {text}
+  </p>
+);
 
 const Avisos = () => {
   const authStorage = JSON.parse(localStorage.getItem('auth-storage') || '{}');
@@ -46,47 +138,28 @@ const Avisos = () => {
   const [formErrors, setFormErrors] = useState({});
   const [hoveredRow, setHoveredRow] = useState(null);
 
+  /* ── Modal de confirmación ── */
+  const [confirmConfig, setConfirmConfig] = useState({ show: false });
+  const showConfirm = (cfg) => setConfirmConfig({ show: true, ...cfg });
+  const closeConfirm = () => setConfirmConfig({ show: false });
+
   const inputBaseStyle = {
-    width: '100%',
-    padding: '10px 12px',
-    border: '1px solid var(--border)',
-    borderRadius: 'var(--radius-md)',
-    fontSize: '14px',
-    fontFamily: "'DM Sans', sans-serif",
-    color: 'var(--gray-900)',
-    background: '#fff',
-    outline: 'none',
-    transition: 'all 200ms ease',
-    boxSizing: 'border-box',
+    width: '100%', padding: '10px 12px',
+    border: '1px solid var(--border)', borderRadius: 'var(--radius-md)',
+    fontSize: '14px', fontFamily: "'DM Sans', sans-serif",
+    color: 'var(--gray-900)', background: '#fff',
+    outline: 'none', transition: 'all 200ms ease', boxSizing: 'border-box',
   };
   const inputWithIconStyle = { ...inputBaseStyle, paddingLeft: '38px' };
-  const inputErrorStyle = {
-    borderColor: '#EF4444',
-    boxShadow: '0 0 0 2px rgba(239,68,68,0.15)',
-  };
+  const inputErrorStyle = { borderColor: '#EF4444', boxShadow: '0 0 0 2px rgba(239,68,68,0.15)' };
   const labelStyle = {
-    display: 'block',
-    fontSize: '13px',
-    fontWeight: 600,
-    color: 'var(--gray-600)',
-    marginBottom: '6px',
-    fontFamily: "'DM Sans', sans-serif",
+    display: 'block', fontSize: '13px', fontWeight: 600,
+    color: 'var(--gray-600)', marginBottom: '6px', fontFamily: "'DM Sans', sans-serif",
   };
-  const selectStyle = {
-    ...inputBaseStyle,
-    appearance: 'none',
-    paddingRight: '36px',
-    cursor: 'pointer',
-  };
-  const textareaStyle = {
-    ...inputBaseStyle,
-    resize: 'vertical',
-    minHeight: '100px',
-  };
+  const selectStyle = { ...inputBaseStyle, appearance: 'none', paddingRight: '36px', cursor: 'pointer' };
+  const textareaStyle = { ...inputBaseStyle, resize: 'vertical', minHeight: '100px' };
 
-  useEffect(() => {
-    cargarAvisos();
-  }, [filterTipo, filterEstado]);
+  useEffect(() => { cargarAvisos(); }, [filterTipo, filterEstado]);
 
   const cargarAvisos = async () => {
     try {
@@ -130,11 +203,7 @@ const Avisos = () => {
     setShowModal(true);
   };
 
-  const handleCloseModal = () => {
-    setShowModal(false);
-    setSelectedAviso(null);
-    setFormErrors({});
-  };
+  const handleCloseModal = () => { setShowModal(false); setSelectedAviso(null); setFormErrors({}); };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -169,17 +238,27 @@ const Avisos = () => {
     }
   };
 
-  const handleToggleActivo = async (aviso) => {
-    const accion = aviso.activo ? 'desactivar' : 'activar';
-    if (window.confirm(`¿Estás seguro de ${accion} "${aviso.titulo}"?`)) {
-      try {
-        await avisosService.toggleActivo(aviso.id);
-        toast.success(`Aviso ${accion === 'desactivar' ? 'desactivado' : 'activado'} exitosamente`);
-        cargarAvisos();
-      } catch {
-        toast.error('Error al cambiar estado');
-      }
-    }
+  /* ── Toggle con ConfirmModal ── */
+  const handleToggleActivo = (aviso) => {
+    const desactivar = aviso.activo;
+    showConfirm({
+      variant: desactivar ? 'danger' : 'warning',
+      title: desactivar ? 'Desactivar aviso' : 'Activar aviso',
+      subtitle: desactivar
+        ? 'El aviso dejará de ser visible para los usuarios'
+        : 'El aviso volverá a ser visible para los usuarios',
+      message: `¿Confirmas que deseas ${desactivar ? 'desactivar' : 'activar'} el aviso "${aviso.titulo}"?`,
+      confirmLabel: desactivar ? 'Sí, desactivar' : 'Sí, activar',
+      onConfirm: async () => {
+        try {
+          await avisosService.toggleActivo(aviso.id);
+          toast.success(`Aviso ${desactivar ? 'desactivado' : 'activado'} exitosamente`);
+          cargarAvisos();
+        } catch {
+          toast.error('Error al cambiar estado');
+        }
+      },
+    });
   };
 
   const avisosFiltrados = avisos.filter((a) => {
@@ -192,30 +271,26 @@ const Avisos = () => {
 
   const getTipoConfig = (tipo) => {
     const map = {
-      urgente: { bg: '#FEF2F2', color: '#DC2626', label: 'Urgente' },
-      evento: { bg: '#F5F3FF', color: '#7C3AED', label: 'Evento' },
+      urgente:      { bg: '#FEF2F2', color: '#DC2626', label: 'Urgente' },
+      evento:       { bg: '#F5F3FF', color: '#7C3AED', label: 'Evento' },
       recordatorio: { bg: '#FFFBEB', color: '#D97706', label: 'Recordatorio' },
-      informativo: { bg: 'var(--capyme-blue-pale)', color: 'var(--capyme-blue-mid)', label: 'Informativo' },
+      informativo:  { bg: 'var(--capyme-blue-pale)', color: 'var(--capyme-blue-mid)', label: 'Informativo' },
     };
     return map[tipo] || map.informativo;
   };
 
   const getDestinatarioConfig = (destinatario) => {
     const map = {
-      todos: { bg: 'var(--gray-100)', color: 'var(--gray-600)', label: 'Todos' },
-      clientes: { bg: '#F0FDF4', color: '#16A34A', label: 'Clientes' },
-      colaboradores: { bg: 'var(--capyme-blue-pale)', color: 'var(--capyme-blue-mid)', label: 'Colaboradores' },
+      todos:          { bg: 'var(--gray-100)', color: 'var(--gray-600)', label: 'Todos' },
+      clientes:       { bg: '#F0FDF4', color: '#16A34A', label: 'Clientes' },
+      colaboradores:  { bg: 'var(--capyme-blue-pale)', color: 'var(--capyme-blue-mid)', label: 'Colaboradores' },
     };
     return map[destinatario] || map.todos;
   };
 
   const formatDate = (date) => {
     if (!date) return null;
-    return new Date(date).toLocaleDateString('es-MX', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
+    return new Date(date).toLocaleDateString('es-MX', { year: 'numeric', month: 'short', day: 'numeric' });
   };
 
   const getTipoIcon = (tipo) => {
@@ -241,8 +316,8 @@ const Avisos = () => {
   return (
     <Layout>
       <style>{`
-        @keyframes spin { to { transform: rotate(360deg); } }
-        @keyframes modalIn { from { opacity: 0; transform: scale(0.96) translateY(8px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+        @keyframes spin    { to { transform: rotate(360deg); } }
+        @keyframes modalIn { from { opacity:0; transform:scale(0.96) translateY(8px); } to { opacity:1; transform:scale(1) translateY(0); } }
         .aviso-modal { animation: modalIn 0.25s ease both; }
         input[type="date"]::-webkit-calendar-picker-indicator { opacity: 0.5; cursor: pointer; }
       `}</style>
@@ -256,15 +331,12 @@ const Avisos = () => {
               <BellRing style={{ width: '22px', height: '22px', color: '#fff' }} />
             </div>
             <div>
-              <h1 style={{ fontSize: '22px', fontWeight: 800, color: 'var(--gray-900)', fontFamily: "'Plus Jakarta Sans', sans-serif", margin: 0, lineHeight: 1.2 }}>
-                Avisos
-              </h1>
+              <h1 style={{ fontSize: '22px', fontWeight: 800, color: 'var(--gray-900)', fontFamily: "'Plus Jakarta Sans', sans-serif", margin: 0, lineHeight: 1.2 }}>Avisos</h1>
               <p style={{ fontSize: '13px', color: 'var(--gray-500)', margin: '3px 0 0', fontFamily: "'DM Sans', sans-serif" }}>
                 {avisos.length} aviso{avisos.length !== 1 ? 's' : ''} registrado{avisos.length !== 1 ? 's' : ''}
               </p>
             </div>
           </div>
-
           {currentUser.rol !== 'cliente' && (
             <button
               onClick={() => handleOpenModal('create')}
@@ -281,9 +353,9 @@ const Avisos = () => {
         {/* ── STATS ── */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '12px', marginBottom: '20px' }}>
           {[
-            { label: 'Total', value: avisos.length, color: 'var(--capyme-blue-mid)', bg: 'var(--capyme-blue-pale)' },
-            { label: 'Activos', value: avisos.filter((a) => a.activo).length, color: '#16A34A', bg: '#F0FDF4' },
-            { label: 'Inactivos', value: avisos.filter((a) => !a.activo).length, color: '#DC2626', bg: '#FEF2F2' },
+            { label: 'Total',    value: avisos.length,                              color: 'var(--capyme-blue-mid)', bg: 'var(--capyme-blue-pale)' },
+            { label: 'Activos',  value: avisos.filter((a) => a.activo).length,      color: '#16A34A', bg: '#F0FDF4' },
+            { label: 'Inactivos',value: avisos.filter((a) => !a.activo).length,     color: '#DC2626', bg: '#FEF2F2' },
             { label: 'Urgentes', value: avisos.filter((a) => a.tipo === 'urgente').length, color: '#C2410C', bg: '#FFF7ED' },
           ].map((stat) => (
             <div key={stat.label} style={{ background: stat.bg, borderRadius: 'var(--radius-md)', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -299,7 +371,6 @@ const Avisos = () => {
             <Search style={{ position: 'absolute', left: '11px', top: '50%', transform: 'translateY(-50%)', width: '15px', height: '15px', color: 'var(--gray-400)', pointerEvents: 'none' }} />
             <input type="text" placeholder="Buscar aviso…" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} style={inputWithIconStyle} />
           </div>
-
           <div style={{ position: 'relative', minWidth: '150px' }}>
             <select value={filterTipo} onChange={(e) => setFilterTipo(e.target.value)} style={{ ...selectStyle, width: '100%' }}>
               <option value="">Todos los tipos</option>
@@ -310,7 +381,6 @@ const Avisos = () => {
             </select>
             <ChevronDown style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', width: '14px', height: '14px', color: 'var(--gray-400)', pointerEvents: 'none' }} />
           </div>
-
           <div style={{ position: 'relative', minWidth: '160px' }}>
             <select value={filterDestinatario} onChange={(e) => setFilterDestinatario(e.target.value)} style={{ ...selectStyle, width: '100%' }}>
               <option value="">Todos los dest.</option>
@@ -320,7 +390,6 @@ const Avisos = () => {
             </select>
             <ChevronDown style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', width: '14px', height: '14px', color: 'var(--gray-400)', pointerEvents: 'none' }} />
           </div>
-
           <div style={{ position: 'relative', minWidth: '140px' }}>
             <select value={filterEstado} onChange={(e) => setFilterEstado(e.target.value)} style={{ ...selectStyle, width: '100%' }}>
               <option value="">Activo / Inactivo</option>
@@ -381,20 +450,18 @@ const Avisos = () => {
                       </td>
                       <td style={{ padding: '13px 16px' }}>
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '3px 8px', borderRadius: '20px', fontSize: '11px', fontWeight: 700, background: tipoConfig.bg, color: tipoConfig.color, fontFamily: "'Plus Jakarta Sans', sans-serif", textTransform: 'capitalize' }}>
-                          {getTipoIcon(aviso.tipo)}
-                          {tipoConfig.label}
+                          {getTipoIcon(aviso.tipo)}{tipoConfig.label}
                         </span>
                       </td>
                       <td style={{ padding: '13px 16px' }}>
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '3px 8px', borderRadius: '20px', fontSize: '11px', fontWeight: 700, background: destConfig.bg, color: destConfig.color, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-                          <Users style={{ width: '10px', height: '10px' }} />
-                          {destConfig.label}
+                          <Users style={{ width: '10px', height: '10px' }} />{destConfig.label}
                         </span>
                       </td>
                       <td style={{ padding: '13px 16px', fontSize: '12px', color: 'var(--gray-500)', fontFamily: "'DM Sans', sans-serif", whiteSpace: 'nowrap' }}>
                         {formatDate(aviso.fechaPublicacion) || '—'}
                       </td>
-                      <td style={{ padding: '13px 16px', fontSize: '12px', fontFamily: "'DM Sans', sans-serif', whiteSpace: 'nowrap'" }}>
+                      <td style={{ padding: '13px 16px', fontSize: '12px', fontFamily: "'DM Sans', sans-serif", whiteSpace: 'nowrap' }}>
                         {aviso.fechaExpiracion ? (
                           <span style={{ color: new Date(aviso.fechaExpiracion) < new Date() ? '#DC2626' : 'var(--gray-500)' }}>
                             {formatDate(aviso.fechaExpiracion)}
@@ -479,7 +546,7 @@ const Avisos = () => {
         )}
       </div>
 
-      {/* ═══ MODAL ═══ */}
+      {/* ═══ MODAL CREAR / EDITAR ═══ */}
       {showModal && (
         <div
           onClick={handleCloseModal}
@@ -490,7 +557,6 @@ const Avisos = () => {
             onClick={(e) => e.stopPropagation()}
             style={{ background: '#fff', borderRadius: 'var(--radius-lg)', width: '100%', maxWidth: '600px', maxHeight: '92vh', display: 'flex', flexDirection: 'column', boxShadow: '0 24px 64px rgba(0,0,0,0.18)', overflow: 'hidden' }}
           >
-            {/* Header */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 24px', background: 'var(--gray-50)', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <div style={{ width: '36px', height: '36px', background: 'linear-gradient(135deg, var(--capyme-blue-mid), var(--capyme-blue))', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -510,36 +576,19 @@ const Avisos = () => {
               </button>
             </div>
 
-            {/* Body */}
             <div style={{ overflowY: 'auto', flex: 1, padding: '24px' }}>
               <SectionTitle icon={BellRing} text="Información del aviso" />
               <div style={{ marginTop: '14px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-
                 <div>
                   <label style={labelStyle}>Título <span style={{ color: '#EF4444' }}>*</span></label>
-                  <input
-                    name="titulo"
-                    type="text"
-                    value={formData.titulo}
-                    onChange={handleChange}
-                    placeholder="Ej. Convocatoria Fondo PyME 2025"
-                    style={{ ...inputBaseStyle, ...(formErrors.titulo ? inputErrorStyle : {}) }}
-                  />
+                  <input name="titulo" type="text" value={formData.titulo} onChange={handleChange} placeholder="Ej. Convocatoria Fondo PyME 2025" style={{ ...inputBaseStyle, ...(formErrors.titulo ? inputErrorStyle : {}) }} />
                   {formErrors.titulo && <ErrorMsg text={formErrors.titulo} />}
                 </div>
-
                 <div>
                   <label style={labelStyle}>Contenido <span style={{ color: '#EF4444' }}>*</span></label>
-                  <textarea
-                    name="contenido"
-                    value={formData.contenido}
-                    onChange={handleChange}
-                    placeholder="Describe el aviso con detalle..."
-                    style={{ ...textareaStyle, ...(formErrors.contenido ? inputErrorStyle : {}) }}
-                  />
+                  <textarea name="contenido" value={formData.contenido} onChange={handleChange} placeholder="Describe el aviso con detalle..." style={{ ...textareaStyle, ...(formErrors.contenido ? inputErrorStyle : {}) }} />
                   {formErrors.contenido && <ErrorMsg text={formErrors.contenido} />}
                 </div>
-
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
                   <div>
                     <label style={labelStyle}>Tipo</label>
@@ -572,71 +621,33 @@ const Avisos = () => {
                 <div style={{ marginTop: '14px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
                   <div>
                     <label style={labelStyle}>Link Externo</label>
-                    <input
-                      name="linkExterno"
-                      type="url"
-                      value={formData.linkExterno}
-                      onChange={handleChange}
-                      placeholder="https://..."
-                      style={inputBaseStyle}
-                    />
+                    <input name="linkExterno" type="url" value={formData.linkExterno} onChange={handleChange} placeholder="https://..." style={inputBaseStyle} />
                   </div>
                   <div>
                     <label style={labelStyle}>Fecha de Expiración</label>
-                    <input
-                      name="fechaExpiracion"
-                      type="date"
-                      value={formData.fechaExpiracion}
-                      onChange={handleChange}
-                      style={inputBaseStyle}
-                    />
+                    <input name="fechaExpiracion" type="date" value={formData.fechaExpiracion} onChange={handleChange} style={inputBaseStyle} />
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Footer */}
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', padding: '16px 24px', background: 'var(--gray-50)', borderTop: '1px solid var(--border)', flexShrink: 0 }}>
-              <button
-                onClick={handleCloseModal}
-                disabled={submitting}
-                style={{ padding: '9px 18px', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', background: '#fff', color: 'var(--gray-700)', fontSize: '14px', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", cursor: 'pointer', transition: 'all 150ms ease' }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--gray-100)'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = '#fff'; }}
-              >
+              <button onClick={handleCloseModal} disabled={submitting} style={{ padding: '9px 18px', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', background: '#fff', color: 'var(--gray-700)', fontSize: '14px', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", cursor: 'pointer', transition: 'all 150ms ease' }} onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--gray-100)'; }} onMouseLeave={(e) => { e.currentTarget.style.background = '#fff'; }}>
                 Cancelar
               </button>
-              <button
-                onClick={handleSubmit}
-                disabled={submitting}
-                style={{ padding: '9px 22px', border: 'none', borderRadius: 'var(--radius-md)', background: submitting ? 'var(--gray-300)' : 'linear-gradient(135deg, var(--capyme-blue-mid), var(--capyme-blue))', color: '#fff', fontSize: '14px', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", cursor: submitting ? 'not-allowed' : 'pointer', boxShadow: submitting ? 'none' : '0 2px 8px rgba(31,78,158,0.28)', transition: 'all 150ms ease', display: 'flex', alignItems: 'center', gap: '8px' }}
-              >
-                {submitting && (
-                  <span style={{ width: '14px', height: '14px', border: '2px solid rgba(255,255,255,0.4)', borderTopColor: '#fff', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} />
-                )}
+              <button onClick={handleSubmit} disabled={submitting} style={{ padding: '9px 22px', border: 'none', borderRadius: 'var(--radius-md)', background: submitting ? 'var(--gray-300)' : 'linear-gradient(135deg, var(--capyme-blue-mid), var(--capyme-blue))', color: '#fff', fontSize: '14px', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", cursor: submitting ? 'not-allowed' : 'pointer', boxShadow: submitting ? 'none' : '0 2px 8px rgba(31,78,158,0.28)', transition: 'all 150ms ease', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                {submitting && <span style={{ width: '14px', height: '14px', border: '2px solid rgba(255,255,255,0.4)', borderTopColor: '#fff', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} />}
                 {submitting ? 'Guardando…' : modalMode === 'create' ? 'Crear Aviso' : 'Guardar Cambios'}
               </button>
             </div>
           </div>
         </div>
       )}
+
+      {/* ═══ MODAL CONFIRMACIÓN ═══ */}
+      <ConfirmModal config={confirmConfig} onClose={closeConfirm} />
     </Layout>
   );
 };
-
-const SectionTitle = ({ icon: Icon, text }) => (
-  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', paddingBottom: '4px', borderBottom: '1px solid var(--gray-100)' }}>
-    <Icon style={{ width: '14px', height: '14px', color: 'var(--gray-400)' }} />
-    <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--gray-400)', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-      {text}
-    </span>
-  </div>
-);
-
-const ErrorMsg = ({ text }) => (
-  <p style={{ marginTop: '4px', fontSize: '12px', color: '#EF4444', display: 'flex', alignItems: 'center', gap: '4px', fontFamily: "'DM Sans', sans-serif" }}>
-    <AlertCircle style={{ width: '12px', height: '12px' }} /> {text}
-  </p>
-);
 
 export default Avisos;

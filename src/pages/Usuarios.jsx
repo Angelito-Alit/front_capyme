@@ -16,7 +16,8 @@ import {
   Eye,
   EyeOff,
   Shield,
-  User
+  User,
+  AlertTriangle,
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
@@ -29,6 +30,105 @@ const initialFormData = {
   rol: 'cliente',
   activo: true
 };
+
+/* ─── Modal de confirmación reutilizable ─────────────────── */
+const ConfirmModal = ({ config, onClose }) => {
+  if (!config?.show) return null;
+  const isDanger  = config.variant === 'danger';
+  const isWarning = config.variant === 'warning';
+
+  const accentBg     = isDanger ? '#FEF2F2' : isWarning ? '#FFFBEB' : '#EEF4FF';
+  const accentBorder = isDanger ? '#FECACA' : isWarning ? '#FDE68A' : 'var(--border)';
+  const iconBg       = isDanger ? '#EF4444' : isWarning ? '#F59E0B' : 'var(--capyme-blue-mid)';
+  const titleColor   = isDanger ? '#B91C1C' : isWarning ? '#92400E' : 'var(--gray-900)';
+  const subtitleColor= isDanger ? '#DC2626' : isWarning ? '#B45309' : 'var(--gray-500)';
+  const btnBg        = isDanger
+    ? 'linear-gradient(135deg,#EF4444,#DC2626)'
+    : isWarning
+      ? 'linear-gradient(135deg,#F59E0B,#D97706)'
+      : 'linear-gradient(135deg,var(--capyme-blue-mid),var(--capyme-blue))';
+  const btnShadow    = isDanger
+    ? '0 2px 8px rgba(239,68,68,0.35)'
+    : isWarning
+      ? '0 2px 8px rgba(245,158,11,0.35)'
+      : '0 2px 8px rgba(31,78,158,0.28)';
+
+  return (
+    <div
+      onClick={onClose}
+      style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.45)', backdropFilter:'blur(4px)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:1200, padding:'20px' }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{ background:'#fff', borderRadius:'var(--radius-lg)', width:'100%', maxWidth:'440px', boxShadow:'0 24px 64px rgba(0,0,0,0.22)', overflow:'hidden', animation:'modalIn 0.22s ease both' }}
+      >
+        <div style={{ background:accentBg, padding:'20px 24px', borderBottom:`1px solid ${accentBorder}`, display:'flex', alignItems:'center', gap:'14px' }}>
+          <div style={{ width:'44px', height:'44px', background:iconBg, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, boxShadow:`0 4px 12px ${iconBg}40` }}>
+            <AlertTriangle style={{ width:'22px', height:'22px', color:'#fff' }} />
+          </div>
+          <div>
+            <h3 style={{ fontSize:'17px', fontWeight:800, color:titleColor, fontFamily:"'Plus Jakarta Sans', sans-serif", margin:'0 0 2px' }}>
+              {config.title}
+            </h3>
+            <p style={{ fontSize:'13px', color:subtitleColor, margin:0, fontFamily:"'DM Sans', sans-serif", fontWeight:500 }}>
+              {config.subtitle || 'Esta acción puede revertirse más adelante'}
+            </p>
+          </div>
+        </div>
+        <div style={{ padding:'20px 24px' }}>
+          {config.message && (
+            <div style={{ background:'var(--gray-50)', border:'1px solid var(--border)', borderRadius:'var(--radius-md)', padding:'14px 16px', marginBottom:'20px' }}>
+              <p style={{ fontSize:'14px', color:'var(--gray-700)', margin:0, fontFamily:"'DM Sans', sans-serif", lineHeight:1.5 }}>
+                {config.message}
+              </p>
+            </div>
+          )}
+          <div style={{ display:'flex', gap:'10px', justifyContent:'flex-end' }}>
+            <button
+              onClick={onClose}
+              style={{ padding:'9px 18px', border:'1px solid var(--border)', borderRadius:'var(--radius-md)', background:'#fff', color:'var(--gray-700)', fontSize:'14px', fontWeight:600, fontFamily:"'DM Sans', sans-serif", cursor:'pointer', transition:'all 150ms ease' }}
+              onMouseEnter={e => e.currentTarget.style.background = 'var(--gray-100)'}
+              onMouseLeave={e => e.currentTarget.style.background = '#fff'}
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={() => { config.onConfirm(); onClose(); }}
+              style={{ padding:'9px 22px', border:'none', borderRadius:'var(--radius-md)', background:btnBg, color:'#fff', fontSize:'14px', fontWeight:600, fontFamily:"'DM Sans', sans-serif", cursor:'pointer', boxShadow:btnShadow, transition:'all 150ms ease' }}
+              onMouseEnter={e => e.currentTarget.style.opacity = '0.9'}
+              onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+            >
+              {config.confirmLabel || 'Confirmar'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const SectionTitle = ({ icon: Icon, text }) => (
+  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', paddingBottom: '4px' }}>
+    <Icon style={{ width: '14px', height: '14px', color: 'var(--gray-400)' }} />
+    <span style={{
+      fontSize: '11px', fontWeight: 700,
+      color: 'var(--gray-400)',
+      textTransform: 'uppercase',
+      letterSpacing: '0.06em',
+      fontFamily: "'Plus Jakarta Sans', sans-serif",
+    }}>{text}</span>
+  </div>
+);
+
+const ErrorMsg = ({ text }) => (
+  <p style={{
+    marginTop: '4px', fontSize: '12px', color: '#EF4444',
+    display: 'flex', alignItems: 'center', gap: '4px',
+    fontFamily: "'DM Sans', sans-serif",
+  }}>
+    <AlertCircle style={{ width: '12px', height: '12px' }} /> {text}
+  </p>
+);
 
 const Usuarios = () => {
   const authStorage = JSON.parse(localStorage.getItem('auth-storage') || '{}');
@@ -46,6 +146,11 @@ const Usuarios = () => {
   const [formData, setFormData] = useState(initialFormData);
   const [formErrors, setFormErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
+
+  /* ── Modal de confirmación ── */
+  const [confirmConfig, setConfirmConfig] = useState({ show: false });
+  const showConfirm = (cfg) => setConfirmConfig({ show: true, ...cfg });
+  const closeConfirm = () => setConfirmConfig({ show: false });
 
   useEffect(() => {
     cargarUsuarios();
@@ -143,17 +248,27 @@ const Usuarios = () => {
     }
   };
 
-  const handleToggleActivo = async (usuario) => {
-    const accion = usuario.activo ? 'desactivar' : 'activar';
-    if (window.confirm(`¿Estás seguro de ${accion} al usuario "${usuario.nombre} ${usuario.apellido}"?`)) {
-      try {
-        await usuariosService.update(usuario.id, { ...usuario, activo: !usuario.activo });
-        toast.success(`Usuario ${usuario.activo ? 'desactivado' : 'activado'} exitosamente`);
-        cargarUsuarios();
-      } catch (error) {
-        toast.error('Error al cambiar estado del usuario');
-      }
-    }
+  /* ── Toggle con ConfirmModal ── */
+  const handleToggleActivo = (usuario) => {
+    const desactivar = usuario.activo;
+    showConfirm({
+      variant: desactivar ? 'danger' : 'warning',
+      title: desactivar ? 'Desactivar usuario' : 'Activar usuario',
+      subtitle: desactivar
+        ? 'El usuario no podrá acceder al sistema'
+        : 'El usuario recuperará acceso al sistema',
+      message: `¿Confirmas que deseas ${desactivar ? 'desactivar' : 'activar'} a "${usuario.nombre} ${usuario.apellido}"?`,
+      confirmLabel: desactivar ? 'Sí, desactivar' : 'Sí, activar',
+      onConfirm: async () => {
+        try {
+          await usuariosService.update(usuario.id, { ...usuario, activo: !usuario.activo });
+          toast.success(`Usuario ${usuario.activo ? 'desactivado' : 'activado'} exitosamente`);
+          cargarUsuarios();
+        } catch (error) {
+          toast.error('Error al cambiar estado del usuario');
+        }
+      },
+    });
   };
 
   const getRolColor = (rol) => {
@@ -232,6 +347,11 @@ const Usuarios = () => {
 
   return (
     <Layout>
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes modalIn { from { opacity:0; transform:scale(0.96) translateY(8px); } to { opacity:1; transform:scale(1) translateY(0); } }
+      `}</style>
+
       <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
 
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' }}>
@@ -503,6 +623,7 @@ const Usuarios = () => {
         </div>
       </div>
 
+      {/* ════ MODAL CREAR / EDITAR ════ */}
       {showModal && (
         <div
           style={{
@@ -523,6 +644,7 @@ const Usuarios = () => {
               display: 'flex', flexDirection: 'column',
               boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
               overflow: 'hidden',
+              animation: 'modalIn 0.25s ease both',
             }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -675,19 +797,7 @@ const Usuarios = () => {
                         <option value="colaborador">Colaborador</option>
                         <option value="admin">Administrador</option>
                       </select>
-
-                      <ChevronDown
-                        style={{
-                          position: 'absolute',
-                          right: '12px',
-                          top: '50%',
-                          transform: 'translateY(-50%)',
-                          width: '16px',
-                          height: '16px',
-                          color: 'var(--gray-400)',
-                          pointerEvents: 'none'
-                        }}
-                      />
+                      <ChevronDown style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', width: '16px', height: '16px', color: 'var(--gray-400)', pointerEvents: 'none' }} />
                     </div>
                     {currentUser.rol === 'colaborador' && (
                       <p style={{ marginTop: '5px', fontSize: '11px', color: 'var(--gray-400)', fontFamily: "'DM Sans', sans-serif", display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -770,31 +880,11 @@ const Usuarios = () => {
           </div>
         </div>
       )}
+
+      {/* ════ MODAL CONFIRMACIÓN ════ */}
+      <ConfirmModal config={confirmConfig} onClose={closeConfirm} />
     </Layout>
   );
 };
-
-const SectionTitle = ({ icon: Icon, text }) => (
-  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', paddingBottom: '4px' }}>
-    <Icon style={{ width: '14px', height: '14px', color: 'var(--gray-400)' }} />
-    <span style={{
-      fontSize: '11px', fontWeight: 700,
-      color: 'var(--gray-400)',
-      textTransform: 'uppercase',
-      letterSpacing: '0.06em',
-      fontFamily: "'Plus Jakarta Sans', sans-serif",
-    }}>{text}</span>
-  </div>
-);
-
-const ErrorMsg = ({ text }) => (
-  <p style={{
-    marginTop: '4px', fontSize: '12px', color: '#EF4444',
-    display: 'flex', alignItems: 'center', gap: '4px',
-    fontFamily: "'DM Sans', sans-serif",
-  }}>
-    <AlertCircle style={{ width: '12px', height: '12px' }} /> {text}
-  </p>
-);
 
 export default Usuarios;

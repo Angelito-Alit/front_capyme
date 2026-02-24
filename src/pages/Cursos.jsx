@@ -27,10 +27,6 @@ import {
   Banknote,
   AlertTriangle,
   Shield,
-  Fingerprint,
-  FileText,
-  Mail,
-  Phone,
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
@@ -44,6 +40,86 @@ const initialFormData = {
   fechaFin: '',
   cupoMaximo: '',
   costo: '',
+};
+
+/* ─── Modal de confirmación reutilizable ─────────────────── */
+const ConfirmModal = ({ config, onClose }) => {
+  if (!config?.show) return null;
+  const isDanger  = config.variant === 'danger';
+  const isWarning = config.variant === 'warning';
+
+  const accentBg    = isDanger ? '#FEF2F2' : isWarning ? '#FFFBEB' : '#EEF4FF';
+  const accentBorder= isDanger ? '#FECACA' : isWarning ? '#FDE68A' : 'var(--border)';
+  const iconBg      = isDanger ? '#EF4444' : isWarning ? '#F59E0B' : 'var(--capyme-blue-mid)';
+  const titleColor  = isDanger ? '#B91C1C' : isWarning ? '#92400E' : 'var(--gray-900)';
+  const subtitleColor=isDanger ? '#DC2626' : isWarning ? '#B45309' : 'var(--gray-500)';
+  const btnBg       = isDanger
+    ? 'linear-gradient(135deg,#EF4444,#DC2626)'
+    : isWarning
+      ? 'linear-gradient(135deg,#F59E0B,#D97706)'
+      : 'linear-gradient(135deg,var(--capyme-blue-mid),var(--capyme-blue))';
+  const btnShadow   = isDanger
+    ? '0 2px 8px rgba(239,68,68,0.35)'
+    : isWarning
+      ? '0 2px 8px rgba(245,158,11,0.35)'
+      : '0 2px 8px rgba(31,78,158,0.28)';
+
+  return (
+    <div
+      onClick={onClose}
+      style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.45)', backdropFilter:'blur(4px)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:1200, padding:'20px' }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{ background:'#fff', borderRadius:'var(--radius-lg)', width:'100%', maxWidth:'440px', boxShadow:'0 24px 64px rgba(0,0,0,0.22)', overflow:'hidden', animation:'modalIn 0.22s ease both' }}
+      >
+        {/* Header */}
+        <div style={{ background:accentBg, padding:'20px 24px', borderBottom:`1px solid ${accentBorder}`, display:'flex', alignItems:'center', gap:'14px' }}>
+          <div style={{ width:'44px', height:'44px', background:iconBg, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, boxShadow:`0 4px 12px ${iconBg}40` }}>
+            <AlertTriangle style={{ width:'22px', height:'22px', color:'#fff' }} />
+          </div>
+          <div>
+            <h3 style={{ fontSize:'17px', fontWeight:800, color:titleColor, fontFamily:"'Plus Jakarta Sans', sans-serif", margin:'0 0 2px' }}>
+              {config.title}
+            </h3>
+            <p style={{ fontSize:'13px', color:subtitleColor, margin:0, fontFamily:"'DM Sans', sans-serif", fontWeight:500 }}>
+              {config.subtitle || 'Esta acción puede revertirse más adelante'}
+            </p>
+          </div>
+        </div>
+
+        {/* Body */}
+        <div style={{ padding:'20px 24px' }}>
+          {config.message && (
+            <div style={{ background:'var(--gray-50)', border:'1px solid var(--border)', borderRadius:'var(--radius-md)', padding:'14px 16px', marginBottom:'20px' }}>
+              <p style={{ fontSize:'14px', color:'var(--gray-700)', margin:0, fontFamily:"'DM Sans', sans-serif", lineHeight:1.5 }}>
+                {config.message}
+              </p>
+            </div>
+          )}
+
+          <div style={{ display:'flex', gap:'10px', justifyContent:'flex-end' }}>
+            <button
+              onClick={onClose}
+              style={{ padding:'9px 18px', border:'1px solid var(--border)', borderRadius:'var(--radius-md)', background:'#fff', color:'var(--gray-700)', fontSize:'14px', fontWeight:600, fontFamily:"'DM Sans', sans-serif", cursor:'pointer', transition:'all 150ms ease' }}
+              onMouseEnter={e => e.currentTarget.style.background = 'var(--gray-100)'}
+              onMouseLeave={e => e.currentTarget.style.background = '#fff'}
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={() => { config.onConfirm(); onClose(); }}
+              style={{ padding:'9px 22px', border:'none', borderRadius:'var(--radius-md)', background:btnBg, color:'#fff', fontSize:'14px', fontWeight:600, fontFamily:"'DM Sans', sans-serif", cursor:'pointer', boxShadow:btnShadow, transition:'all 150ms ease', display:'flex', alignItems:'center', gap:'8px' }}
+              onMouseEnter={e => e.currentTarget.style.opacity = '0.9'}
+              onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+            >
+              {config.confirmLabel || 'Confirmar'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 };
 
 const Cursos = () => {
@@ -72,6 +148,11 @@ const Cursos = () => {
   const [hoveredRow, setHoveredRow] = useState(null);
   const [formData, setFormData] = useState(initialFormData);
   const [formErrors, setFormErrors] = useState({});
+
+  /* ── Modal de confirmación genérico ── */
+  const [confirmConfig, setConfirmConfig] = useState({ show: false });
+  const showConfirm = (cfg) => setConfirmConfig({ show: true, ...cfg });
+  const closeConfirm = () => setConfirmConfig({ show: false });
 
   const inputBaseStyle = {
     width: '100%', padding: '10px 12px',
@@ -120,7 +201,6 @@ const Cursos = () => {
 
   const handleConfirmarPago = async () => {
     if (!pagoToConfirm) return;
-    
     try {
       setConfirmandoPago(pagoToConfirm.id);
       await cursosService.confirmarPago(pagoToConfirm.id);
@@ -131,8 +211,8 @@ const Cursos = () => {
       setPagoToConfirm(null);
     } catch (error) {
       toast.error(error.response?.data?.message || 'Error al confirmar pago');
-    } finally { 
-      setConfirmandoPago(null); 
+    } finally {
+      setConfirmandoPago(null);
     }
   };
 
@@ -205,14 +285,25 @@ const Cursos = () => {
     } finally { setSubmitting(false); }
   };
 
-  const handleToggleActivo = async (curso) => {
-    const accion = curso.activo ? 'desactivar' : 'activar';
-    if (!window.confirm(`¿Estás seguro de ${accion} "${curso.titulo}"?`)) return;
-    try {
-      await cursosService.toggleActivo(curso.id);
-      toast.success(`Curso ${accion === 'desactivar' ? 'desactivado' : 'activado'} exitosamente`);
-      cargarCursos();
-    } catch { toast.error('Error al cambiar estado'); }
+  /* ── toggle con modal en lugar de window.confirm ── */
+  const handleToggleActivo = (curso) => {
+    const desactivar = curso.activo;
+    showConfirm({
+      variant: desactivar ? 'danger' : 'warning',
+      title: desactivar ? `Desactivar curso` : `Activar curso`,
+      subtitle: desactivar ? 'El curso dejará de estar disponible' : 'El curso estará visible para los usuarios',
+      message: `¿Confirmas que deseas ${desactivar ? 'desactivar' : 'activar'} "${curso.titulo}"?`,
+      confirmLabel: desactivar ? 'Sí, desactivar' : 'Sí, activar',
+      onConfirm: async () => {
+        try {
+          await cursosService.toggleActivo(curso.id);
+          toast.success(`Curso ${desactivar ? 'desactivado' : 'activado'} exitosamente`);
+          cargarCursos();
+        } catch {
+          toast.error('Error al cambiar estado');
+        }
+      },
+    });
   };
 
   const cargarInscritos = async (curso) => {
@@ -257,11 +348,10 @@ const Cursos = () => {
       <style>{`
         @keyframes fadeInUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes modalIn { from { opacity: 0; transform: scale(0.96) translateY(8px); } to { opacity: 1; transform: scale(1) translateY(0); } }
-        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
+        @keyframes spin { to { transform: rotate(360deg); } }
         .curso-card { animation: fadeInUp 0.3s ease both; transition: box-shadow 200ms ease, transform 200ms ease; }
         .curso-card:hover { box-shadow: 0 8px 24px rgba(31,78,158,0.10); transform: translateY(-2px); }
         .curso-modal { animation: modalIn 0.25s ease both; }
-        .confirm-shake { animation: shake 0.3s ease-in-out; }
         input[type="date"]::-webkit-calendar-picker-indicator { opacity: 0.5; cursor: pointer; }
       `}</style>
 
@@ -526,7 +616,7 @@ const Cursos = () => {
         )}
       </div>
 
-      {/* ═══════════════════ MODAL CREAR / EDITAR ═══════════════════ */}
+      {/* ═══ MODAL CREAR / EDITAR ═══ */}
       {showModal && (
         <div onClick={handleCloseModal} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.42)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
           <div className="curso-modal" onClick={(e) => e.stopPropagation()} style={{ background: '#fff', borderRadius: 'var(--radius-lg)', width: '100%', maxWidth: '720px', maxHeight: '92vh', display: 'flex', flexDirection: 'column', boxShadow: '0 24px 64px rgba(0,0,0,0.18)', overflow: 'hidden' }}>
@@ -636,7 +726,7 @@ const Cursos = () => {
         </div>
       )}
 
-      {/* ═══════════════════ MODAL INSCRITOS ═══════════════════ */}
+      {/* ═══ MODAL INSCRITOS ═══ */}
       {showInscritosModal && (
         <div onClick={() => setShowInscritosModal(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.42)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
           <div className="curso-modal" onClick={(e) => e.stopPropagation()} style={{ background: '#fff', borderRadius: 'var(--radius-lg)', width: '100%', maxWidth: '680px', maxHeight: '88vh', display: 'flex', flexDirection: 'column', boxShadow: '0 24px 64px rgba(0,0,0,0.18)', overflow: 'hidden' }}>
@@ -714,11 +804,10 @@ const Cursos = () => {
         </div>
       )}
 
-      {/* ═══════════════════ MODAL PAGOS PENDIENTES (ADMIN) ═══════════════════ */}
+      {/* ═══ MODAL PAGOS PENDIENTES ═══ */}
       {showPagosModal && (
         <div onClick={() => setShowPagosModal(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.42)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
           <div className="curso-modal" onClick={(e) => e.stopPropagation()} style={{ background: '#fff', borderRadius: 'var(--radius-lg)', width: '100%', maxWidth: '780px', maxHeight: '90vh', display: 'flex', flexDirection: 'column', boxShadow: '0 24px 64px rgba(0,0,0,0.18)', overflow: 'hidden' }}>
-
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 24px', background: '#FFF7ED', borderBottom: '1px solid #FED7AA', flexShrink: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <div style={{ width: '36px', height: '36px', background: 'linear-gradient(135deg, #FB923C, #EA580C)', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -764,10 +853,7 @@ const Cursos = () => {
                         <div style={{ padding: '16px 20px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' }}>
                           <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px', flex: 1, minWidth: '260px' }}>
                             <div style={{ width: '40px', height: '40px', background: esSpei ? '#EEF4FF' : '#F0FDF4', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                              {esSpei
-                                ? <Banknote style={{ width: '18px', height: '18px', color: 'var(--capyme-blue-mid)' }} />
-                                : <DollarSign style={{ width: '18px', height: '18px', color: '#16A34A' }} />
-                              }
+                              {esSpei ? <Banknote style={{ width: '18px', height: '18px', color: 'var(--capyme-blue-mid)' }} /> : <DollarSign style={{ width: '18px', height: '18px', color: '#16A34A' }} />}
                             </div>
                             <div style={{ flex: 1 }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap' }}>
@@ -778,45 +864,25 @@ const Cursos = () => {
                                   {esSpei ? 'SPEI' : 'Efectivo'}
                                 </span>
                               </div>
-                              <div style={{ fontSize: '13px', color: 'var(--gray-500)', fontFamily: "'DM Sans', sans-serif", marginBottom: '2px' }}>
-                                {pago.inscripcion.curso.titulo}
-                              </div>
-                              {pago.inscripcion.usuario.email && (
-                                <div style={{ fontSize: '12px', color: 'var(--gray-400)', fontFamily: "'DM Sans', sans-serif" }}>{pago.inscripcion.usuario.email}</div>
-                              )}
-                              {pago.inscripcion.usuario.telefono && (
-                                <div style={{ fontSize: '12px', color: 'var(--gray-400)', fontFamily: "'DM Sans', sans-serif" }}>{pago.inscripcion.usuario.telefono}</div>
-                              )}
+                              <div style={{ fontSize: '13px', color: 'var(--gray-500)', fontFamily: "'DM Sans', sans-serif", marginBottom: '2px' }}>{pago.inscripcion.curso.titulo}</div>
+                              {pago.inscripcion.usuario.email && <div style={{ fontSize: '12px', color: 'var(--gray-400)', fontFamily: "'DM Sans', sans-serif" }}>{pago.inscripcion.usuario.email}</div>}
+                              {pago.inscripcion.usuario.telefono && <div style={{ fontSize: '12px', color: 'var(--gray-400)', fontFamily: "'DM Sans', sans-serif" }}>{pago.inscripcion.usuario.telefono}</div>}
                             </div>
                           </div>
-
                           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px', flexShrink: 0 }}>
-                            <span style={{ fontSize: '20px', fontWeight: 800, color: 'var(--gray-900)', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-                              {formatCurrency(pago.monto)}
-                            </span>
+                            <span style={{ fontSize: '20px', fontWeight: 800, color: 'var(--gray-900)', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{formatCurrency(pago.monto)}</span>
                             <div style={{ textAlign: 'right' }}>
                               <div style={{ fontSize: '10px', color: 'var(--gray-400)', fontFamily: "'DM Sans', sans-serif", fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '2px' }}>Referencia</div>
                               <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--gray-800)', fontFamily: "'JetBrains Mono', monospace", letterSpacing: '0.04em' }}>{pago.referencia}</div>
                             </div>
-                            <div style={{ fontSize: '11px', color: 'var(--gray-400)', fontFamily: "'DM Sans', sans-serif" }}>
-                              Solicitado: {formatDate(pago.fechaCreacion)}
-                            </div>
+                            <div style={{ fontSize: '11px', color: 'var(--gray-400)', fontFamily: "'DM Sans', sans-serif" }}>Solicitado: {formatDate(pago.fechaCreacion)}</div>
                           </div>
                         </div>
-
-                        {pago.notas && (
-                          <div style={{ padding: '10px 20px', background: 'var(--gray-50)', borderTop: '1px solid var(--gray-100)', fontSize: '12px', color: 'var(--gray-500)', fontFamily: "'DM Sans', sans-serif" }}>
-                            Nota: {pago.notas}
-                          </div>
-                        )}
-
                         <div style={{ padding: '12px 20px', background: 'var(--gray-50)', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end' }}>
                           <button
                             onClick={() => openConfirmModal(pago)}
                             disabled={estaConfirmando}
                             style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '9px 20px', border: 'none', borderRadius: 'var(--radius-md)', background: estaConfirmando ? 'var(--gray-300)' : 'linear-gradient(135deg, #16A34A, #15803D)', color: '#fff', fontSize: '13px', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", cursor: estaConfirmando ? 'not-allowed' : 'pointer', boxShadow: estaConfirmando ? 'none' : '0 2px 8px rgba(22,163,74,0.28)', transition: 'all 150ms ease' }}
-                            onMouseEnter={(e) => { if (!estaConfirmando) e.currentTarget.style.opacity = '0.9'; }}
-                            onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }}
                           >
                             {estaConfirmando
                               ? <><span style={{ width: '13px', height: '13px', border: '2px solid rgba(255,255,255,0.4)', borderTopColor: '#fff', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} />Confirmando...</>
@@ -840,50 +906,36 @@ const Cursos = () => {
         </div>
       )}
 
-      {/* ═══════════════════ MODAL CONFIRMACIÓN DE PAGO (MEJORADO) ═══════════════════ */}
+      {/* ═══ MODAL CONFIRMACIÓN DE PAGO ═══ */}
       {showConfirmModal && pagoToConfirm && (
         <div onClick={() => setShowConfirmModal(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.42)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, padding: '20px' }}>
-          <div className="curso-modal confirm-shake" onClick={(e) => e.stopPropagation()} style={{ background: '#fff', borderRadius: 'var(--radius-lg)', width: '100%', maxWidth: '500px', boxShadow: '0 24px 64px rgba(0,0,0,0.25)', overflow: 'hidden' }}>
-            
+          <div className="curso-modal" onClick={(e) => e.stopPropagation()} style={{ background: '#fff', borderRadius: 'var(--radius-lg)', width: '100%', maxWidth: '500px', boxShadow: '0 24px 64px rgba(0,0,0,0.25)', overflow: 'hidden' }}>
             <div style={{ background: '#FEF2F2', padding: '20px 24px', borderBottom: '1px solid #FECACA', display: 'flex', alignItems: 'center', gap: '14px' }}>
               <div style={{ width: '44px', height: '44px', background: '#EF4444', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(239,68,68,0.25)' }}>
                 <AlertTriangle style={{ width: '22px', height: '22px', color: '#fff' }} />
               </div>
               <div>
-                <h3 style={{ fontSize: '18px', fontWeight: 800, color: '#B91C1C', fontFamily: "'Plus Jakarta Sans', sans-serif", margin: '0 0 2px' }}>
-                  Confirmar recepción de pago
-                </h3>
-                <p style={{ fontSize: '13px', color: '#DC2626', margin: 0, fontFamily: "'DM Sans', sans-serif", fontWeight: 500 }}>
-                  Esta acción no se puede deshacer
-                </p>
+                <h3 style={{ fontSize: '18px', fontWeight: 800, color: '#B91C1C', fontFamily: "'Plus Jakarta Sans', sans-serif", margin: '0 0 2px' }}>Confirmar recepción de pago</h3>
+                <p style={{ fontSize: '13px', color: '#DC2626', margin: 0, fontFamily: "'DM Sans', sans-serif", fontWeight: 500 }}>Esta acción no se puede deshacer</p>
               </div>
             </div>
-
             <div style={{ padding: '24px' }}>
               <div style={{ background: '#F9FAFB', borderRadius: 'var(--radius-md)', padding: '16px', marginBottom: '20px', border: '1px solid var(--border)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px', paddingBottom: '12px', borderBottom: '1px dashed var(--border)' }}>
                   <div style={{ width: '40px', height: '40px', background: pagoToConfirm.tipoPago === 'spei' ? '#EEF4FF' : '#F0FDF4', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    {pagoToConfirm.tipoPago === 'spei' 
-                      ? <Banknote style={{ width: '18px', height: '18px', color: 'var(--capyme-blue-mid)' }} />
-                      : <DollarSign style={{ width: '18px', height: '18px', color: '#16A34A' }} />
-                    }
+                    {pagoToConfirm.tipoPago === 'spei' ? <Banknote style={{ width: '18px', height: '18px', color: 'var(--capyme-blue-mid)' }} /> : <DollarSign style={{ width: '18px', height: '18px', color: '#16A34A' }} />}
                   </div>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--gray-900)', fontFamily: "'Plus Jakarta Sans', sans-serif", marginBottom: '2px' }}>
                       {pagoToConfirm.inscripcion.usuario.nombre} {pagoToConfirm.inscripcion.usuario.apellido}
                     </div>
-                    <div style={{ fontSize: '13px', color: 'var(--gray-500)', fontFamily: "'DM Sans', sans-serif" }}>
-                      {pagoToConfirm.inscripcion.curso.titulo}
-                    </div>
+                    <div style={{ fontSize: '13px', color: 'var(--gray-500)', fontFamily: "'DM Sans', sans-serif" }}>{pagoToConfirm.inscripcion.curso.titulo}</div>
                   </div>
                 </div>
-
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '12px' }}>
                   <div>
                     <div style={{ fontSize: '11px', color: 'var(--gray-400)', fontFamily: "'DM Sans', sans-serif", fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '4px' }}>Monto</div>
-                    <div style={{ fontSize: '22px', fontWeight: 800, color: 'var(--gray-900)', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-                      {formatCurrency(pagoToConfirm.monto)}
-                    </div>
+                    <div style={{ fontSize: '22px', fontWeight: 800, color: 'var(--gray-900)', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{formatCurrency(pagoToConfirm.monto)}</div>
                   </div>
                   <div>
                     <div style={{ fontSize: '11px', color: 'var(--gray-400)', fontFamily: "'DM Sans', sans-serif", fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '4px' }}>Tipo de pago</div>
@@ -893,49 +945,26 @@ const Cursos = () => {
                     </div>
                   </div>
                 </div>
-
                 <div style={{ background: '#F3F4F6', borderRadius: 'var(--radius-sm)', padding: '12px', marginBottom: '12px' }}>
                   <div style={{ fontSize: '11px', color: 'var(--gray-400)', fontFamily: "'DM Sans', sans-serif", fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '4px' }}>Referencia</div>
-                  <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--gray-800)', fontFamily: "'JetBrains Mono', monospace", letterSpacing: '0.02em' }}>
-                    {pagoToConfirm.referencia}
-                  </div>
+                  <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--gray-800)', fontFamily: "'JetBrains Mono', monospace", letterSpacing: '0.02em' }}>{pagoToConfirm.referencia}</div>
                 </div>
-
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', background: pagoToConfirm.tipoPago === 'spei' ? '#FFFBEB' : '#F0FDF4', padding: '12px', borderRadius: 'var(--radius-sm)' }}>
                   <Shield style={{ width: '18px', height: '18px', color: pagoToConfirm.tipoPago === 'spei' ? '#B45309' : '#16A34A', flexShrink: 0 }} />
                   <span style={{ fontSize: '12px', color: pagoToConfirm.tipoPago === 'spei' ? '#92400E' : '#065F46', fontFamily: "'DM Sans', sans-serif", lineHeight: 1.4 }}>
-                    {pagoToConfirm.tipoPago === 'spei' 
-                      ? 'Verifica que la transferencia aparezca en tu estado de cuenta bancario antes de confirmar.'
-                      : 'Confirma únicamente si ya recibiste el efectivo físicamente.'
-                    }
+                    {pagoToConfirm.tipoPago === 'spei' ? 'Verifica que la transferencia aparezca en tu estado de cuenta bancario antes de confirmar.' : 'Confirma únicamente si ya recibiste el efectivo físicamente.'}
                   </span>
                 </div>
               </div>
-
               <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-                <button
-                  onClick={() => setShowConfirmModal(false)}
-                  style={{ padding: '10px 18px', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', background: '#fff', color: 'var(--gray-700)', fontSize: '14px', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", cursor: 'pointer', transition: 'all 150ms ease' }}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--gray-100)'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.background = '#fff'; }}
-                >
+                <button onClick={() => setShowConfirmModal(false)} style={{ padding: '10px 18px', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', background: '#fff', color: 'var(--gray-700)', fontSize: '14px', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", cursor: 'pointer', transition: 'all 150ms ease' }} onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--gray-100)'; }} onMouseLeave={(e) => { e.currentTarget.style.background = '#fff'; }}>
                   Cancelar
                 </button>
-                <button
-                  onClick={handleConfirmarPago}
-                  disabled={confirmandoPago === pagoToConfirm.id}
-                  style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 22px', border: 'none', borderRadius: 'var(--radius-md)', background: confirmandoPago === pagoToConfirm.id ? 'var(--gray-300)' : 'linear-gradient(135deg, #16A34A, #15803D)', color: '#fff', fontSize: '14px', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", cursor: confirmandoPago === pagoToConfirm.id ? 'not-allowed' : 'pointer', boxShadow: confirmandoPago === pagoToConfirm.id ? 'none' : '0 2px 8px rgba(22,163,74,0.28)', transition: 'all 150ms ease' }}
-                >
+                <button onClick={handleConfirmarPago} disabled={confirmandoPago === pagoToConfirm.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 22px', border: 'none', borderRadius: 'var(--radius-md)', background: confirmandoPago === pagoToConfirm.id ? 'var(--gray-300)' : 'linear-gradient(135deg, #16A34A, #15803D)', color: '#fff', fontSize: '14px', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", cursor: confirmandoPago === pagoToConfirm.id ? 'not-allowed' : 'pointer', boxShadow: confirmandoPago === pagoToConfirm.id ? 'none' : '0 2px 8px rgba(22,163,74,0.28)', transition: 'all 150ms ease' }}>
                   {confirmandoPago === pagoToConfirm.id ? (
-                    <>
-                      <span style={{ width: '14px', height: '14px', border: '2px solid rgba(255,255,255,0.4)', borderTopColor: '#fff', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} />
-                      Confirmando...
-                    </>
+                    <><span style={{ width: '14px', height: '14px', border: '2px solid rgba(255,255,255,0.4)', borderTopColor: '#fff', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} />Confirmando...</>
                   ) : (
-                    <>
-                      <CheckCircle style={{ width: '16px', height: '16px' }} />
-                      Sí, confirmar pago
-                    </>
+                    <><CheckCircle style={{ width: '16px', height: '16px' }} />Sí, confirmar pago</>
                   )}
                 </button>
               </div>
@@ -943,6 +972,9 @@ const Cursos = () => {
           </div>
         </div>
       )}
+
+      {/* ═══ MODAL CONFIRM GENÉRICO (toggle activo) ═══ */}
+      <ConfirmModal config={confirmConfig} onClose={closeConfirm} />
     </Layout>
   );
 };

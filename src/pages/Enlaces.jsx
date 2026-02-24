@@ -6,7 +6,6 @@ import {
   Plus,
   Search,
   Edit,
-
   X,
   ExternalLink,
   Video,
@@ -17,6 +16,7 @@ import {
   ShoppingBag,
   Eye,
   EyeOff,
+  AlertTriangle,
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
@@ -29,6 +29,88 @@ const initialFormData = {
   visiblePara: 'todos',
   activo: true,
 };
+
+/* ─── Modal de confirmación reutilizable ─────────────────── */
+const ConfirmModal = ({ config, onClose }) => {
+  if (!config?.show) return null;
+  const isDanger  = config.variant === 'danger';
+  const isWarning = config.variant === 'warning';
+
+  const accentBg     = isDanger ? '#FEF2F2' : isWarning ? '#FFFBEB' : '#EEF4FF';
+  const accentBorder = isDanger ? '#FECACA' : isWarning ? '#FDE68A' : 'var(--border)';
+  const iconBg       = isDanger ? '#EF4444' : isWarning ? '#F59E0B' : 'var(--capyme-blue-mid)';
+  const titleColor   = isDanger ? '#B91C1C' : isWarning ? '#92400E' : 'var(--gray-900)';
+  const subtitleColor= isDanger ? '#DC2626' : isWarning ? '#B45309' : 'var(--gray-500)';
+  const btnBg        = isDanger
+    ? 'linear-gradient(135deg,#EF4444,#DC2626)'
+    : isWarning
+      ? 'linear-gradient(135deg,#F59E0B,#D97706)'
+      : 'linear-gradient(135deg,var(--capyme-blue-mid),var(--capyme-blue))';
+  const btnShadow    = isDanger
+    ? '0 2px 8px rgba(239,68,68,0.35)'
+    : isWarning
+      ? '0 2px 8px rgba(245,158,11,0.35)'
+      : '0 2px 8px rgba(31,78,158,0.28)';
+
+  return (
+    <div
+      onClick={onClose}
+      style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.45)', backdropFilter:'blur(4px)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:1200, padding:'20px' }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{ background:'#fff', borderRadius:'var(--radius-lg)', width:'100%', maxWidth:'440px', boxShadow:'0 24px 64px rgba(0,0,0,0.22)', overflow:'hidden', animation:'modalIn 0.22s ease both' }}
+      >
+        <div style={{ background:accentBg, padding:'20px 24px', borderBottom:`1px solid ${accentBorder}`, display:'flex', alignItems:'center', gap:'14px' }}>
+          <div style={{ width:'44px', height:'44px', background:iconBg, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, boxShadow:`0 4px 12px ${iconBg}40` }}>
+            <AlertTriangle style={{ width:'22px', height:'22px', color:'#fff' }} />
+          </div>
+          <div>
+            <h3 style={{ fontSize:'17px', fontWeight:800, color:titleColor, fontFamily:"'Plus Jakarta Sans', sans-serif", margin:'0 0 2px' }}>
+              {config.title}
+            </h3>
+            <p style={{ fontSize:'13px', color:subtitleColor, margin:0, fontFamily:"'DM Sans', sans-serif", fontWeight:500 }}>
+              {config.subtitle || 'Esta acción puede revertirse más adelante'}
+            </p>
+          </div>
+        </div>
+        <div style={{ padding:'20px 24px' }}>
+          {config.message && (
+            <div style={{ background:'var(--gray-50)', border:'1px solid var(--border)', borderRadius:'var(--radius-md)', padding:'14px 16px', marginBottom:'20px' }}>
+              <p style={{ fontSize:'14px', color:'var(--gray-700)', margin:0, fontFamily:"'DM Sans', sans-serif", lineHeight:1.5 }}>
+                {config.message}
+              </p>
+            </div>
+          )}
+          <div style={{ display:'flex', gap:'10px', justifyContent:'flex-end' }}>
+            <button
+              onClick={onClose}
+              style={{ padding:'9px 18px', border:'1px solid var(--border)', borderRadius:'var(--radius-md)', background:'#fff', color:'var(--gray-700)', fontSize:'14px', fontWeight:600, fontFamily:"'DM Sans', sans-serif", cursor:'pointer', transition:'all 150ms ease' }}
+              onMouseEnter={e => e.currentTarget.style.background = 'var(--gray-100)'}
+              onMouseLeave={e => e.currentTarget.style.background = '#fff'}
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={() => { config.onConfirm(); onClose(); }}
+              style={{ padding:'9px 22px', border:'none', borderRadius:'var(--radius-md)', background:btnBg, color:'#fff', fontSize:'14px', fontWeight:600, fontFamily:"'DM Sans', sans-serif", cursor:'pointer', boxShadow:btnShadow, transition:'all 150ms ease' }}
+              onMouseEnter={e => e.currentTarget.style.opacity = '0.9'}
+              onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+            >
+              {config.confirmLabel || 'Confirmar'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const ErrorMsg = ({ text }) => (
+  <p style={{ marginTop: '4px', fontSize: '12px', color: '#EF4444', display: 'flex', alignItems: 'center', gap: '4px', fontFamily: "'DM Sans', sans-serif" }}>
+    <AlertCircle style={{ width: '12px', height: '12px' }} /> {text}
+  </p>
+);
 
 const Enlaces = () => {
   const authStorage = JSON.parse(localStorage.getItem('auth-storage') || '{}');
@@ -46,6 +128,11 @@ const Enlaces = () => {
   const [hoveredCard, setHoveredCard] = useState(null);
   const [formData, setFormData] = useState(initialFormData);
   const [formErrors, setFormErrors] = useState({});
+
+  /* ── Modal de confirmación ── */
+  const [confirmConfig, setConfirmConfig] = useState({ show: false });
+  const showConfirm = (cfg) => setConfirmConfig({ show: true, ...cfg });
+  const closeConfirm = () => setConfirmConfig({ show: false });
 
   const inputBaseStyle = {
     width: '100%', padding: '10px 12px',
@@ -138,14 +225,25 @@ const Enlaces = () => {
     } finally { setSubmitting(false); }
   };
 
-  const handleToggleActivo = async (enlace) => {
-    const accion = enlace.activo ? 'desactivar' : 'activar';
-    if (!window.confirm(`¿Estás seguro de ${accion} "${enlace.titulo}"?`)) return;
-    try {
-      await enlacesService.toggleActivo(enlace.id);
-      toast.success(`Catálogo ${accion === 'desactivar' ? 'desactivado' : 'activado'} exitosamente`);
-      cargarEnlaces();
-    } catch { toast.error('Error al cambiar estado del catálogo'); }
+  /* ── Toggle con ConfirmModal ── */
+  const handleToggleActivo = (enlace) => {
+    const desactivar = enlace.activo;
+    showConfirm({
+      variant: desactivar ? 'danger' : 'warning',
+      title: desactivar ? 'Desactivar catálogo' : 'Activar catálogo',
+      subtitle: desactivar
+        ? 'El catálogo dejará de ser visible para los usuarios'
+        : 'El catálogo volverá a estar disponible',
+      message: `¿Confirmas que deseas ${desactivar ? 'desactivar' : 'activar'} "${enlace.titulo}"?`,
+      confirmLabel: desactivar ? 'Sí, desactivar' : 'Sí, activar',
+      onConfirm: async () => {
+        try {
+          await enlacesService.toggleActivo(enlace.id);
+          toast.success(`Catálogo ${desactivar ? 'desactivado' : 'activado'} exitosamente`);
+          cargarEnlaces();
+        } catch { toast.error('Error al cambiar estado del catálogo'); }
+      },
+    });
   };
 
   const enlacesFiltrados = enlaces.filter((e) =>
@@ -155,19 +253,19 @@ const Enlaces = () => {
   );
 
   const getTipoStyle = (tipo) => ({
-    video: { bg: '#FEF2F2', color: '#DC2626', icon: Video },
+    video:          { bg: '#FEF2F2', color: '#DC2626', icon: Video },
     financiamiento: { bg: '#F0FDF4', color: '#16A34A', icon: DollarSign },
-    documento: { bg: '#EEF4FF', color: 'var(--capyme-blue-mid)', icon: FileText },
-    otro: { bg: 'var(--gray-100)', color: 'var(--gray-600)', icon: Link2 },
+    documento:      { bg: '#EEF4FF', color: 'var(--capyme-blue-mid)', icon: FileText },
+    otro:           { bg: 'var(--gray-100)', color: 'var(--gray-600)', icon: Link2 },
   }[tipo] || { bg: 'var(--gray-100)', color: 'var(--gray-600)', icon: Link2 });
 
   const getTipoLabel = (tipo) => ({ video: 'Video', financiamiento: 'Financiamiento', documento: 'Documento', otro: 'Otro' }[tipo] || tipo);
 
   const getVisibleStyle = (v) => ({
-    todos: { bg: '#F5F3FF', color: '#7C3AED' },
-    clientes: { bg: '#F0FDF4', color: '#16A34A' },
+    todos:         { bg: '#F5F3FF', color: '#7C3AED' },
+    clientes:      { bg: '#F0FDF4', color: '#16A34A' },
     colaboradores: { bg: '#EEF4FF', color: 'var(--capyme-blue-mid)' },
-    admin: { bg: '#FEF2F2', color: '#DC2626' },
+    admin:         { bg: '#FEF2F2', color: '#DC2626' },
   }[v] || { bg: 'var(--gray-100)', color: 'var(--gray-600)' });
 
   const getVisibleLabel = (v) => ({ todos: 'Todos', clientes: 'Clientes', colaboradores: 'Colaboradores', admin: 'Admin' }[v] || v);
@@ -185,9 +283,9 @@ const Enlaces = () => {
   return (
     <Layout>
       <style>{`
-        @keyframes spin { to { transform: rotate(360deg); } }
-        @keyframes fadeInUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes modalIn { from { opacity: 0; transform: scale(0.96) translateY(8px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+        @keyframes spin     { to { transform: rotate(360deg); } }
+        @keyframes fadeInUp { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+        @keyframes modalIn  { from { opacity:0; transform:scale(0.96) translateY(8px); } to { opacity:1; transform:scale(1) translateY(0); } }
         .enlace-card { animation: fadeInUp 0.3s ease both; transition: box-shadow 200ms ease, transform 200ms ease; }
         .enlace-card:hover { box-shadow: 0 8px 24px rgba(31,78,158,0.10); transform: translateY(-2px); }
         .enlace-modal { animation: modalIn 0.25s ease both; }
@@ -223,10 +321,10 @@ const Enlaces = () => {
         {/* ── STATS ── */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '12px', marginBottom: '20px' }}>
           {[
-            { label: 'Total', value: enlaces.length, color: 'var(--capyme-blue-mid)', bg: 'var(--capyme-blue-pale)' },
-            { label: 'Activos', value: enlaces.filter((e) => e.activo).length, color: '#16A34A', bg: '#F0FDF4' },
-            { label: 'Inactivos', value: enlaces.filter((e) => !e.activo).length, color: '#DC2626', bg: '#FEF2F2' },
-            { label: 'Visibles a todos', value: enlaces.filter((e) => e.visiblePara === 'todos').length, color: '#7C3AED', bg: '#F5F3FF' },
+            { label: 'Total',           value: enlaces.length,                                    color: 'var(--capyme-blue-mid)', bg: 'var(--capyme-blue-pale)' },
+            { label: 'Activos',         value: enlaces.filter((e) => e.activo).length,            color: '#16A34A', bg: '#F0FDF4' },
+            { label: 'Inactivos',       value: enlaces.filter((e) => !e.activo).length,           color: '#DC2626', bg: '#FEF2F2' },
+            { label: 'Visibles a todos',value: enlaces.filter((e) => e.visiblePara === 'todos').length, color: '#7C3AED', bg: '#F5F3FF' },
           ].map((stat) => (
             <div key={stat.label} style={{ background: stat.bg, borderRadius: 'var(--radius-md)', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
               <span style={{ fontSize: '22px', fontWeight: 800, color: stat.color, fontFamily: "'Plus Jakarta Sans', sans-serif", lineHeight: 1 }}>{stat.value}</span>
@@ -286,7 +384,6 @@ const Enlaces = () => {
                 >
                   <div style={{ height: '4px', background: enlace.activo ? 'linear-gradient(90deg, var(--capyme-blue-mid), var(--capyme-blue))' : 'var(--gray-200)' }} />
                   <div style={{ padding: '20px' }}>
-
                     <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', marginBottom: '14px' }}>
                       <div style={{ width: '40px', height: '40px', background: ts.bg, borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                         <TIcon style={{ width: '18px', height: '18px', color: ts.color }} />
@@ -364,7 +461,7 @@ const Enlaces = () => {
         )}
       </div>
 
-      {/* ═══════════════════ MODAL ═══════════════════ */}
+      {/* ═══════════════════ MODAL CREAR / EDITAR ═══════════════════ */}
       {showModal && (
         <div onClick={handleCloseModal} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.42)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
           <div className="enlace-modal" onClick={(e) => e.stopPropagation()} style={{ background: '#fff', borderRadius: 'var(--radius-lg)', width: '100%', maxWidth: '580px', maxHeight: '92vh', display: 'flex', flexDirection: 'column', boxShadow: '0 24px 64px rgba(0,0,0,0.18)', overflow: 'hidden' }}>
@@ -384,7 +481,6 @@ const Enlaces = () => {
             </div>
 
             <div style={{ overflowY: 'auto', flex: 1, padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-
               <div>
                 <label style={labelStyle}>Título <span style={{ color: '#EF4444' }}>*</span></label>
                 <input name="titulo" type="text" value={formData.titulo} onChange={handleChange} placeholder="Ej. Catálogo de productos 2025" style={{ ...inputBaseStyle, ...(formErrors.titulo ? inputErrorStyle : {}) }} />
@@ -449,10 +545,7 @@ const Enlaces = () => {
                     )}
                   </label>
                   {currentUser.rol === 'colaborador' ? (
-                    <div
-                      title="Solo el administrador puede cambiar el estado"
-                      style={{ ...inputBaseStyle, display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--gray-50)', cursor: 'not-allowed', userSelect: 'none', color: 'var(--gray-500)' }}
-                    >
+                    <div title="Solo el administrador puede cambiar el estado" style={{ ...inputBaseStyle, display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--gray-50)', cursor: 'not-allowed', userSelect: 'none', color: 'var(--gray-500)' }}>
                       <span style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
                         <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: formData.activo === true || formData.activo === 'true' ? '#16A34A' : '#DC2626', flexShrink: 0, display: 'inline-block' }} />
                         {formData.activo === true || formData.activo === 'true' ? 'Activo' : 'Inactivo'}
@@ -472,7 +565,6 @@ const Enlaces = () => {
                   )}
                 </div>
               </div>
-
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', padding: '16px 24px', background: 'var(--gray-50)', borderTop: '1px solid var(--border)', flexShrink: 0 }}>
@@ -487,14 +579,11 @@ const Enlaces = () => {
           </div>
         </div>
       )}
+
+      {/* ═══ MODAL CONFIRMACIÓN ═══ */}
+      <ConfirmModal config={confirmConfig} onClose={closeConfirm} />
     </Layout>
   );
 };
-
-const ErrorMsg = ({ text }) => (
-  <p style={{ marginTop: '4px', fontSize: '12px', color: '#EF4444', display: 'flex', alignItems: 'center', gap: '4px', fontFamily: "'DM Sans', sans-serif" }}>
-    <AlertCircle style={{ width: '12px', height: '12px' }} /> {text}
-  </p>
-);
 
 export default Enlaces;
