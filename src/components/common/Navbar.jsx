@@ -7,7 +7,7 @@ import api from '../../services/axios';
 import {
   Bell, User, LogOut, Menu, ChevronDown,
   AlertCircle, Info, Calendar, BellRing,
-  ExternalLink, Activity, CheckCheck, GraduationCap,
+  ExternalLink, Activity, CheckCheck, GraduationCap, Users,
 } from 'lucide-react';
 import LogoCapyme from '../../assets/LogoCapyme.png';
 
@@ -149,8 +149,10 @@ const Navbar = ({ onMenuClick }) => {
 
   const getItemStyle = (tipo, origen) => {
     if (origen === 'notificacion') {
-      if (tipo === 'inscripcion_declinada') return { bg: '#FEF2F2', color: '#DC2626', Icon: GraduationCap };
-      if (tipo === 'pago_confirmado')       return { bg: '#ECFDF5', color: '#16A34A', Icon: GraduationCap };
+      if (tipo === 'inscripcion_declinada')      return { bg: '#FEF2F2', color: '#DC2626', Icon: GraduationCap };
+      if (tipo === 'pago_confirmado')            return { bg: '#ECFDF5', color: '#16A34A', Icon: GraduationCap };
+      if (tipo === 'nueva_inscripcion')          return { bg: '#ECFDF5', color: '#059669', Icon: Users };
+      if (tipo === 'inscripcion_pendiente_pago') return { bg: '#FFFBEB', color: '#D97706', Icon: Users };
       return { bg: '#EEF4FF', color: 'var(--capyme-blue-mid)', Icon: Info };
     }
     if (tipo === 'urgente')      return { bg: '#FEF2F2', color: '#DC2626',             Icon: AlertCircle };
