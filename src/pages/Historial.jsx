@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, Fragment } from 'react';
 import Layout from '../components/common/Layout';
 import api from '../services/axios';
 import {
@@ -329,9 +329,8 @@ const Historial = () => {
                   const isExp = expandido === r.id;
 
                   return (
-                    <>
+                    <Fragment key={r.id}>
                       <tr
-                        key={r.id}
                         className="hist-row"
                         onClick={() => setExpandido(isExp ? null : r.id)}
                         style={{ borderBottom: isExp ? 'none' : '1px solid var(--gray-100)', background: idx % 2 === 0 ? '#fff' : 'var(--gray-50)' }}
@@ -412,7 +411,7 @@ const Historial = () => {
 
                       {/* Fila expandida */}
                       {isExp && (
-                        <tr key={`${r.id}-exp`} style={{ borderBottom: '1px solid var(--gray-100)', background: meta.bg + '60' }}>
+                        <tr style={{ borderBottom: '1px solid var(--gray-100)', background: meta.bg + '60' }}>
                           <td colSpan={7} style={{ padding: '14px 20px 14px 62px' }}>
                             <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap', alignItems: 'flex-start' }}>
                               <div>
@@ -443,7 +442,7 @@ const Historial = () => {
                           </td>
                         </tr>
                       )}
-                    </>
+                    </Fragment>
                   );
                 })}
               </tbody>
