@@ -6,8 +6,7 @@ npx prisma generate
 
 importante por hacer:
 - me quedé en el flujo del pago despues de inscribirme, no lo hace asi que empieza por aqui para ya darle fin a curso ahora si
-- mi perfil no esta responsivo
-- quitar configuracion adebajo de perfil
+
 
 
 otras cosas por hacer
@@ -15,3 +14,245 @@ en pages me falta la incubacion de proyectos (pagina financiamiento) (hacer esto
 ir ahora a carpeta clientes y checa cosas
 un usuario puede inscribirse a muchos cursos diferentes, pero un curso solo puede estar inscrito a usuario totalmente diferentes, no se puede repetir la inscripcion de un usuario a un mismo curso
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+PROMPT PARA NUEVOS MÓDULOS CAPYME
+Eres un experto en React y Node.js. Voy a pedirte que construyas módulos CRUD para un sistema llamado CAPYME. Necesito que sigas exactamente estos patrones de código y estilos que ya usamos en los módulos de Negocios, Usuarios, programas y postulaciones.
+
+STACK TÉCNICO
+
+Frontend: React + Vite, sin Tailwind, estilos 100% inline con style={{}}
+Backend: Node.js + Express + Prisma + MySQL
+Auth: JWT guardado en Zustand, clave auth-storage en localStorage
+HTTP: Axios con interceptor de token en src/services/axios.js
+Notificaciones: react-hot-toast
+Iconos: lucide-react
+Fuentes: Plus Jakarta Sans (títulos/headers), DM Sans (texto), JetBrains Mono (código/RFC)
+
+
+VARIABLES CSS GLOBALES DISPONIBLES
+css--capyme-blue-mid      /* azul principal */
+--capyme-blue          /* azul oscuro */
+--capyme-blue-pale     /* azul muy claro para badges */
+--border               /* color de bordes */
+--radius-sm / --radius-md / --radius-lg
+--gray-50 / --gray-100 / --gray-200 / --gray-300
+--gray-400 / --gray-500 / --gray-600 / --gray-700 / --gray-800 / --gray-900
+--shadow-sm
+
+CÓMO LEER EL USUARIO ACTUAL
+javascriptconst authStorage = JSON.parse(localStorage.getItem('auth-storage') || '{}');
+const currentUser = authStorage?.state?.user || {};
+// currentUser.rol puede ser: 'admin', 'colaborador', 'cliente'
+
+ESTRUCTURA DEL COMPONENTE FRONTEND
+jsxconst MiModulo = () => {
+  // 1. Leer usuario actual (DENTRO del componente, nunca fuera)
+  const authStorage = JSON.parse(localStorage.getItem('auth-storage') || '{}');
+  const currentUser = authStorage?.state?.user || {};
+
+  // 2. Estados
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  const [modalMode, setModalMode] = useState('create'); // 'create' | 'edit'
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [formData, setFormData] = useState(initialFormData);
+  const [formErrors, setFormErrors] = useState({});
+
+  // 3. useEffect → cargar datos
+  // 4. Funciones: cargarDatos, validateForm, handleOpenModal,
+  //              handleCloseModal, handleChange, handleSubmit, handleToggleActivo
+
+  // 5. Estilos inline definidos como constantes DENTRO del componente
+  // 6. if (loading) return <Layout><spinner/></Layout>
+  // 7. return <Layout>...</Layout>
+};
+
+ESTILOS INLINE ESTÁNDAR (definir dentro del componente)
+javascriptconst inputBaseStyle = {
+  width: '100%', padding: '10px 12px',
+  border: '1px solid var(--border)',
+  borderRadius: 'var(--radius-md)',
+  fontSize: '14px', fontFamily: "'DM Sans', sans-serif",
+  color: 'var(--gray-900)', background: '#fff',
+  outline: 'none', transition: 'all 200ms ease',
+};
+const inputWithIconStyle = { ...inputBaseStyle, paddingLeft: '38px' };
+const inputErrorStyle = {
+  borderColor: '#EF4444',
+  boxShadow: '0 0 0 2px rgba(239,68,68,0.15)'
+};
+const labelStyle = {
+  display: 'block', fontSize: '13px', fontWeight: 600,
+  color: 'var(--gray-600)', marginBottom: '6px',
+  fontFamily: "'DM Sans', sans-serif",
+};
+const selectStyle = {
+  ...inputBaseStyle, appearance: 'none',
+  paddingRight: '36px', cursor: 'pointer',
+};
+
+COMPONENTES AUXILIARES (fuera del componente principal, al final del archivo)
+jsxconst SectionTitle = ({ icon: Icon, text }) => (
+  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', paddingBottom: '4px' }}>
+    <Icon style={{ width: '14px', height: '14px', color: 'var(--gray-400)' }} />
+    <span style={{
+      fontSize: '11px', fontWeight: 700, color: 'var(--gray-400)',
+      textTransform: 'uppercase', letterSpacing: '0.06em',
+      fontFamily: "'Plus Jakarta Sans', sans-serif",
+    }}>{text}</span>
+  </div>
+);
+
+const ErrorMsg = ({ text }) => (
+  <p style={{
+    marginTop: '4px', fontSize: '12px', color: '#EF4444',
+    display: 'flex', alignItems: 'center', gap: '4px',
+    fontFamily: "'DM Sans', sans-serif",
+  }}>
+    <AlertCircle style={{ width: '12px', height: '12px' }} /> {text}
+  </p>
+);
+
+PATRÓN DE TABLA
+
+Fondo header: var(--gray-50)
+Hover fila: onMouseEnter/Leave con var(--gray-50)
+Badge de estado activo: background: '#ECFDF5', color: '#065F46'
+Badge de estado inactivo: background: '#FEF2F2', color: '#DC2626'
+Avatar con iniciales: gradiente linear-gradient(135deg, var(--capyme-blue-mid), var(--capyme-blue)), 38x38px, border-radius: var(--radius-md)
+Columna Acciones: textAlign: 'right'
+Botones de acción: 34x34px, fondo transparente, hover con color contextual
+
+
+BOTONES DE ACCIÓN EN TABLA
+jsx{/* Editar - visible según permisos */}
+<button
+  onClick={() => handleOpenModal('edit', item)}
+  style={{ width: '34px', height: '34px', border: 'none',
+    borderRadius: 'var(--radius-sm)', background: 'transparent',
+    cursor: 'pointer', color: 'var(--gray-400)', transition: 'all 150ms ease' }}
+  onMouseEnter={e => { e.currentTarget.style.background = '#EEF4FF';
+    e.currentTarget.style.color = 'var(--capyme-blue-mid)'; }}
+  onMouseLeave={e => { e.currentTarget.style.background = 'transparent';
+    e.currentTarget.style.color = 'var(--gray-400)'; }}
+>
+  <Edit style={{ width: '16px', height: '16px' }} />
+</button>
+
+{/* Activar - solo admin, solo si inactivo */}
+{currentUser.rol === 'admin' && !item.activo && (
+  <button onClick={() => handleToggleActivo(item)}
+    onMouseEnter={e => { e.currentTarget.style.background = '#ECFDF5';
+      e.currentTarget.style.color = '#065F46'; }}
+    onMouseLeave={e => { e.currentTarget.style.background = 'transparent';
+      e.currentTarget.style.color = 'var(--gray-400)'; }}
+    style={{ width: '34px', height: '34px', border: 'none',
+      borderRadius: 'var(--radius-sm)', background: 'transparent',
+      cursor: 'pointer', color: 'var(--gray-400)', transition: 'all 150ms ease' }}
+  >
+    <CheckCircle style={{ width: '16px', height: '16px' }} />
+  </button>
+)}
+
+{/* Desactivar - solo admin, solo si activo */}
+{currentUser.rol === 'admin' && item.activo && (
+  <button onClick={() => handleToggleActivo(item)}
+    onMouseEnter={e => { e.currentTarget.style.background = '#FEF2F2';
+      e.currentTarget.style.color = '#DC2626'; }}
+    onMouseLeave={e => { e.currentTarget.style.background = 'transparent';
+      e.currentTarget.style.color = 'var(--gray-400)'; }}
+    style={{ width: '34px', height: '34px', border: 'none',
+      borderRadius: 'var(--radius-sm)', background: 'transparent',
+      cursor: 'pointer', color: 'var(--gray-400)', transition: 'all 150ms ease' }}
+  >
+    <Trash2 style={{ width: '16px', height: '16px' }} />
+  </button>
+)}
+
+PATRÓN DEL MODAL
+
+maxWidth: '720px' (formularios grandes) o '600px' (formularios medianos)
+backdropFilter: 'blur(4px)', fondo rgba(0,0,0,0.4)
+Header con background: 'var(--gray-50)', título en Plus Jakarta Sans 18px 800
+Cuerpo con overflowY: 'auto', flex: 1, padding: '24px'
+Secciones separadas con <SectionTitle /> y grids de 1fr 1fr o 1fr 1fr 1fr
+Footer con botones Cancelar + Guardar, mismo background: 'var(--gray-50)'
+Botón guardar: gradiente linear-gradient(135deg, var(--capyme-blue-mid), var(--capyme-blue)), boxShadow: '0 2px 8px rgba(31,78,158,0.28)'
+Click en backdrop cierra el modal, click dentro del modal no propaga
+
+
+PATRÓN handleToggleActivo (sin delete, solo activo/inactivo)
+javascriptconst handleToggleActivo = async (item) => {
+  const accion = item.activo ? 'desactivar' : 'activar';
+  if (window.confirm(`¿Estás seguro de ${accion} "${item.nombre}"?`)) {
+    try {
+      await miService.toggleActivo(item.id);
+      toast.success(`${accion === 'desactivar' ? 'Desactivado' : 'Activado'} exitosamente`);
+      cargarDatos();
+    } catch (error) {
+      toast.error('Error al cambiar estado');
+    }
+  }
+};
+
+PATRÓN SERVICE
+javascriptimport api from './axios';
+export const miService = {
+  getAll: async (params = {}) => (await api.get('/ruta', { params })).data,
+  getById: async (id) => (await api.get(`/ruta/${id}`)).data,
+  create: async (data) => (await api.post('/ruta', data)).data,
+  update: async (id, data) => (await api.put(`/ruta/${id}`, data)).data,
+  toggleActivo: async (id) => (await api.patch(`/ruta/${id}/toggle-activo`)).data,
+};
+
+PATRÓN BACKEND CONTROLLER
+javascript// toggleActivo siempre así:
+const toggleActivo = async (req, res) => {
+  const id = parseInt(req.params.id);
+  const item = await prisma.modelo.findUnique({ where: { id } });
+  if (!item) return res.status(404).json({ success: false, message: 'No encontrado' });
+  const updated = await prisma.modelo.update({
+    where: { id }, data: { activo: !item.activo }
+  });
+  res.json({ success: true, data: updated });
+};
+
+// actualizarItem siempre strip activo del body para que no se cambie desde edit:
+const { activo, ...dataActualizar } = req.body;
+// Solo toggleActivo puede cambiar el campo activo
+
+REGLAS IMPORTANTES
+
+Nunca poner hooks (useState, useEffect) fuera del componente
+Nunca poner const user = ... fuera del componente — siempre dentro
+Sin comentarios en el código
+El campo activo nunca se envía desde el form de crear/editar — solo desde toggleActivo
+Passwords siempre con bcrypt.hash(password, 10) en backend
+Permisos: admin puede todo, colaborador puede crear/editar pero no cambiar activo (visualmente al colaborador le debe verse como si pasara el raton con una señal de prohibido, cliente solo ve sus propios registros

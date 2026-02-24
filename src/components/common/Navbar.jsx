@@ -285,8 +285,7 @@ const Navbar = ({ onMenuClick }) => {
             {showUserMenu && (
               <div style={{ position: 'absolute', right: 0, top: 'calc(100% + 8px)', width: '220px', background: 'var(--surface)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)', boxShadow: '0 16px 40px rgba(0,0,0,0.12)', overflow: 'hidden', animation: 'slideDown 150ms ease both', zIndex: 50 }}>
                 {[
-                  { to: '/perfil', icon: User, label: 'Mi Perfil' },
-                  ...(user?.rol === 'admin' ? [{ to: '/configuracion', icon: Settings, label: 'Configuración' }] : []),
+                  { to: '/perfil', icon: User, label: 'Mi Perfil' }
                 ].map((item, i) => (
                   <Link
                     key={i}

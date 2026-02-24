@@ -3,9 +3,8 @@ import Layout from '../components/common/Layout';
 import { useAuthStore } from '../store/authStore';
 import api from '../services/axios';
 import {
-  User,
-  Mail,
   Phone,
+  Mail,
   Calendar,
   Shield,
   Save,
@@ -73,7 +72,7 @@ const InfoRow = ({ icon: Icon, label, value, highlight }) => (
     </div>
     <div style={{ flex: 1, minWidth: 0 }}>
       <span style={{ fontSize: '11px', color: 'var(--gray-400)', fontFamily: "'DM Sans', sans-serif", display: 'block', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</span>
-      <span style={{ fontSize: '13px', color: highlight ? 'var(--capyme-blue-mid)' : 'var(--gray-800)', fontFamily: "'DM Sans', sans-serif", fontWeight: 600 }}>{value}</span>
+      <span style={{ fontSize: '13px', color: highlight ? 'var(--capyme-blue-mid)' : 'var(--gray-800)', fontFamily: "'DM Sans', sans-serif", fontWeight: 600, wordBreak: 'break-word' }}>{value}</span>
     </div>
   </div>
 );
@@ -88,7 +87,7 @@ const Perfil = () => {
   const [showNewPass,  setShowNewPass]  = useState(false);
   const [showConfPass, setShowConfPass] = useState(false);
 
-  const [formData, setFormData] = useState({ nombre: '', apellido: '', telefono: '' });
+  const [formData, setFormData] = useState({ nombre: '', apellido: '', telefono: '', clabeInterbancaria: '' });
   const [formErrors, setFormErrors] = useState({});
 
   const [passData, setPassData] = useState({ newPassword: '', confirmPassword: '' });
@@ -110,19 +109,25 @@ const Perfil = () => {
   const strengthColor = ['', '#EF4444', '#F97316', '#EAB308', '#22C55E', '#16A34A'][passStrength];
 
   useEffect(() => {
-    if (user) setFormData({ nombre: user.nombre || '', apellido: user.apellido || '', telefono: user.telefono || '' });
+    if (user) setFormData({
+      nombre: user.nombre || '',
+      apellido: user.apellido || '',
+      telefono: user.telefono || '',
+      clabeInterbancaria: user.clabeInterbancaria || ''
+    });
   }, [user]);
 
-  /* ── validate info ── */
   const validateInfo = () => {
     const e = {};
     if (!formData.nombre.trim()) e.nombre = 'El nombre es requerido';
     if (!formData.apellido.trim()) e.apellido = 'El apellido es requerido';
+    if (formData.clabeInterbancaria && formData.clabeInterbancaria.length !== 18) {
+      e.clabeInterbancaria = 'La CLABE debe tener exactamente 18 dígitos';
+    }
     setFormErrors(e);
     return !Object.keys(e).length;
   };
 
-  /* ── validate password ── */
   const validatePass = () => {
     const e = {};
     if (!passData.newPassword) e.newPassword = 'Ingresa la nueva contraseña';
@@ -133,7 +138,6 @@ const Perfil = () => {
     return !Object.keys(e).length;
   };
 
-  /* ── save info ── */
   const handleSaveInfo = async () => {
     if (!validateInfo()) return;
     setLoadingInfo(true);
@@ -146,7 +150,6 @@ const Perfil = () => {
     } finally { setLoadingInfo(false); }
   };
 
-  /* ── save password ── */
   const handleSavePass = async () => {
     if (!validatePass()) return;
     setLoadingPass(true);
@@ -162,7 +165,6 @@ const Perfil = () => {
 
   const roleStyle = getRoleStyle(user?.rol);
 
-  /* ── shared input onChange ── */
   const onChangeInfo = (field) => (e) => {
     setFormData((p) => ({ ...p, [field]: e.target.value }));
     if (formErrors[field]) setFormErrors((p) => ({ ...p, [field]: '' }));
@@ -172,16 +174,126 @@ const Perfil = () => {
     if (passErrors[field]) setPassErrors((p) => ({ ...p, [field]: '' }));
   };
 
-  /* ─────────── RENDER ─────────── */
   return (
     <Layout>
       <style>{`
         @keyframes fadeInUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes spin { to { transform: rotate(360deg); } }
+
         .perfil-section { animation: fadeInUp 0.35s ease both; }
         .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
         .btn-secondary:hover { background: var(--gray-100) !important; }
         .pass-toggle:hover { color: var(--gray-700) !important; }
+
+        /* ── Layout principal ── */
+        .perfil-layout {
+          display: grid;
+          grid-template-columns: 1fr 280px;
+          gap: 20px;
+          align-items: start;
+        }
+
+        /* ── Grid nombre/apellido ── */
+        .perfil-nombre-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 12px;
+          margin-bottom: 20px;
+        }
+
+        /* ── Avatar row ── */
+        .perfil-avatar-row {
+          display: flex;
+          align-items: flex-end;
+          gap: 16px;
+          margin-bottom: 20px;
+          flex-wrap: wrap;
+        }
+
+        .perfil-avatar-role {
+          margin-left: auto;
+          padding-bottom: 4px;
+        }
+
+        /* ── Header ── */
+        .perfil-header-inner {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 18px 24px;
+        }
+
+        /* ══ RESPONSIVE ══ */
+
+        /* Tablet: 768px - columna derecha debajo */
+        @media (max-width: 860px) {
+          .perfil-layout {
+            grid-template-columns: 1fr;
+          }
+        }
+
+        /* Mobile grande: 600px */
+        @media (max-width: 600px) {
+          .perfil-nombre-grid {
+            grid-template-columns: 1fr;
+            gap: 14px;
+          }
+
+          .perfil-avatar-row {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 10px;
+          }
+
+          .perfil-avatar-role {
+            margin-left: 0;
+          }
+
+          .perfil-header-inner {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 12px;
+          }
+
+          .perfil-header-inner button {
+            width: 100%;
+            justify-content: center;
+          }
+
+          .perfil-save-row {
+            justify-content: stretch !important;
+          }
+
+          .perfil-save-row button {
+            width: 100%;
+            justify-content: center;
+          }
+
+          .perfil-pass-actions {
+            flex-direction: column-reverse !important;
+            gap: 8px !important;
+          }
+
+          .perfil-pass-actions button {
+            width: 100%;
+            justify-content: center;
+          }
+        }
+
+        /* Mobile pequeño: 400px */
+        @media (max-width: 400px) {
+          .perfil-card-padding {
+            padding: 0 14px 20px !important;
+          }
+
+          .perfil-section-padding {
+            padding: 16px 14px !important;
+          }
+
+          .perfil-header-inner {
+            padding: 14px !important;
+          }
+        }
       `}</style>
 
       <div style={{ maxWidth: '860px', margin: '0 auto', padding: '0 0 48px' }}>
@@ -192,7 +304,7 @@ const Perfil = () => {
           <p style={{ fontSize: '13px', color: 'var(--gray-500)', margin: '4px 0 0', fontFamily: "'DM Sans', sans-serif" }}>Gestiona tu información personal y seguridad de cuenta</p>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 280px', gap: '20px', alignItems: 'start' }}>
+        <div className="perfil-layout">
 
           {/* ══ COLUMNA IZQUIERDA ══ */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -200,32 +312,33 @@ const Perfil = () => {
             {/* ── TARJETA IDENTIDAD ── */}
             <div className="perfil-section" style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', overflow: 'hidden', boxShadow: 'var(--shadow-sm)', animationDelay: '0ms' }}>
 
-              {/* Banner + Avatar */}
-              <div style={{ height: '72px', background: 'linear-gradient(135deg, var(--capyme-blue-mid) 0%, var(--capyme-blue) 100%)', position: 'relative' }}>
+              {/* Banner */}
+              <div style={{ height: '72px', background: 'linear-gradient(135deg, var(--capyme-blue-mid) 0%, var(--capyme-blue) 100%)', position: 'relative', flexShrink: 0 }}>
                 <div style={{ position: 'absolute', inset: 0, backgroundImage: 'radial-gradient(circle at 20% 50%, rgba(255,255,255,0.08) 0%, transparent 60%), radial-gradient(circle at 80% 20%, rgba(255,255,255,0.06) 0%, transparent 50%)' }} />
               </div>
 
-              <div style={{ padding: '0 24px 24px', position: 'relative' }}>
-                {/* Avatar */}
-                <div style={{ display: 'flex', alignItems: 'flex-end', gap: '16px', marginBottom: '20px' }}>
+              <div className="perfil-card-padding" style={{ padding: '0 24px 24px', position: 'relative' }}>
+
+                {/* Avatar row */}
+                <div className="perfil-avatar-row">
                   <div style={{ width: '72px', height: '72px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--capyme-blue-mid), var(--capyme-blue))', border: '4px solid #fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: '-36px', boxShadow: '0 4px 16px rgba(31,78,158,0.25)', color: '#fff', fontSize: '24px', fontWeight: 800, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
                     {getInitials(user?.nombre, user?.apellido)}
                   </div>
-                  <div style={{ paddingBottom: '4px' }}>
-                    <h2 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--gray-900)', fontFamily: "'Plus Jakarta Sans', sans-serif", margin: 0, lineHeight: 1.2 }}>
+                  <div style={{ paddingBottom: '4px', flex: 1, minWidth: 0 }}>
+                    <h2 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--gray-900)', fontFamily: "'Plus Jakarta Sans', sans-serif", margin: 0, lineHeight: 1.2, wordBreak: 'break-word' }}>
                       {user?.nombre} {user?.apellido}
                     </h2>
-                    <p style={{ fontSize: '13px', color: 'var(--gray-500)', margin: '2px 0 0', fontFamily: "'DM Sans', sans-serif" }}>{user?.email}</p>
+                    <p style={{ fontSize: '13px', color: 'var(--gray-500)', margin: '2px 0 0', fontFamily: "'DM Sans', sans-serif", wordBreak: 'break-all' }}>{user?.email}</p>
                   </div>
-                  <div style={{ marginLeft: 'auto', paddingBottom: '4px' }}>
-                    <span style={{ padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: 700, background: roleStyle.bg, color: roleStyle.color, border: `1px solid ${roleStyle.border}`, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                  <div className="perfil-avatar-role">
+                    <span style={{ padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: 700, background: roleStyle.bg, color: roleStyle.color, border: `1px solid ${roleStyle.border}`, fontFamily: "'Plus Jakarta Sans', sans-serif", whiteSpace: 'nowrap' }}>
                       {getRoleName(user?.rol)}
                     </span>
                   </div>
                 </div>
 
-                {/* Info grid */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '20px' }}>
+                {/* Nombre / Apellido */}
+                <div className="perfil-nombre-grid">
                   <div>
                     <Label>Nombre <span style={{ color: '#EF4444' }}>*</span></Label>
                     <InputBase
@@ -250,6 +363,7 @@ const Perfil = () => {
                   </div>
                 </div>
 
+                {/* Teléfono */}
                 <div style={{ marginBottom: '20px' }}>
                   <Label>Teléfono</Label>
                   <InputBase
@@ -261,7 +375,39 @@ const Perfil = () => {
                   />
                 </div>
 
-                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                {/* CLABE — solo admin / colaborador */}
+                {(user?.rol === 'admin' || user?.rol === 'colaborador') && (
+                  <div style={{ marginBottom: '20px' }}>
+                    <Label>
+                      CLABE Interbancaria
+                      <span style={{ fontSize: '11px', fontWeight: 400, color: 'var(--gray-400)', marginLeft: '6px' }}>
+                        (requerida para cursos con costo)
+                      </span>
+                    </Label>
+                    <InputBase
+                      type="text"
+                      value={formData.clabeInterbancaria}
+                      onChange={onChangeInfo('clabeInterbancaria')}
+                      placeholder="18 dígitos"
+                      maxLength={18}
+                      error={formErrors.clabeInterbancaria}
+                    />
+                    {formErrors.clabeInterbancaria && <ErrMsg text={formErrors.clabeInterbancaria} />}
+                    {!formErrors.clabeInterbancaria && formData.clabeInterbancaria && formData.clabeInterbancaria.length !== 18 && (
+                      <p style={{ marginTop: '5px', fontSize: '12px', color: '#F97316', fontFamily: "'DM Sans', sans-serif" }}>
+                        La CLABE debe tener exactamente 18 dígitos
+                      </p>
+                    )}
+                    {!formData.clabeInterbancaria && (
+                      <p style={{ marginTop: '5px', fontSize: '12px', color: 'var(--gray-400)', fontFamily: "'DM Sans', sans-serif" }}>
+                        ⚠️ Sin CLABE no podrás crear cursos con costo
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {/* Guardar */}
+                <div className="perfil-save-row" style={{ display: 'flex', justifyContent: 'flex-end' }}>
                   <button
                     className="btn-primary"
                     onClick={handleSaveInfo}
@@ -280,9 +426,9 @@ const Perfil = () => {
             {/* ── TARJETA SEGURIDAD ── */}
             <div className="perfil-section" style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', overflow: 'hidden', boxShadow: 'var(--shadow-sm)', animationDelay: '80ms' }}>
 
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 24px', borderBottom: showPassSection ? '1px solid var(--border)' : 'none' }}>
+              <div className="perfil-header-inner" style={{ borderBottom: showPassSection ? '1px solid var(--border)' : 'none' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <div style={{ width: '34px', height: '34px', borderRadius: 'var(--radius-md)', background: 'var(--capyme-blue-pale)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <div style={{ width: '34px', height: '34px', borderRadius: 'var(--radius-md)', background: 'var(--capyme-blue-pale)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                     <Lock style={{ width: '15px', height: '15px', color: 'var(--capyme-blue-mid)' }} />
                   </div>
                   <div>
@@ -293,7 +439,7 @@ const Perfil = () => {
                 {!showPassSection && (
                   <button
                     onClick={() => setShowPassSection(true)}
-                    style={{ padding: '7px 14px', background: 'var(--capyme-blue-pale)', color: 'var(--capyme-blue-mid)', border: '1px solid var(--capyme-blue-pale)', borderRadius: 'var(--radius-md)', fontSize: '13px', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", cursor: 'pointer', transition: 'all 150ms ease' }}
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '7px 14px', background: 'var(--capyme-blue-pale)', color: 'var(--capyme-blue-mid)', border: '1px solid var(--capyme-blue-pale)', borderRadius: 'var(--radius-md)', fontSize: '13px', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", cursor: 'pointer', transition: 'all 150ms ease', whiteSpace: 'nowrap' }}
                     onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--capyme-blue-mid)'; e.currentTarget.style.color = '#fff'; }}
                     onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--capyme-blue-pale)'; e.currentTarget.style.color = 'var(--capyme-blue-mid)'; }}
                   >
@@ -303,7 +449,7 @@ const Perfil = () => {
               </div>
 
               {showPassSection && (
-                <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                <div className="perfil-section-padding" style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
 
                   {/* Nueva contraseña */}
                   <div>
@@ -369,11 +515,11 @@ const Perfil = () => {
                   </div>
 
                   {/* Actions */}
-                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', paddingTop: '4px' }}>
+                  <div className="perfil-pass-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', paddingTop: '4px' }}>
                     <button
                       className="btn-secondary"
                       onClick={() => { setShowPassSection(false); setPassData({ newPassword: '', confirmPassword: '' }); setPassErrors({}); }}
-                      style={{ padding: '8px 16px', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', background: '#fff', color: 'var(--gray-700)', fontSize: '13px', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", cursor: 'pointer', transition: 'background 150ms ease' }}
+                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '8px 16px', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', background: '#fff', color: 'var(--gray-700)', fontSize: '13px', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", cursor: 'pointer', transition: 'background 150ms ease' }}
                     >
                       Cancelar
                     </button>
@@ -381,7 +527,7 @@ const Perfil = () => {
                       className="btn-primary"
                       onClick={handleSavePass}
                       disabled={loadingPass}
-                      style={{ display: 'flex', alignItems: 'center', gap: '7px', padding: '8px 18px', background: loadingPass ? 'var(--gray-300)' : 'linear-gradient(135deg, var(--capyme-blue-mid), var(--capyme-blue))', color: '#fff', border: 'none', borderRadius: 'var(--radius-md)', fontSize: '13px', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", cursor: loadingPass ? 'not-allowed' : 'pointer', boxShadow: loadingPass ? 'none' : '0 2px 8px rgba(31,78,158,0.25)', transition: 'all 150ms ease' }}
+                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '7px', padding: '8px 18px', background: loadingPass ? 'var(--gray-300)' : 'linear-gradient(135deg, var(--capyme-blue-mid), var(--capyme-blue))', color: '#fff', border: 'none', borderRadius: 'var(--radius-md)', fontSize: '13px', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", cursor: loadingPass ? 'not-allowed' : 'pointer', boxShadow: loadingPass ? 'none' : '0 2px 8px rgba(31,78,158,0.25)', transition: 'all 150ms ease' }}
                     >
                       {loadingPass
                         ? <><span style={{ width: '13px', height: '13px', border: '2px solid rgba(255,255,255,0.35)', borderTopColor: '#fff', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} />Guardando…</>
@@ -403,8 +549,8 @@ const Perfil = () => {
                 <h3 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--gray-700)', fontFamily: "'Plus Jakarta Sans', sans-serif", margin: 0 }}>Información de cuenta</h3>
               </div>
               <div style={{ padding: '14px 18px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <InfoRow icon={Mail}     label="Email"       value={user?.email}              highlight />
-                <InfoRow icon={Shield}   label="Rol"         value={getRoleName(user?.rol)} />
+                <InfoRow icon={Mail}     label="Email"         value={user?.email}                highlight />
+                <InfoRow icon={Shield}   label="Rol"           value={getRoleName(user?.rol)} />
                 <InfoRow icon={Calendar} label="Miembro desde" value={formatDate(user?.fechaRegistro)} />
                 {user?.ultimaSesion && (
                   <InfoRow icon={Clock}  label="Última sesión" value={formatDate(user?.ultimaSesion)} />
@@ -426,6 +572,7 @@ const Perfil = () => {
               </ul>
             </div>
           </div>
+
         </div>
       </div>
     </Layout>
