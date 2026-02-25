@@ -4,7 +4,7 @@ import {
   Users, Plus, Search, Edit, CheckCircle, Trash2,
   AlertCircle, X, FolderOpen, Link, UserCheck, MapPin,
   Calendar, Phone, Mail, Building2, ExternalLink,
-  ChevronDown, SlidersHorizontal, User
+  ChevronDown, SlidersHorizontal, User, AlertTriangle
 } from 'lucide-react';
 import Layout from '../components/common/Layout';
 import { jcfService } from '../services/jcfService';
@@ -19,6 +19,79 @@ const initialFormData = {
   fechaTermino: '',
   clienteId: '',
   negocioId: '',
+};
+
+const ConfirmModal = ({ config, onClose }) => {
+  if (!config?.show) return null;
+  const isDanger  = config.variant === 'danger';
+  const isWarning = config.variant === 'warning';
+
+  const accentBg     = isDanger ? '#FEF2F2' : isWarning ? '#FFFBEB' : '#EEF4FF';
+  const accentBorder = isDanger ? '#FECACA' : isWarning ? '#FDE68A' : 'var(--border)';
+  const iconBg       = isDanger ? '#EF4444' : isWarning ? '#F59E0B' : 'var(--capyme-blue-mid)';
+  const titleColor   = isDanger ? '#B91C1C' : isWarning ? '#92400E' : 'var(--gray-900)';
+  const subtitleColor= isDanger ? '#DC2626' : isWarning ? '#B45309' : 'var(--gray-500)';
+  const btnBg        = isDanger
+    ? 'linear-gradient(135deg,#EF4444,#DC2626)'
+    : isWarning
+      ? 'linear-gradient(135deg,#F59E0B,#D97706)'
+      : 'linear-gradient(135deg,var(--capyme-blue-mid),var(--capyme-blue))';
+  const btnShadow    = isDanger
+    ? '0 2px 8px rgba(239,68,68,0.35)'
+    : isWarning
+      ? '0 2px 8px rgba(245,158,11,0.35)'
+      : '0 2px 8px rgba(31,78,158,0.28)';
+
+  return (
+    <div
+      style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.45)', backdropFilter:'blur(4px)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:1200, padding:'20px' }}
+    >
+      <div
+        style={{ background:'#fff', borderRadius:'var(--radius-lg)', width:'100%', maxWidth:'440px', boxShadow:'0 24px 64px rgba(0,0,0,0.22)', overflow:'hidden', animation:'modalIn 0.22s ease both' }}
+      >
+        <div style={{ background:accentBg, padding:'20px 24px', borderBottom:`1px solid ${accentBorder}`, display:'flex', alignItems:'center', gap:'14px' }}>
+          <div style={{ width:'44px', height:'44px', background:iconBg, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, boxShadow:`0 4px 12px ${iconBg}40` }}>
+            <AlertTriangle style={{ width:'22px', height:'22px', color:'#fff' }} />
+          </div>
+          <div>
+            <h3 style={{ fontSize:'17px', fontWeight:800, color:titleColor, fontFamily:"'Plus Jakarta Sans', sans-serif", margin:'0 0 2px' }}>
+              {config.title}
+            </h3>
+            <p style={{ fontSize:'13px', color:subtitleColor, margin:0, fontFamily:"'DM Sans', sans-serif", fontWeight:500 }}>
+              {config.subtitle || 'Esta acción puede revertirse más adelante'}
+            </p>
+          </div>
+        </div>
+        <div style={{ padding:'20px 24px' }}>
+          {config.message && (
+            <div style={{ background:'var(--gray-50)', border:'1px solid var(--border)', borderRadius:'var(--radius-md)', padding:'14px 16px', marginBottom:'20px' }}>
+              <p style={{ fontSize:'14px', color:'var(--gray-700)', margin:0, fontFamily:"'DM Sans', sans-serif", lineHeight:1.5 }}>
+                {config.message}
+              </p>
+            </div>
+          )}
+          <div style={{ display:'flex', gap:'10px', justifyContent:'flex-end' }}>
+            <button
+              onClick={onClose}
+              style={{ padding:'9px 18px', border:'1px solid var(--border)', borderRadius:'var(--radius-md)', background:'#fff', color:'var(--gray-700)', fontSize:'14px', fontWeight:600, fontFamily:"'DM Sans', sans-serif", cursor:'pointer', transition:'all 150ms ease' }}
+              onMouseEnter={e => e.currentTarget.style.background = 'var(--gray-100)'}
+              onMouseLeave={e => e.currentTarget.style.background = '#fff'}
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={() => { config.onConfirm(); onClose(); }}
+              style={{ padding:'9px 22px', border:'none', borderRadius:'var(--radius-md)', background:btnBg, color:'#fff', fontSize:'14px', fontWeight:600, fontFamily:"'DM Sans', sans-serif", cursor:'pointer', boxShadow:btnShadow, transition:'all 150ms ease' }}
+              onMouseEnter={e => e.currentTarget.style.opacity = '0.9'}
+              onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+            >
+              {config.confirmLabel || 'Confirmar'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 };
 
 const JovenesConstruyendoFuturo = () => {
@@ -48,7 +121,10 @@ const JovenesConstruyendoFuturo = () => {
   const [filterEstadoGeo, setFilterEstadoGeo] = useState('');
   const [filterMunicipioNegocio, setFilterMunicipioNegocio] = useState('');
 
-  // Negocio seleccionado en el form (para mostrar info geográfica)
+  const [confirmConfig, setConfirmConfig] = useState({ show: false });
+  const showConfirm = (cfg) => setConfirmConfig({ show: true, ...cfg });
+  const closeConfirm = () => setConfirmConfig({ show: false });
+
   const negocioSeleccionado = useMemo(() => {
     if (!formData.negocioId) return null;
     return negocios.find(n => String(n.id) === String(formData.negocioId)) || null;
@@ -227,6 +303,15 @@ const JovenesConstruyendoFuturo = () => {
     return Object.keys(errors).length === 0;
   };
 
+  const isFormValid = formData.clienteId !== '' &&
+                      formData.negocioId !== '' &&
+                      formData.nombre.trim() !== '' &&
+                      formData.apellido.trim() !== '' &&
+                      (!formData.correo || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.correo)) &&
+                      (!formData.curp || formData.curp.length === 18) &&
+                      (!formData.telefono || /^\d{10}$/.test(formData.telefono.replace(/\s/g, ''))) &&
+                      (!(formData.fechaInicio && formData.fechaTermino) || formData.fechaInicio <= formData.fechaTermino);
+
   const handleOpenModal = (mode, item = null) => {
     setModalMode(mode);
     setSelectedItem(item);
@@ -272,7 +357,6 @@ const JovenesConstruyendoFuturo = () => {
     if (!validateForm()) return;
     setSubmitting(true);
     try {
-      // clienteId es solo para el select en UI, no se manda al backend
       const { clienteId, ...rest } = formData;
       const payload = { ...rest };
       payload.negocioId = parseInt(payload.negocioId);
@@ -298,17 +382,25 @@ const JovenesConstruyendoFuturo = () => {
     }
   };
 
-  const handleToggleActivo = async (item) => {
+  const handleToggleActivo = (item) => {
     if (currentUser.rol !== 'admin') return;
-    const accion = item.activo ? 'desactivar' : 'activar';
-    if (!window.confirm(`¿Estás seguro de ${accion} a "${item.nombre} ${item.apellido}"?`)) return;
-    try {
-      await jcfService.toggleActivo(item.id);
-      toast.success(`${item.activo ? 'Desactivado' : 'Activado'} exitosamente`);
-      cargarDatos();
-    } catch {
-      toast.error('Error al cambiar estado');
-    }
+    const desactivar = item.activo;
+    showConfirm({
+      variant: desactivar ? 'danger' : 'warning',
+      title: desactivar ? 'Desactivar beneficiario' : 'Activar beneficiario',
+      subtitle: desactivar ? 'El beneficiario dejará de estar activo' : 'El beneficiario volverá a estar activo',
+      message: `¿Confirmas que deseas ${desactivar ? 'desactivar' : 'activar'} a "${item.nombre} ${item.apellido}"?`,
+      confirmLabel: desactivar ? 'Sí, desactivar' : 'Sí, activar',
+      onConfirm: async () => {
+        try {
+          await jcfService.toggleActivo(item.id);
+          toast.success(`Beneficiario ${desactivar ? 'desactivado' : 'activado'} exitosamente`);
+          cargarDatos();
+        } catch {
+          toast.error('Error al cambiar estado');
+        }
+      },
+    });
   };
 
   const handleOpenRecurso = (item) => {
@@ -389,7 +481,6 @@ const JovenesConstruyendoFuturo = () => {
 
       <div style={{ padding: '28px 32px', animation: 'fadeIn 250ms ease' }}>
 
-        {/* Header */}
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '28px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
             <div style={{
@@ -439,7 +530,6 @@ const JovenesConstruyendoFuturo = () => {
           )}
         </div>
 
-        {/* Search + Filters */}
         <div style={{
           background: '#fff', borderRadius: 'var(--radius-lg)',
           border: '1px solid var(--border)', padding: '16px 20px',
@@ -600,7 +690,6 @@ const JovenesConstruyendoFuturo = () => {
           )}
         </div>
 
-        {/* Table */}
         <div style={{
           background: '#fff', borderRadius: 'var(--radius-lg)',
           border: '1px solid var(--border)', overflow: 'hidden',
@@ -721,7 +810,6 @@ const JovenesConstruyendoFuturo = () => {
                     ) : <span style={{ color: 'var(--gray-300)', fontSize: '13px' }}>—</span>}
                   </td>
 
-                  {/* Columna Ubicación — viene del negocio */}
                   <td style={{ padding: '12px 16px' }}>
                     {(item.negocio?.ciudad || item.negocio?.estado) ? (
                       <span style={{ fontSize: '12px', color: 'var(--gray-600)', fontFamily: "'DM Sans', sans-serif", display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -866,10 +954,8 @@ const JovenesConstruyendoFuturo = () => {
         </div>
       </div>
 
-      {/* Modal crear/editar */}
       {showModal && (
         <div
-          onClick={handleCloseModal}
           style={{
             position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)',
             backdropFilter: 'blur(4px)', display: 'flex',
@@ -887,7 +973,6 @@ const JovenesConstruyendoFuturo = () => {
               animation: 'modalIn 200ms ease'
             }}
           >
-            {/* Modal header */}
             <div style={{
               padding: '20px 24px', background: 'var(--gray-50)',
               borderBottom: '1px solid var(--border)',
@@ -918,10 +1003,8 @@ const JovenesConstruyendoFuturo = () => {
               </button>
             </div>
 
-            {/* Modal body */}
             <div style={{ overflowY: 'auto', flex: 1, padding: '24px' }}>
 
-              {/* Sección asignación */}
               <SectionTitle icon={Building2} text="Asignación al programa" />
               <div style={{ marginTop: '14px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px' }}>
                 <div>
@@ -982,7 +1065,6 @@ const JovenesConstruyendoFuturo = () => {
                   )}
                 </div>
 
-                {/* Ubicación del negocio (solo lectura, viene automático) */}
                 <div>
                   <label style={labelStyle}>
                     <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
@@ -1035,7 +1117,6 @@ const JovenesConstruyendoFuturo = () => {
                 </div>
               </div>
 
-              {/* Sección datos personales */}
               <SectionTitle icon={Users} text="Datos personales del beneficiario" />
               <div style={{ marginTop: '14px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px' }}>
                 <div>
@@ -1075,7 +1156,6 @@ const JovenesConstruyendoFuturo = () => {
                 </div>
               </div>
 
-              {/* Sección contacto */}
               <SectionTitle icon={Phone} text="Contacto" />
               <div style={{ marginTop: '14px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '8px' }}>
                 <div>
@@ -1100,7 +1180,6 @@ const JovenesConstruyendoFuturo = () => {
 
             </div>
 
-            {/* Modal footer */}
             <div style={{
               padding: '16px 24px', background: 'var(--gray-50)',
               borderTop: '1px solid var(--border)',
@@ -1123,19 +1202,20 @@ const JovenesConstruyendoFuturo = () => {
               </button>
               <button
                 onClick={handleSubmit}
-                disabled={submitting}
+                disabled={submitting || Object.keys(formErrors).length > 0 || !isFormValid}
                 style={{
                   padding: '9px 24px', border: 'none',
                   borderRadius: 'var(--radius-md)',
-                  background: submitting
-                    ? 'var(--gray-300)'
-                    : 'linear-gradient(135deg, var(--capyme-blue-mid), var(--capyme-blue))',
+                  background: 'linear-gradient(135deg, var(--capyme-blue-mid), var(--capyme-blue))',
                   color: '#fff', fontSize: '14px', fontWeight: 600,
                   fontFamily: "'DM Sans', sans-serif",
-                  cursor: submitting ? 'not-allowed' : 'pointer',
+                  cursor: submitting || Object.keys(formErrors).length > 0 || !isFormValid ? 'not-allowed' : 'pointer',
+                  opacity: submitting || Object.keys(formErrors).length > 0 || !isFormValid ? 0.6 : 1,
                   transition: 'all 150ms ease',
-                  boxShadow: submitting ? 'none' : '0 2px 8px rgba(31,78,158,0.28)'
+                  boxShadow: submitting || Object.keys(formErrors).length > 0 || !isFormValid ? 'none' : '0 2px 8px rgba(31,78,158,0.28)'
                 }}
+                onMouseEnter={e => { if (!submitting && isFormValid && Object.keys(formErrors).length === 0) e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
               >
                 {submitting ? 'Guardando...' : modalMode === 'create' ? 'Registrar' : 'Guardar cambios'}
               </button>
@@ -1144,10 +1224,8 @@ const JovenesConstruyendoFuturo = () => {
         </div>
       )}
 
-      {/* Modal recurso */}
       {showRecursoModal && recursoItem && (
         <div
-          onClick={handleCloseRecurso}
           style={{
             position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)',
             backdropFilter: 'blur(4px)', display: 'flex',
@@ -1260,12 +1338,11 @@ const JovenesConstruyendoFuturo = () => {
                 style={{
                   padding: '8px 20px', border: 'none',
                   borderRadius: 'var(--radius-md)',
-                  background: submittingRecurso
-                    ? 'var(--gray-300)'
-                    : 'linear-gradient(135deg, var(--capyme-blue-mid), var(--capyme-blue))',
+                  background: 'linear-gradient(135deg, var(--capyme-blue-mid), var(--capyme-blue))',
                   color: '#fff', fontSize: '14px', fontWeight: 600,
                   fontFamily: "'DM Sans', sans-serif",
                   cursor: submittingRecurso ? 'not-allowed' : 'pointer',
+                  opacity: submittingRecurso ? 0.6 : 1,
                   boxShadow: submittingRecurso ? 'none' : '0 2px 8px rgba(31,78,158,0.28)'
                 }}
               >
@@ -1275,6 +1352,8 @@ const JovenesConstruyendoFuturo = () => {
           </div>
         </div>
       )}
+
+      <ConfirmModal config={confirmConfig} onClose={closeConfirm} />
     </Layout>
   );
 };

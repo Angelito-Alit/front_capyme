@@ -37,7 +37,6 @@ const initialFormData = {
   descripcion: '',
 };
 
-/* ─── Modal de confirmación reutilizable ─────────────────── */
 const ConfirmModal = ({ config, onClose }) => {
   if (!config?.show) return null;
   const isDanger  = config.variant === 'danger';
@@ -61,7 +60,6 @@ const ConfirmModal = ({ config, onClose }) => {
 
   return (
     <div
-      onClick={onClose}
       style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.45)', backdropFilter:'blur(4px)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:1200, padding:'20px' }}
     >
       <div
@@ -113,7 +111,6 @@ const ConfirmModal = ({ config, onClose }) => {
   );
 };
 
-/* ─── Helpers ──────────────────────────────────────────────────────────────────────── */
 const SectionTitle = ({ icon: Icon, text }) => (
   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', paddingBottom: '4px' }}>
     <Icon style={{ width: '14px', height: '14px', color: 'var(--capyme-blue-mid)' }} />
@@ -128,7 +125,6 @@ const ErrorMsg = ({ text }) => (
   </p>
 );
 
-/* ─── Componente principal ──────────────────────────────────────────────────────────── */
 const Negocios = () => {
   const authStorage = JSON.parse(localStorage.getItem('auth-storage') || '{}');
   const currentUser = authStorage?.state?.user || {};
@@ -150,7 +146,6 @@ const Negocios = () => {
   const [formData, setFormData] = useState(initialFormData);
   const [formErrors, setFormErrors] = useState({});
 
-  /* ── Modal de confirmación genérico ── */
   const [confirmConfig, setConfirmConfig] = useState({ show: false });
   const showConfirm = (cfg) => setConfirmConfig({ show: true, ...cfg });
   const closeConfirm = () => setConfirmConfig({ show: false });
@@ -209,6 +204,14 @@ const Negocios = () => {
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
+
+  const isFormValid =
+    formData.nombreNegocio.trim() !== '' &&
+    formData.categoriaId !== '' &&
+    (!['admin', 'colaborador'].includes(currentUser.rol) || formData.usuarioId !== '') &&
+    (!formData.rfc || /^[A-ZÑ&]{3,4}\d{6}[A-Z\d]{3}$/i.test(formData.rfc)) &&
+    (!formData.emailNegocio || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.emailNegocio)) &&
+    (!formData.codigoPostal || /^\d{5}$/.test(formData.codigoPostal));
 
   const handleOpenModal = (mode, negocio = null) => {
     setModalMode(mode);
@@ -274,7 +277,6 @@ const Negocios = () => {
     }
   };
 
-  /* ── toggle con modal en lugar de window.confirm ── */
   const handleToggleActivo = (negocio) => {
     const desactivar = negocio.activo;
     showConfirm({
@@ -322,7 +324,6 @@ const Negocios = () => {
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
 
-        {/* ── HEADER ── */}
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' }}>
           <div>
             <h1 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: '26px', fontWeight: 800, color: 'var(--gray-900)', letterSpacing: '-0.02em', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -345,10 +346,8 @@ const Negocios = () => {
           )}
         </div>
 
-        {/* ── TABLA ── */}
         <div style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-sm)', overflow: 'hidden' }}>
 
-          {/* Filtros */}
           <div style={{ padding: '18px 24px', borderBottom: '1px solid var(--border)', display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
             <div style={{ position: 'relative', flex: '1', minWidth: '200px' }}>
               <Search style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', width: '15px', height: '15px', color: 'var(--gray-400)', pointerEvents: 'none' }} />
@@ -380,7 +379,6 @@ const Negocios = () => {
             </div>
           </div>
 
-          {/* Tabla */}
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
@@ -442,10 +440,16 @@ const Negocios = () => {
                             <Edit style={{ width: '15px', height: '15px' }} />
                           </button>
                         )}
-                        {currentUser.rol === 'admin' && (
-                          <button onClick={() => handleToggleActivo(negocio)} title={negocio.activo ? 'Desactivar' : 'Activar'} style={{ width: '34px', height: '34px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', borderRadius: 'var(--radius-sm)', background: 'transparent', cursor: 'pointer', color: 'var(--gray-400)', transition: 'all 150ms ease' }} onMouseEnter={e => { e.currentTarget.style.background = negocio.activo ? '#FEF2F2' : '#ECFDF5'; e.currentTarget.style.color = negocio.activo ? '#DC2626' : '#065F46'; }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gray-400)'; }}>
-                            {negocio.activo ? <Trash2 style={{ width: '15px', height: '15px' }} /> : <CheckCircle style={{ width: '15px', height: '15px' }} />}
-                          </button>
+                        {['admin', 'colaborador'].includes(currentUser.rol) && (
+                          currentUser.rol === 'admin' ? (
+                            <button onClick={() => handleToggleActivo(negocio)} title={negocio.activo ? 'Desactivar' : 'Activar'} style={{ width: '34px', height: '34px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', borderRadius: 'var(--radius-sm)', background: 'transparent', cursor: 'pointer', color: 'var(--gray-400)', transition: 'all 150ms ease' }} onMouseEnter={e => { e.currentTarget.style.background = negocio.activo ? '#FEF2F2' : '#ECFDF5'; e.currentTarget.style.color = negocio.activo ? '#DC2626' : '#065F46'; }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gray-400)'; }}>
+                              {negocio.activo ? <Trash2 style={{ width: '15px', height: '15px' }} /> : <CheckCircle style={{ width: '15px', height: '15px' }} />}
+                            </button>
+                          ) : (
+                            <div title="Sin permisos para cambiar estado" style={{ width: '34px', height: '34px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 'var(--radius-sm)', color: 'var(--gray-200)', cursor: 'not-allowed' }}>
+                              {negocio.activo ? <Trash2 style={{ width: '15px', height: '15px' }} /> : <CheckCircle style={{ width: '15px', height: '15px' }} />}
+                            </div>
+                          )
                         )}
                       </div>
                     </td>
@@ -465,11 +469,9 @@ const Negocios = () => {
         </div>
       </div>
 
-      {/* ═══ MODAL CREAR / EDITAR ═══ */}
       {showModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: '16px' }} onClick={handleCloseModal}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: '16px' }}>
           <div style={{ background: '#fff', borderRadius: 'var(--radius-lg)', maxWidth: '720px', width: '100%', maxHeight: '90vh', display: 'flex', flexDirection: 'column', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', overflow: 'hidden', animation: 'modalIn 0.25s ease both' }} onClick={e => e.stopPropagation()}>
-            {/* Header */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 24px', borderBottom: '1px solid var(--border)', background: 'var(--gray-50)' }}>
               <div>
                 <h2 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: '18px', fontWeight: 800, color: 'var(--gray-900)', letterSpacing: '-0.01em', margin: 0 }}>
@@ -484,7 +486,6 @@ const Negocios = () => {
               </button>
             </div>
 
-            {/* Body */}
             <div style={{ overflowY: 'auto', flex: 1, padding: '24px' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '22px' }}>
 
@@ -513,7 +514,7 @@ const Negocios = () => {
                       <label style={labelStyle}>Nombre del Negocio <span style={{ color: '#EF4444' }}>*</span></label>
                       <div style={{ position: 'relative' }}>
                         <Building2 style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', width: '15px', height: '15px', color: 'var(--gray-400)', pointerEvents: 'none' }} />
-                        <input type="text" value={formData.nombreNegocio} onChange={e => handleChange('nombreNegocio', e.target.value)} placeholder="Ej: Mi Empresa S.A. de C.V." style={{ ...inputWithIconStyle, ...(formErrors.nombreNegocio ? inputErrorStyle : {}) }} onFocus={onFocus} onBlur={onBlur} />
+                        <input type="text" value={formData.nombreNegocio} onChange={e => handleChange('nombreNegocio', e.target.value)} placeholder="Ej: Mi Empresa S.A. de C.V." style={{ ...inputWithIconStyle, ...(formErrors.nombreNegocio ? inputErrorStyle : {}) }} onFocus={e => { if (!formErrors.nombreNegocio) { e.target.style.borderColor = 'var(--capyme-blue-mid)'; e.target.style.boxShadow = '0 0 0 3px rgba(43,91,166,0.12)'; } }} onBlur={e => { if (!formErrors.nombreNegocio) { e.target.style.borderColor = 'var(--border)'; e.target.style.boxShadow = 'none'; } }} />
                       </div>
                       {formErrors.nombreNegocio && <ErrorMsg text={formErrors.nombreNegocio} />}
                     </div>
@@ -530,7 +531,7 @@ const Negocios = () => {
                     </div>
                     <div>
                       <label style={labelStyle}>RFC</label>
-                      <input type="text" value={formData.rfc} onChange={e => handleChange('rfc', e.target.value.toUpperCase())} placeholder="XAXX010101000" maxLength={13} style={{ ...inputBaseStyle, ...(formErrors.rfc ? inputErrorStyle : {}) }} onFocus={onFocus} onBlur={onBlur} />
+                      <input type="text" value={formData.rfc} onChange={e => handleChange('rfc', e.target.value.toUpperCase())} placeholder="XAXX010101000" maxLength={13} style={{ ...inputBaseStyle, ...(formErrors.rfc ? inputErrorStyle : {}) }} onFocus={e => { if (!formErrors.rfc) { e.target.style.borderColor = 'var(--capyme-blue-mid)'; e.target.style.boxShadow = '0 0 0 3px rgba(43,91,166,0.12)'; } }} onBlur={e => { if (!formErrors.rfc) { e.target.style.borderColor = 'var(--border)'; e.target.style.boxShadow = 'none'; } }} />
                       {formErrors.rfc && <ErrorMsg text={formErrors.rfc} />}
                     </div>
                     <div>
@@ -570,7 +571,7 @@ const Negocios = () => {
                     </div>
                     <div>
                       <label style={labelStyle}>Código Postal</label>
-                      <input type="text" value={formData.codigoPostal} onChange={e => handleChange('codigoPostal', e.target.value.replace(/\D/g, '').slice(0, 5))} placeholder="76000" maxLength={5} style={{ ...inputBaseStyle, ...(formErrors.codigoPostal ? inputErrorStyle : {}) }} onFocus={onFocus} onBlur={onBlur} />
+                      <input type="text" value={formData.codigoPostal} onChange={e => handleChange('codigoPostal', e.target.value.replace(/\D/g, '').slice(0, 5))} placeholder="76000" maxLength={5} style={{ ...inputBaseStyle, ...(formErrors.codigoPostal ? inputErrorStyle : {}) }} onFocus={e => { if (!formErrors.codigoPostal) { e.target.style.borderColor = 'var(--capyme-blue-mid)'; e.target.style.boxShadow = '0 0 0 3px rgba(43,91,166,0.12)'; } }} onBlur={e => { if (!formErrors.codigoPostal) { e.target.style.borderColor = 'var(--border)'; e.target.style.boxShadow = 'none'; } }} />
                       {formErrors.codigoPostal && <ErrorMsg text={formErrors.codigoPostal} />}
                     </div>
                   </div>
@@ -590,7 +591,7 @@ const Negocios = () => {
                       <label style={labelStyle}>Email</label>
                       <div style={{ position: 'relative' }}>
                         <Mail style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', width: '15px', height: '15px', color: 'var(--gray-400)', pointerEvents: 'none' }} />
-                        <input type="email" value={formData.emailNegocio} onChange={e => handleChange('emailNegocio', e.target.value)} placeholder="contacto@negocio.com" style={{ ...inputWithIconStyle, ...(formErrors.emailNegocio ? inputErrorStyle : {}) }} onFocus={onFocus} onBlur={onBlur} />
+                        <input type="email" value={formData.emailNegocio} onChange={e => handleChange('emailNegocio', e.target.value)} placeholder="contacto@negocio.com" style={{ ...inputWithIconStyle, ...(formErrors.emailNegocio ? inputErrorStyle : {}) }} onFocus={e => { if (!formErrors.emailNegocio) { e.target.style.borderColor = 'var(--capyme-blue-mid)'; e.target.style.boxShadow = '0 0 0 3px rgba(43,91,166,0.12)'; } }} onBlur={e => { if (!formErrors.emailNegocio) { e.target.style.borderColor = 'var(--border)'; e.target.style.boxShadow = 'none'; } }} />
                       </div>
                       {formErrors.emailNegocio && <ErrorMsg text={formErrors.emailNegocio} />}
                     </div>
@@ -623,12 +624,11 @@ const Negocios = () => {
               </div>
             </div>
 
-            {/* Footer */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '12px', padding: '16px 24px', borderTop: '1px solid var(--border)', background: 'var(--gray-50)' }}>
               <button type="button" onClick={handleCloseModal} disabled={submitting} style={{ padding: '10px 20px', fontSize: '14px', fontWeight: 600, fontFamily: "'Plus Jakarta Sans', sans-serif", color: 'var(--gray-600)', background: '#fff', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', cursor: submitting ? 'not-allowed' : 'pointer', opacity: submitting ? 0.5 : 1, transition: 'all 150ms ease' }}>
                 Cancelar
               </button>
-              <button type="button" onClick={handleSubmit} disabled={submitting} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 24px', fontSize: '14px', fontWeight: 600, fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#fff', background: 'linear-gradient(135deg, var(--capyme-blue-mid), var(--capyme-blue))', border: 'none', borderRadius: 'var(--radius-md)', cursor: submitting ? 'not-allowed' : 'pointer', opacity: submitting ? 0.7 : 1, boxShadow: '0 2px 8px rgba(31,78,158,0.28)', transition: 'all 200ms ease' }} onMouseEnter={e => { if (!submitting) e.currentTarget.style.transform = 'translateY(-1px)'; }} onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}>
+              <button type="button" onClick={handleSubmit} disabled={submitting || Object.keys(formErrors).length > 0 || !isFormValid} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 24px', fontSize: '14px', fontWeight: 600, fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#fff', background: 'linear-gradient(135deg, var(--capyme-blue-mid), var(--capyme-blue))', border: 'none', borderRadius: 'var(--radius-md)', cursor: submitting || Object.keys(formErrors).length > 0 || !isFormValid ? 'not-allowed' : 'pointer', opacity: submitting || Object.keys(formErrors).length > 0 || !isFormValid ? 0.6 : 1, boxShadow: '0 2px 8px rgba(31,78,158,0.28)', transition: 'all 200ms ease' }} onMouseEnter={e => { if (!submitting && isFormValid && Object.keys(formErrors).length === 0) e.currentTarget.style.transform = 'translateY(-1px)'; }} onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}>
                 {submitting && <div style={{ width: '14px', height: '14px', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 700ms linear infinite' }} />}
                 {modalMode === 'create' ? 'Crear Negocio' : 'Guardar Cambios'}
               </button>
@@ -637,7 +637,6 @@ const Negocios = () => {
         </div>
       )}
 
-      {/* ═══ MODAL CONFIRM GENÉRICO ═══ */}
       <ConfirmModal config={confirmConfig} onClose={closeConfirm} />
     </Layout>
   );

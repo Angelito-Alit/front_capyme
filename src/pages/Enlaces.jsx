@@ -30,8 +30,9 @@ const ConfirmModal = ({ config, onClose }) => {
   const subtitleColor= isDanger ? '#DC2626' : isWarning ? '#B45309' : 'var(--gray-500)';
   const btnBg        = isDanger ? 'linear-gradient(135deg,#EF4444,#DC2626)' : isWarning ? 'linear-gradient(135deg,#F59E0B,#D97706)' : 'linear-gradient(135deg,var(--capyme-blue-mid),var(--capyme-blue))';
   const btnShadow    = isDanger ? '0 2px 8px rgba(239,68,68,0.35)' : isWarning ? '0 2px 8px rgba(245,158,11,0.35)' : '0 2px 8px rgba(31,78,158,0.28)';
+  
   return (
-    <div onClick={onClose} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.45)', backdropFilter:'blur(4px)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:1200, padding:'20px' }}>
+    <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.45)', backdropFilter:'blur(4px)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:1200, padding:'20px' }}>
       <div onClick={e => e.stopPropagation()} style={{ background:'#fff', borderRadius:'var(--radius-lg)', width:'100%', maxWidth:'440px', boxShadow:'0 24px 64px rgba(0,0,0,0.22)', overflow:'hidden', animation:'modalIn 0.22s ease both' }}>
         <div style={{ background:accentBg, padding:'20px 24px', borderBottom:`1px solid ${accentBorder}`, display:'flex', alignItems:'center', gap:'14px' }}>
           <div style={{ width:'44px', height:'44px', background:iconBg, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
@@ -154,6 +155,12 @@ const Enlaces = () => {
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
+
+  const isFormValid =
+    formData.titulo.trim() !== '' &&
+    formData.url.trim() !== '' &&
+    /^https?:\/\/.+/.test(formData.url) &&
+    (formData.costo === '' || !isNaN(parseFloat(formData.costo)));
 
   const handleOpenModal = (mode, enlace = null) => {
     setModalMode(mode);
@@ -310,7 +317,6 @@ const Enlaces = () => {
 
       <div style={{ padding:'0 0 40px' }}>
 
-        {/* HEADER */}
         <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', marginBottom:'28px', flexWrap:'wrap', gap:'16px' }}>
           <div style={{ display:'flex', alignItems:'center', gap:'14px' }}>
             <div style={{ width:'46px', height:'46px', background:'linear-gradient(135deg, var(--capyme-blue-mid), var(--capyme-blue))', borderRadius:'var(--radius-md)', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 4px 12px rgba(31,78,158,0.25)' }}>
@@ -339,12 +345,11 @@ const Enlaces = () => {
           </div>
         </div>
 
-        {/* STATS */}
         <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(130px, 1fr))', gap:'12px', marginBottom:'20px' }}>
           {[
-            { label:'Total',           value: enlaces.length,                                    color:'var(--capyme-blue-mid)', bg:'var(--capyme-blue-pale)' },
-            { label:'Activos',         value: enlaces.filter(e => e.activo).length,              color:'#16A34A', bg:'#F0FDF4' },
-            { label:'Inactivos',       value: enlaces.filter(e => !e.activo).length,             color:'#DC2626', bg:'#FEF2F2' },
+            { label:'Total',           value: enlaces.length,                                      color:'var(--capyme-blue-mid)', bg:'var(--capyme-blue-pale)' },
+            { label:'Activos',         value: enlaces.filter(e => e.activo).length,                color:'#16A34A', bg:'#F0FDF4' },
+            { label:'Inactivos',       value: enlaces.filter(e => !e.activo).length,               color:'#DC2626', bg:'#FEF2F2' },
             { label:'Con costo',       value: enlaces.filter(e => parseFloat(e.costo || 0) > 0).length, color:'#C2410C', bg:'#FFF7ED' },
           ].map(stat => (
             <div key={stat.label} style={{ background:stat.bg, borderRadius:'var(--radius-md)', padding:'14px 16px', display:'flex', alignItems:'center', gap:'10px' }}>
@@ -354,11 +359,10 @@ const Enlaces = () => {
           ))}
         </div>
 
-        {/* FILTERS */}
         <div style={{ background:'#fff', border:'1px solid var(--border)', borderRadius:'var(--radius-lg)', padding:'16px 20px', marginBottom:'20px', display:'flex', gap:'12px', alignItems:'center', flexWrap:'wrap', boxShadow:'var(--shadow-sm)' }}>
           <div style={{ position:'relative', flex:'1', minWidth:'180px' }}>
             <Search style={{ position:'absolute', left:'11px', top:'50%', transform:'translateY(-50%)', width:'15px', height:'15px', color:'var(--gray-400)', pointerEvents:'none' }} />
-            <input type="text" placeholder="Buscar catálogo, descripción o categoría…" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} style={inputWithIconStyle} />
+            <input type="text" placeholder="Buscar catálogo, descripción o categoría…" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} style={inputWithIconStyle} onFocus={e => { e.target.style.borderColor='var(--capyme-blue-mid)'; e.target.style.boxShadow='0 0 0 3px rgba(43,91,166,0.12)'; }} onBlur={e => { e.target.style.borderColor='var(--border)'; e.target.style.boxShadow='none'; }} />
           </div>
           <div style={{ position:'relative', minWidth:'150px' }}>
             <select value={filterTipo} onChange={e => setFilterTipo(e.target.value)} style={{ ...selectStyle, width:'100%' }}>
@@ -380,7 +384,6 @@ const Enlaces = () => {
           </div>
         </div>
 
-        {/* GRID */}
         {enlacesFiltrados.length === 0 ? (
           <div style={{ background:'#fff', border:'1px solid var(--border)', borderRadius:'var(--radius-lg)', padding:'60px 20px', textAlign:'center', boxShadow:'var(--shadow-sm)' }}>
             <div style={{ width:'56px', height:'56px', background:'var(--gray-100)', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto 14px' }}>
@@ -446,16 +449,24 @@ const Enlaces = () => {
                             <Edit style={{ width:'13px', height:'13px' }} /> Editar
                           </button>
                         )}
-                        {currentUser.rol === 'admin' && !enlace.activo && (
-                          <button onClick={() => handleToggleActivo(enlace)} style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', gap:'6px', padding:'7px 12px', border:'1px solid var(--border)', borderRadius:'var(--radius-sm)', background:'transparent', cursor:'pointer', color:'var(--gray-400)', fontSize:'12px', fontFamily:"'DM Sans', sans-serif", fontWeight:600, transition:'all 150ms ease' }} onMouseEnter={e => { e.currentTarget.style.background='#ECFDF5'; e.currentTarget.style.color='#065F46'; e.currentTarget.style.borderColor='#16A34A'; }} onMouseLeave={e => { e.currentTarget.style.background='transparent'; e.currentTarget.style.color='var(--gray-400)'; e.currentTarget.style.borderColor='var(--border)'; }}>
-                            <CheckCircle style={{ width:'13px', height:'13px' }} /> Activar
-                          </button>
-                        )}
-                        {currentUser.rol === 'admin' && enlace.activo && (
-                          <button onClick={() => handleToggleActivo(enlace)} style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', gap:'6px', padding:'7px 12px', border:'1px solid var(--border)', borderRadius:'var(--radius-sm)', background:'transparent', cursor:'pointer', color:'var(--gray-400)', fontSize:'12px', fontFamily:"'DM Sans', sans-serif", fontWeight:600, transition:'all 150ms ease' }} onMouseEnter={e => { e.currentTarget.style.background='#FEF2F2'; e.currentTarget.style.color='#DC2626'; e.currentTarget.style.borderColor='#DC2626'; }} onMouseLeave={e => { e.currentTarget.style.background='transparent'; e.currentTarget.style.color='var(--gray-400)'; e.currentTarget.style.borderColor='var(--border)'; }}>
-                            <Trash2 style={{ width:'13px', height:'13px' }} /> Desactivar
-                          </button>
-                        )}
+                        {currentUser.rol === 'admin' ? (
+                          <>
+                            {!enlace.activo && (
+                              <button onClick={() => handleToggleActivo(enlace)} style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', gap:'6px', padding:'7px 12px', border:'1px solid var(--border)', borderRadius:'var(--radius-sm)', background:'transparent', cursor:'pointer', color:'var(--gray-400)', fontSize:'12px', fontFamily:"'DM Sans', sans-serif", fontWeight:600, transition:'all 150ms ease' }} onMouseEnter={e => { e.currentTarget.style.background='#ECFDF5'; e.currentTarget.style.color='#065F46'; e.currentTarget.style.borderColor='#16A34A'; }} onMouseLeave={e => { e.currentTarget.style.background='transparent'; e.currentTarget.style.color='var(--gray-400)'; e.currentTarget.style.borderColor='var(--border)'; }}>
+                                <CheckCircle style={{ width:'13px', height:'13px' }} /> Activar
+                              </button>
+                            )}
+                            {enlace.activo && (
+                              <button onClick={() => handleToggleActivo(enlace)} style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', gap:'6px', padding:'7px 12px', border:'1px solid var(--border)', borderRadius:'var(--radius-sm)', background:'transparent', cursor:'pointer', color:'var(--gray-400)', fontSize:'12px', fontFamily:"'DM Sans', sans-serif", fontWeight:600, transition:'all 150ms ease' }} onMouseEnter={e => { e.currentTarget.style.background='#FEF2F2'; e.currentTarget.style.color='#DC2626'; e.currentTarget.style.borderColor='#DC2626'; }} onMouseLeave={e => { e.currentTarget.style.background='transparent'; e.currentTarget.style.color='var(--gray-400)'; e.currentTarget.style.borderColor='var(--border)'; }}>
+                                <Trash2 style={{ width:'13px', height:'13px' }} /> Desactivar
+                              </button>
+                            )}
+                          </>
+                        ) : currentUser.rol === 'colaborador' ? (
+                          <div title="Sin permiso" style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', gap:'6px', padding:'7px 12px', border:'1px solid var(--border)', borderRadius:'var(--radius-sm)', background:'transparent', cursor:'not-allowed', color:'var(--gray-200)', fontSize:'12px', fontFamily:"'DM Sans', sans-serif", fontWeight:600 }}>
+                            {enlace.activo ? <><Trash2 style={{ width:'13px', height:'13px' }} /> Desactivar</> : <><CheckCircle style={{ width:'13px', height:'13px' }} /> Activar</>}
+                          </div>
+                        ) : null}
                       </div>
                     </div>
                   </div>
@@ -466,9 +477,8 @@ const Enlaces = () => {
         )}
       </div>
 
-      {/* MODAL CREAR / EDITAR */}
       {showModal && (
-        <div onClick={handleCloseModal} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.42)', backdropFilter:'blur(4px)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:1000, padding:'20px' }}>
+        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.42)', backdropFilter:'blur(4px)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:1000, padding:'20px' }}>
           <div className="enlace-modal" onClick={e => e.stopPropagation()} style={{ background:'#fff', borderRadius:'var(--radius-lg)', width:'100%', maxWidth:'620px', maxHeight:'92vh', display:'flex', flexDirection:'column', boxShadow:'0 24px 64px rgba(0,0,0,0.18)', overflow:'hidden' }}>
             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'20px 24px', background:'var(--gray-50)', borderBottom:'1px solid var(--border)', flexShrink:0 }}>
               <div style={{ display:'flex', alignItems:'center', gap:'12px' }}>
@@ -489,20 +499,20 @@ const Enlaces = () => {
               <div style={{ display:'flex', flexDirection:'column', gap:'14px' }}>
                 <div>
                   <label style={labelStyle}>Título <span style={{ color:'#EF4444' }}>*</span></label>
-                  <input name="titulo" type="text" value={formData.titulo} onChange={handleChange} placeholder="Ej. Catálogo de productos 2025" style={{ ...inputBaseStyle, ...(formErrors.titulo ? inputErrorStyle : {}) }} />
+                  <input name="titulo" type="text" value={formData.titulo} onChange={handleChange} placeholder="Ej. Catálogo de productos 2025" style={{ ...inputBaseStyle, ...(formErrors.titulo ? inputErrorStyle : {}) }} onFocus={e => { if (!formErrors.titulo) { e.target.style.borderColor='var(--capyme-blue-mid)'; e.target.style.boxShadow='0 0 0 3px rgba(43,91,166,0.12)'; } }} onBlur={e => { if (!formErrors.titulo) { e.target.style.borderColor='var(--border)'; e.target.style.boxShadow='none'; } }} />
                   {formErrors.titulo && <ErrorMsg text={formErrors.titulo} />}
                 </div>
                 <div>
                   <label style={labelStyle}>URL del catálogo <span style={{ color:'#EF4444' }}>*</span></label>
                   <div style={{ position:'relative' }}>
                     <ExternalLink style={{ position:'absolute', left:'11px', top:'50%', transform:'translateY(-50%)', width:'14px', height:'14px', color:'var(--gray-400)', pointerEvents:'none' }} />
-                    <input name="url" type="text" value={formData.url} onChange={handleChange} placeholder="https://..." style={{ ...inputWithIconStyle, ...(formErrors.url ? inputErrorStyle : {}) }} />
+                    <input name="url" type="text" value={formData.url} onChange={handleChange} placeholder="https://..." style={{ ...inputWithIconStyle, ...(formErrors.url ? inputErrorStyle : {}) }} onFocus={e => { if (!formErrors.url) { e.target.style.borderColor='var(--capyme-blue-mid)'; e.target.style.boxShadow='0 0 0 3px rgba(43,91,166,0.12)'; } }} onBlur={e => { if (!formErrors.url) { e.target.style.borderColor='var(--border)'; e.target.style.boxShadow='none'; } }} />
                   </div>
                   {formErrors.url && <ErrorMsg text={formErrors.url} />}
                 </div>
                 <div>
                   <label style={labelStyle}>Descripción</label>
-                  <textarea name="descripcion" value={formData.descripcion} onChange={handleChange} placeholder="Describe brevemente este catálogo…" style={textareaStyle} />
+                  <textarea name="descripcion" value={formData.descripcion} onChange={handleChange} placeholder="Describe brevemente este catálogo…" style={textareaStyle} onFocus={e => { e.target.style.borderColor='var(--capyme-blue-mid)'; e.target.style.boxShadow='0 0 0 3px rgba(43,91,166,0.12)'; }} onBlur={e => { e.target.style.borderColor='var(--border)'; e.target.style.boxShadow='none'; }} />
                 </div>
               </div>
 
@@ -522,7 +532,7 @@ const Enlaces = () => {
                 </div>
                 <div>
                   <label style={labelStyle}>Categoría</label>
-                  <input name="categoria" type="text" value={formData.categoria} onChange={handleChange} placeholder="Ej: Marketing, Finanzas" style={inputBaseStyle} />
+                  <input name="categoria" type="text" value={formData.categoria} onChange={handleChange} placeholder="Ej: Marketing, Finanzas" style={inputBaseStyle} onFocus={e => { e.target.style.borderColor='var(--capyme-blue-mid)'; e.target.style.boxShadow='0 0 0 3px rgba(43,91,166,0.12)'; }} onBlur={e => { e.target.style.borderColor='var(--border)'; e.target.style.boxShadow='none'; }} />
                 </div>
                 <div>
                   <label style={labelStyle}>Visible para</label>
@@ -540,7 +550,7 @@ const Enlaces = () => {
                   <label style={labelStyle}>Costo de acceso (MXN)</label>
                   <div style={{ position:'relative' }}>
                     <DollarSign style={{ position:'absolute', left:'11px', top:'50%', transform:'translateY(-50%)', width:'14px', height:'14px', color:'var(--gray-400)', pointerEvents:'none' }} />
-                    <input name="costo" type="number" step="0.01" min="0" value={formData.costo} onChange={handleChange} placeholder="0.00 (gratis)" style={{ ...inputWithIconStyle, ...(formErrors.costo ? inputErrorStyle : {}) }} />
+                    <input name="costo" type="number" step="0.01" min="0" value={formData.costo} onChange={handleChange} placeholder="0.00 (gratis)" style={{ ...inputWithIconStyle, ...(formErrors.costo ? inputErrorStyle : {}) }} onFocus={e => { if (!formErrors.costo) { e.target.style.borderColor='var(--capyme-blue-mid)'; e.target.style.boxShadow='0 0 0 3px rgba(43,91,166,0.12)'; } }} onBlur={e => { if (!formErrors.costo) { e.target.style.borderColor='var(--border)'; e.target.style.boxShadow='none'; } }} />
                   </div>
                   {formErrors.costo && <ErrorMsg text={formErrors.costo} />}
                   <p style={{ fontSize:'11px', color:'var(--gray-400)', margin:'4px 0 0', fontFamily:"'DM Sans', sans-serif" }}>Déjalo vacío o en 0 para acceso gratuito</p>
@@ -550,7 +560,21 @@ const Enlaces = () => {
 
             <div style={{ display:'flex', justifyContent:'flex-end', gap:'10px', padding:'16px 24px', background:'var(--gray-50)', borderTop:'1px solid var(--border)', flexShrink:0 }}>
               <button onClick={handleCloseModal} disabled={submitting} style={{ padding:'9px 18px', border:'1px solid var(--border)', borderRadius:'var(--radius-md)', background:'#fff', color:'var(--gray-700)', fontSize:'14px', fontWeight:600, fontFamily:"'DM Sans', sans-serif", cursor:'pointer', transition:'all 150ms ease' }} onMouseEnter={e => e.currentTarget.style.background='var(--gray-100)'} onMouseLeave={e => e.currentTarget.style.background='#fff'}>Cancelar</button>
-              <button onClick={handleSubmit} disabled={submitting} style={{ padding:'9px 22px', border:'none', borderRadius:'var(--radius-md)', background: submitting ? 'var(--gray-300)' : 'linear-gradient(135deg, var(--capyme-blue-mid), var(--capyme-blue))', color:'#fff', fontSize:'14px', fontWeight:600, fontFamily:"'DM Sans', sans-serif", cursor: submitting ? 'not-allowed' : 'pointer', boxShadow: submitting ? 'none' : '0 2px 8px rgba(31,78,158,0.28)', transition:'all 150ms ease', display:'flex', alignItems:'center', gap:'8px' }}>
+              <button
+                onClick={handleSubmit}
+                disabled={submitting || Object.keys(formErrors).length > 0 || !isFormValid}
+                style={{
+                  padding:'9px 22px', border:'none', borderRadius:'var(--radius-md)',
+                  background: submitting || Object.keys(formErrors).length > 0 || !isFormValid ? 'var(--gray-300)' : 'linear-gradient(135deg, var(--capyme-blue-mid), var(--capyme-blue))',
+                  color:'#fff', fontSize:'14px', fontWeight:600, fontFamily:"'DM Sans', sans-serif",
+                  cursor: submitting || Object.keys(formErrors).length > 0 || !isFormValid ? 'not-allowed' : 'pointer',
+                  opacity: submitting || Object.keys(formErrors).length > 0 || !isFormValid ? 0.6 : 1,
+                  boxShadow: submitting || Object.keys(formErrors).length > 0 || !isFormValid ? 'none' : '0 2px 8px rgba(31,78,158,0.28)',
+                  transition:'all 150ms ease', display:'flex', alignItems:'center', gap:'8px'
+                }}
+                onMouseEnter={e => { if (!submitting && isFormValid && Object.keys(formErrors).length === 0) e.currentTarget.style.transform='translateY(-1px)'; }}
+                onMouseLeave={e => { e.currentTarget.style.transform='translateY(0)'; }}
+              >
                 {submitting && <span style={{ width:'14px', height:'14px', border:'2px solid rgba(255,255,255,0.4)', borderTopColor:'#fff', borderRadius:'50%', display:'inline-block', animation:'spin 0.7s linear infinite' }} />}
                 {submitting ? 'Guardando…' : modalMode === 'create' ? 'Crear Catálogo' : 'Guardar Cambios'}
               </button>
@@ -559,9 +583,8 @@ const Enlaces = () => {
         </div>
       )}
 
-      {/* MODAL ACCESOS */}
       {showAccesosModal && (
-        <div onClick={() => setShowAccesosModal(false)} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.42)', backdropFilter:'blur(4px)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:1000, padding:'20px' }}>
+        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.42)', backdropFilter:'blur(4px)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:1000, padding:'20px' }}>
           <div className="enlace-modal" onClick={e => e.stopPropagation()} style={{ background:'#fff', borderRadius:'var(--radius-lg)', width:'100%', maxWidth:'680px', maxHeight:'88vh', display:'flex', flexDirection:'column', boxShadow:'0 24px 64px rgba(0,0,0,0.18)', overflow:'hidden' }}>
             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'20px 24px', background:'var(--gray-50)', borderBottom:'1px solid var(--border)', flexShrink:0 }}>
               <div style={{ display:'flex', alignItems:'center', gap:'12px' }}>
@@ -639,9 +662,8 @@ const Enlaces = () => {
         </div>
       )}
 
-      {/* MODAL PAGOS PENDIENTES */}
       {showPagosModal && (
-        <div onClick={() => setShowPagosModal(false)} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.42)', backdropFilter:'blur(4px)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:1000, padding:'20px' }}>
+        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.42)', backdropFilter:'blur(4px)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:1000, padding:'20px' }}>
           <div className="enlace-modal" onClick={e => e.stopPropagation()} style={{ background:'#fff', borderRadius:'var(--radius-lg)', width:'100%', maxWidth:'780px', maxHeight:'90vh', display:'flex', flexDirection:'column', boxShadow:'0 24px 64px rgba(0,0,0,0.18)', overflow:'hidden' }}>
             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'20px 24px', background:'#FFF7ED', borderBottom:'1px solid #FED7AA', flexShrink:0 }}>
               <div style={{ display:'flex', alignItems:'center', gap:'12px' }}>
@@ -728,6 +750,7 @@ const Enlaces = () => {
                 </div>
               )}
             </div>
+
             <div style={{ padding:'14px 24px', background:'var(--gray-50)', borderTop:'1px solid var(--border)', flexShrink:0, display:'flex', justifyContent:'flex-end' }}>
               <button onClick={() => setShowPagosModal(false)} style={{ padding:'8px 18px', border:'1px solid var(--border)', borderRadius:'var(--radius-md)', background:'#fff', color:'var(--gray-700)', fontSize:'13px', fontWeight:600, fontFamily:"'DM Sans', sans-serif", cursor:'pointer', transition:'all 150ms ease' }} onMouseEnter={e => e.currentTarget.style.background='var(--gray-100)'} onMouseLeave={e => e.currentTarget.style.background='#fff'}>Cerrar</button>
             </div>
@@ -735,9 +758,8 @@ const Enlaces = () => {
         </div>
       )}
 
-      {/* MODAL CONFIRMAR PAGO */}
       {showConfirmModal && pagoToConfirm && (
-        <div onClick={() => setShowConfirmModal(false)} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.42)', backdropFilter:'blur(4px)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:1100, padding:'20px' }}>
+        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.42)', backdropFilter:'blur(4px)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:1100, padding:'20px' }}>
           <div className="enlace-modal" onClick={e => e.stopPropagation()} style={{ background:'#fff', borderRadius:'var(--radius-lg)', width:'100%', maxWidth:'500px', boxShadow:'0 24px 64px rgba(0,0,0,0.25)', overflow:'hidden' }}>
             <div style={{ background:'#F0FDF4', padding:'20px 24px', borderBottom:'1px solid #BBF7D0', display:'flex', alignItems:'center', gap:'14px' }}>
               <div style={{ width:'44px', height:'44px', background:'#16A34A', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 4px 12px rgba(22,163,74,0.25)' }}>
@@ -780,9 +802,8 @@ const Enlaces = () => {
         </div>
       )}
 
-      {/* MODAL DECLINAR */}
       {showDeclinarModal && pagoToDeclinar && (
-        <div onClick={() => setShowDeclinarModal(false)} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.42)', backdropFilter:'blur(4px)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:1100, padding:'20px' }}>
+        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.42)', backdropFilter:'blur(4px)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:1100, padding:'20px' }}>
           <div className="enlace-modal" onClick={e => e.stopPropagation()} style={{ background:'#fff', borderRadius:'var(--radius-lg)', width:'100%', maxWidth:'500px', boxShadow:'0 24px 64px rgba(0,0,0,0.25)', overflow:'hidden' }}>
             <div style={{ background:'#FEF2F2', padding:'20px 24px', borderBottom:'1px solid #FECACA', display:'flex', alignItems:'center', gap:'14px' }}>
               <div style={{ width:'44px', height:'44px', background:'#EF4444', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 4px 12px rgba(239,68,68,0.25)' }}>

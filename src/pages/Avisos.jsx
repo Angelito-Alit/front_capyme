@@ -29,7 +29,6 @@ const initialFormData = {
   fechaExpiracion: '',
 };
 
-/* ─── Modal de confirmación reutilizable ─────────────────── */
 const ConfirmModal = ({ config, onClose }) => {
   if (!config?.show) return null;
   const isDanger  = config.variant === 'danger';
@@ -53,7 +52,6 @@ const ConfirmModal = ({ config, onClose }) => {
 
   return (
     <div
-      onClick={onClose}
       style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.45)', backdropFilter:'blur(4px)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:1200, padding:'20px' }}
     >
       <div
@@ -138,7 +136,6 @@ const Avisos = () => {
   const [formErrors, setFormErrors] = useState({});
   const [hoveredRow, setHoveredRow] = useState(null);
 
-  /* ── Modal de confirmación ── */
   const [confirmConfig, setConfirmConfig] = useState({ show: false });
   const showConfirm = (cfg) => setConfirmConfig({ show: true, ...cfg });
   const closeConfirm = () => setConfirmConfig({ show: false });
@@ -183,6 +180,8 @@ const Avisos = () => {
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
+
+  const isFormValid = formData.titulo.trim() !== '' && formData.contenido.trim() !== '';
 
   const handleOpenModal = (mode, aviso = null) => {
     setModalMode(mode);
@@ -238,7 +237,6 @@ const Avisos = () => {
     }
   };
 
-  /* ── Toggle con ConfirmModal ── */
   const handleToggleActivo = (aviso) => {
     const desactivar = aviso.activo;
     showConfirm({
@@ -324,7 +322,6 @@ const Avisos = () => {
 
       <div style={{ padding: '0 0 40px' }}>
 
-        {/* ── HEADER ── */}
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '28px', flexWrap: 'wrap', gap: '16px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
             <div style={{ width: '46px', height: '46px', background: 'linear-gradient(135deg, var(--capyme-blue-mid), var(--capyme-blue))', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(31,78,158,0.25)' }}>
@@ -350,7 +347,6 @@ const Avisos = () => {
           )}
         </div>
 
-        {/* ── STATS ── */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '12px', marginBottom: '20px' }}>
           {[
             { label: 'Total',    value: avisos.length,                              color: 'var(--capyme-blue-mid)', bg: 'var(--capyme-blue-pale)' },
@@ -365,7 +361,6 @@ const Avisos = () => {
           ))}
         </div>
 
-        {/* ── FILTERS ── */}
         <div style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '16px 20px', marginBottom: '20px', display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap', boxShadow: 'var(--shadow-sm)' }}>
           <div style={{ position: 'relative', flex: '1', minWidth: '180px' }}>
             <Search style={{ position: 'absolute', left: '11px', top: '50%', transform: 'translateY(-50%)', width: '15px', height: '15px', color: 'var(--gray-400)', pointerEvents: 'none' }} />
@@ -400,7 +395,6 @@ const Avisos = () => {
           </div>
         </div>
 
-        {/* ── TABLE ── */}
         {avisosFiltrados.length === 0 ? (
           <div style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '60px 20px', textAlign: 'center', boxShadow: 'var(--shadow-sm)' }}>
             <div style={{ width: '56px', height: '56px', background: 'var(--gray-100)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px' }}>
@@ -546,12 +540,8 @@ const Avisos = () => {
         )}
       </div>
 
-      {/* ═══ MODAL CREAR / EDITAR ═══ */}
       {showModal && (
-        <div
-          onClick={handleCloseModal}
-          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.42)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}
-        >
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.42)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
           <div
             className="aviso-modal"
             onClick={(e) => e.stopPropagation()}
@@ -581,12 +571,29 @@ const Avisos = () => {
               <div style={{ marginTop: '14px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 <div>
                   <label style={labelStyle}>Título <span style={{ color: '#EF4444' }}>*</span></label>
-                  <input name="titulo" type="text" value={formData.titulo} onChange={handleChange} placeholder="Ej. Convocatoria Fondo PyME 2025" style={{ ...inputBaseStyle, ...(formErrors.titulo ? inputErrorStyle : {}) }} />
+                  <input
+                    name="titulo"
+                    type="text"
+                    value={formData.titulo}
+                    onChange={handleChange}
+                    placeholder="Ej. Convocatoria Fondo PyME 2025"
+                    style={{ ...inputBaseStyle, ...(formErrors.titulo ? inputErrorStyle : {}) }}
+                    onFocus={e => { if (!formErrors.titulo) { e.target.style.borderColor = 'var(--capyme-blue-mid)'; e.target.style.boxShadow = '0 0 0 3px rgba(43,91,166,0.12)'; } }}
+                    onBlur={e => { if (!formErrors.titulo) { e.target.style.borderColor = 'var(--border)'; e.target.style.boxShadow = 'none'; } }}
+                  />
                   {formErrors.titulo && <ErrorMsg text={formErrors.titulo} />}
                 </div>
                 <div>
                   <label style={labelStyle}>Contenido <span style={{ color: '#EF4444' }}>*</span></label>
-                  <textarea name="contenido" value={formData.contenido} onChange={handleChange} placeholder="Describe el aviso con detalle..." style={{ ...textareaStyle, ...(formErrors.contenido ? inputErrorStyle : {}) }} />
+                  <textarea
+                    name="contenido"
+                    value={formData.contenido}
+                    onChange={handleChange}
+                    placeholder="Describe el aviso con detalle..."
+                    style={{ ...textareaStyle, ...(formErrors.contenido ? inputErrorStyle : {}) }}
+                    onFocus={e => { if (!formErrors.contenido) { e.target.style.borderColor = 'var(--capyme-blue-mid)'; e.target.style.boxShadow = '0 0 0 3px rgba(43,91,166,0.12)'; } }}
+                    onBlur={e => { if (!formErrors.contenido) { e.target.style.borderColor = 'var(--border)'; e.target.style.boxShadow = 'none'; } }}
+                  />
                   {formErrors.contenido && <ErrorMsg text={formErrors.contenido} />}
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
@@ -621,11 +628,28 @@ const Avisos = () => {
                 <div style={{ marginTop: '14px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
                   <div>
                     <label style={labelStyle}>Link Externo</label>
-                    <input name="linkExterno" type="url" value={formData.linkExterno} onChange={handleChange} placeholder="https://..." style={inputBaseStyle} />
+                    <input
+                      name="linkExterno"
+                      type="url"
+                      value={formData.linkExterno}
+                      onChange={handleChange}
+                      placeholder="https://..."
+                      style={inputBaseStyle}
+                      onFocus={e => { e.target.style.borderColor = 'var(--capyme-blue-mid)'; e.target.style.boxShadow = '0 0 0 3px rgba(43,91,166,0.12)'; }}
+                      onBlur={e => { e.target.style.borderColor = 'var(--border)'; e.target.style.boxShadow = 'none'; }}
+                    />
                   </div>
                   <div>
                     <label style={labelStyle}>Fecha de Expiración</label>
-                    <input name="fechaExpiracion" type="date" value={formData.fechaExpiracion} onChange={handleChange} style={inputBaseStyle} />
+                    <input
+                      name="fechaExpiracion"
+                      type="date"
+                      value={formData.fechaExpiracion}
+                      onChange={handleChange}
+                      style={inputBaseStyle}
+                      onFocus={e => { e.target.style.borderColor = 'var(--capyme-blue-mid)'; e.target.style.boxShadow = '0 0 0 3px rgba(43,91,166,0.12)'; }}
+                      onBlur={e => { e.target.style.borderColor = 'var(--border)'; e.target.style.boxShadow = 'none'; }}
+                    />
                   </div>
                 </div>
               </div>
@@ -635,7 +659,21 @@ const Avisos = () => {
               <button onClick={handleCloseModal} disabled={submitting} style={{ padding: '9px 18px', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', background: '#fff', color: 'var(--gray-700)', fontSize: '14px', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", cursor: 'pointer', transition: 'all 150ms ease' }} onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--gray-100)'; }} onMouseLeave={(e) => { e.currentTarget.style.background = '#fff'; }}>
                 Cancelar
               </button>
-              <button onClick={handleSubmit} disabled={submitting} style={{ padding: '9px 22px', border: 'none', borderRadius: 'var(--radius-md)', background: submitting ? 'var(--gray-300)' : 'linear-gradient(135deg, var(--capyme-blue-mid), var(--capyme-blue))', color: '#fff', fontSize: '14px', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", cursor: submitting ? 'not-allowed' : 'pointer', boxShadow: submitting ? 'none' : '0 2px 8px rgba(31,78,158,0.28)', transition: 'all 150ms ease', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <button
+                onClick={handleSubmit}
+                disabled={submitting || Object.keys(formErrors).length > 0 || !isFormValid}
+                style={{
+                  padding: '9px 22px', border: 'none', borderRadius: 'var(--radius-md)',
+                  background: submitting || Object.keys(formErrors).length > 0 || !isFormValid ? 'var(--gray-300)' : 'linear-gradient(135deg, var(--capyme-blue-mid), var(--capyme-blue))',
+                  color: '#fff', fontSize: '14px', fontWeight: 600, fontFamily: "'DM Sans', sans-serif",
+                  cursor: submitting || Object.keys(formErrors).length > 0 || !isFormValid ? 'not-allowed' : 'pointer',
+                  opacity: submitting || Object.keys(formErrors).length > 0 || !isFormValid ? 0.6 : 1,
+                  boxShadow: submitting || Object.keys(formErrors).length > 0 || !isFormValid ? 'none' : '0 2px 8px rgba(31,78,158,0.28)',
+                  transition: 'all 150ms ease', display: 'flex', alignItems: 'center', gap: '8px'
+                }}
+                onMouseEnter={(e) => { if (!submitting && isFormValid && Object.keys(formErrors).length === 0) e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
+              >
                 {submitting && <span style={{ width: '14px', height: '14px', border: '2px solid rgba(255,255,255,0.4)', borderTopColor: '#fff', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} />}
                 {submitting ? 'Guardando…' : modalMode === 'create' ? 'Crear Aviso' : 'Guardar Cambios'}
               </button>
@@ -644,7 +682,6 @@ const Avisos = () => {
         </div>
       )}
 
-      {/* ═══ MODAL CONFIRMACIÓN ═══ */}
       <ConfirmModal config={confirmConfig} onClose={closeConfirm} />
     </Layout>
   );

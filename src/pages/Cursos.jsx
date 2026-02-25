@@ -64,7 +64,7 @@ const ConfirmModal = ({ config, onClose }) => {
       : '0 2px 8px rgba(31,78,158,0.28)';
 
   return (
-    <div onClick={onClose} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.45)', backdropFilter:'blur(4px)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:1200, padding:'20px' }}>
+    <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.45)', backdropFilter:'blur(4px)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:1200, padding:'20px' }}>
       <div onClick={e => e.stopPropagation()} style={{ background:'#fff', borderRadius:'var(--radius-lg)', width:'100%', maxWidth:'440px', boxShadow:'0 24px 64px rgba(0,0,0,0.22)', overflow:'hidden', animation:'modalIn 0.22s ease both' }}>
         <div style={{ background:accentBg, padding:'20px 24px', borderBottom:`1px solid ${accentBorder}`, display:'flex', alignItems:'center', gap:'14px' }}>
           <div style={{ width:'44px', height:'44px', background:iconBg, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, boxShadow:`0 4px 12px ${iconBg}40` }}>
@@ -218,6 +218,12 @@ const Cursos = () => {
     return Object.keys(errors).length === 0;
   };
 
+  const isFormValid =
+    formData.titulo.trim() !== '' &&
+    (!formData.fechaInicio || !formData.fechaFin || formData.fechaInicio <= formData.fechaFin) &&
+    (formData.costo === '' || !isNaN(parseFloat(formData.costo))) &&
+    (formData.duracionHoras === '' || !isNaN(parseInt(formData.duracionHoras)));
+
   const handleOpenModal = (mode, curso = null) => {
     setModalMode(mode);
     setSelectedCurso(curso);
@@ -346,7 +352,6 @@ const Cursos = () => {
 
       <div style={{ padding: '0 0 40px' }}>
 
-        {/* HEADER */}
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '28px', flexWrap: 'wrap', gap: '16px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
             <div style={{ width: '46px', height: '46px', background: 'linear-gradient(135deg, var(--capyme-blue-mid), var(--capyme-blue))', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(31,78,158,0.25)' }}>
@@ -387,7 +392,6 @@ const Cursos = () => {
           </div>
         </div>
 
-        {/* STATS */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '12px', marginBottom: '20px' }}>
           {[
             { label: 'Total', value: cursos.length, color: 'var(--capyme-blue-mid)', bg: 'var(--capyme-blue-pale)' },
@@ -402,7 +406,6 @@ const Cursos = () => {
           ))}
         </div>
 
-        {/* FILTERS */}
         <div style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '16px 20px', marginBottom: '20px', display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap', boxShadow: 'var(--shadow-sm)' }}>
           <div style={{ position: 'relative', flex: '1', minWidth: '180px' }}>
             <Search style={{ position: 'absolute', left: '11px', top: '50%', transform: 'translateY(-50%)', width: '15px', height: '15px', color: 'var(--gray-400)', pointerEvents: 'none' }} />
@@ -434,7 +437,6 @@ const Cursos = () => {
           </div>
         </div>
 
-        {/* CONTENT */}
         {cursosFiltrados.length === 0 ? (
           <div style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '60px 20px', textAlign: 'center', boxShadow: 'var(--shadow-sm)' }}>
             <div style={{ width: '56px', height: '56px', background: 'var(--gray-100)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px' }}>
@@ -512,16 +514,24 @@ const Cursos = () => {
                             <Edit style={{ width: '15px', height: '15px' }} />
                           </button>
                         )}
-                        {currentUser.rol === 'admin' && !curso.activo && (
-                          <button onClick={() => handleToggleActivo(curso)} title="Activar" style={{ width: '34px', height: '34px', border: 'none', borderRadius: 'var(--radius-sm)', background: 'transparent', cursor: 'pointer', color: 'var(--gray-400)', transition: 'all 150ms ease', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onMouseEnter={e => { e.currentTarget.style.background = '#ECFDF5'; e.currentTarget.style.color = '#065F46'; }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gray-400)'; }}>
-                            <CheckCircle style={{ width: '15px', height: '15px' }} />
-                          </button>
-                        )}
-                        {currentUser.rol === 'admin' && curso.activo && (
-                          <button onClick={() => handleToggleActivo(curso)} title="Desactivar" style={{ width: '34px', height: '34px', border: 'none', borderRadius: 'var(--radius-sm)', background: 'transparent', cursor: 'pointer', color: 'var(--gray-400)', transition: 'all 150ms ease', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onMouseEnter={e => { e.currentTarget.style.background = '#FEF2F2'; e.currentTarget.style.color = '#DC2626'; }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gray-400)'; }}>
-                            <Trash2 style={{ width: '15px', height: '15px' }} />
-                          </button>
-                        )}
+                        {currentUser.rol === 'admin' ? (
+                          <>
+                            {!curso.activo && (
+                              <button onClick={() => handleToggleActivo(curso)} title="Activar" style={{ width: '34px', height: '34px', border: 'none', borderRadius: 'var(--radius-sm)', background: 'transparent', cursor: 'pointer', color: 'var(--gray-400)', transition: 'all 150ms ease', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onMouseEnter={e => { e.currentTarget.style.background = '#ECFDF5'; e.currentTarget.style.color = '#065F46'; }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gray-400)'; }}>
+                                <CheckCircle style={{ width: '15px', height: '15px' }} />
+                              </button>
+                            )}
+                            {curso.activo && (
+                              <button onClick={() => handleToggleActivo(curso)} title="Desactivar" style={{ width: '34px', height: '34px', border: 'none', borderRadius: 'var(--radius-sm)', background: 'transparent', cursor: 'pointer', color: 'var(--gray-400)', transition: 'all 150ms ease', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onMouseEnter={e => { e.currentTarget.style.background = '#FEF2F2'; e.currentTarget.style.color = '#DC2626'; }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gray-400)'; }}>
+                                <Trash2 style={{ width: '15px', height: '15px' }} />
+                              </button>
+                            )}
+                          </>
+                        ) : currentUser.rol === 'colaborador' ? (
+                          <div title="Sin permiso" style={{ width: '34px', height: '34px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 'var(--radius-sm)', color: 'var(--gray-200)', cursor: 'not-allowed' }}>
+                            {curso.activo ? <Trash2 style={{ width: '15px', height: '15px' }} /> : <CheckCircle style={{ width: '15px', height: '15px' }} />}
+                          </div>
+                        ) : null}
                       </div>
                     </div>
                   </div>
@@ -584,16 +594,24 @@ const Cursos = () => {
                               <Edit style={{ width: '15px', height: '15px' }} />
                             </button>
                           )}
-                          {currentUser.rol === 'admin' && !curso.activo && (
-                            <button onClick={() => handleToggleActivo(curso)} title="Activar" style={{ width: '34px', height: '34px', border: 'none', borderRadius: 'var(--radius-sm)', background: 'transparent', cursor: 'pointer', color: 'var(--gray-400)', transition: 'all 150ms ease', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onMouseEnter={e => { e.currentTarget.style.background = '#ECFDF5'; e.currentTarget.style.color = '#065F46'; }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gray-400)'; }}>
-                              <CheckCircle style={{ width: '15px', height: '15px' }} />
-                            </button>
-                          )}
-                          {currentUser.rol === 'admin' && curso.activo && (
-                            <button onClick={() => handleToggleActivo(curso)} title="Desactivar" style={{ width: '34px', height: '34px', border: 'none', borderRadius: 'var(--radius-sm)', background: 'transparent', cursor: 'pointer', color: 'var(--gray-400)', transition: 'all 150ms ease', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onMouseEnter={e => { e.currentTarget.style.background = '#FEF2F2'; e.currentTarget.style.color = '#DC2626'; }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gray-400)'; }}>
-                              <Trash2 style={{ width: '15px', height: '15px' }} />
-                            </button>
-                          )}
+                          {currentUser.rol === 'admin' ? (
+                            <>
+                              {!curso.activo && (
+                                <button onClick={() => handleToggleActivo(curso)} title="Activar" style={{ width: '34px', height: '34px', border: 'none', borderRadius: 'var(--radius-sm)', background: 'transparent', cursor: 'pointer', color: 'var(--gray-400)', transition: 'all 150ms ease', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onMouseEnter={e => { e.currentTarget.style.background = '#ECFDF5'; e.currentTarget.style.color = '#065F46'; }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gray-400)'; }}>
+                                  <CheckCircle style={{ width: '15px', height: '15px' }} />
+                                </button>
+                              )}
+                              {curso.activo && (
+                                <button onClick={() => handleToggleActivo(curso)} title="Desactivar" style={{ width: '34px', height: '34px', border: 'none', borderRadius: 'var(--radius-sm)', background: 'transparent', cursor: 'pointer', color: 'var(--gray-400)', transition: 'all 150ms ease', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onMouseEnter={e => { e.currentTarget.style.background = '#FEF2F2'; e.currentTarget.style.color = '#DC2626'; }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gray-400)'; }}>
+                                  <Trash2 style={{ width: '15px', height: '15px' }} />
+                                </button>
+                              )}
+                            </>
+                          ) : currentUser.rol === 'colaborador' ? (
+                            <div title="Sin permiso" style={{ width: '34px', height: '34px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 'var(--radius-sm)', color: 'var(--gray-200)', cursor: 'not-allowed' }}>
+                              {curso.activo ? <Trash2 style={{ width: '15px', height: '15px' }} /> : <CheckCircle style={{ width: '15px', height: '15px' }} />}
+                            </div>
+                          ) : null}
                         </div>
                       </td>
                     </tr>
@@ -605,9 +623,8 @@ const Cursos = () => {
         )}
       </div>
 
-      {/* MODAL CREAR / EDITAR */}
       {showModal && (
-        <div onClick={handleCloseModal} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.42)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.42)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
           <div className="curso-modal" onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 'var(--radius-lg)', width: '100%', maxWidth: '720px', maxHeight: '92vh', display: 'flex', flexDirection: 'column', boxShadow: '0 24px 64px rgba(0,0,0,0.18)', overflow: 'hidden' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 24px', background: 'var(--gray-50)', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -691,7 +708,7 @@ const Cursos = () => {
                 <div style={{ marginTop: '14px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
                   <div>
                     <label style={labelStyle}>Fecha de Inicio</label>
-                    <input name="fechaInicio" type="date" value={formData.fechaInicio} onChange={handleChange} style={inputBaseStyle} />
+                    <input name="fechaInicio" type="date" value={formData.fechaInicio} onChange={handleChange} style={{ ...inputBaseStyle, ...(formErrors.fechaInicio ? inputErrorStyle : {}) }} />
                   </div>
                   <div>
                     <label style={labelStyle}>Fecha de Fin</label>
@@ -706,18 +723,31 @@ const Cursos = () => {
               <button onClick={handleCloseModal} disabled={submitting} style={{ padding: '9px 18px', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', background: '#fff', color: 'var(--gray-700)', fontSize: '14px', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", cursor: 'pointer', transition: 'all 150ms ease' }} onMouseEnter={e => e.currentTarget.style.background = 'var(--gray-100)'} onMouseLeave={e => e.currentTarget.style.background = '#fff'}>
                 Cancelar
               </button>
-              <button onClick={handleSubmit} disabled={submitting} style={{ padding: '9px 22px', border: 'none', borderRadius: 'var(--radius-md)', background: submitting ? 'var(--gray-300)' : 'linear-gradient(135deg, var(--capyme-blue-mid), var(--capyme-blue))', color: '#fff', fontSize: '14px', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", cursor: submitting ? 'not-allowed' : 'pointer', boxShadow: submitting ? 'none' : '0 2px 8px rgba(31,78,158,0.28)', transition: 'all 150ms ease', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <button
+                onClick={handleSubmit}
+                disabled={submitting || Object.keys(formErrors).length > 0 || !isFormValid}
+                style={{
+                  padding: '9px 22px', border: 'none', borderRadius: 'var(--radius-md)',
+                  background: submitting || Object.keys(formErrors).length > 0 || !isFormValid ? 'var(--gray-300)' : 'linear-gradient(135deg, var(--capyme-blue-mid), var(--capyme-blue))',
+                  color: '#fff', fontSize: '14px', fontWeight: 600, fontFamily: "'DM Sans', sans-serif",
+                  cursor: submitting || Object.keys(formErrors).length > 0 || !isFormValid ? 'not-allowed' : 'pointer',
+                  opacity: submitting || Object.keys(formErrors).length > 0 || !isFormValid ? 0.6 : 1,
+                  boxShadow: submitting || Object.keys(formErrors).length > 0 || !isFormValid ? 'none' : '0 2px 8px rgba(31,78,158,0.28)',
+                  transition: 'all 150ms ease', display: 'flex', alignItems: 'center', gap: '8px'
+                }}
+                onMouseEnter={e => { if (!submitting && isFormValid && Object.keys(formErrors).length === 0) e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
+              >
                 {submitting && <span style={{ width: '14px', height: '14px', border: '2px solid rgba(255,255,255,0.4)', borderTopColor: '#fff', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} />}
-                {submitting ? 'Guardando…' : modalMode === 'create' ? 'Crear Curso' : 'Guardar Cambios'}
+                {modalMode === 'create' ? 'Crear Curso' : 'Guardar Cambios'}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* MODAL INSCRITOS */}
       {showInscritosModal && (
-        <div onClick={() => setShowInscritosModal(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.42)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.42)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
           <div className="curso-modal" onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 'var(--radius-lg)', width: '100%', maxWidth: '680px', maxHeight: '88vh', display: 'flex', flexDirection: 'column', boxShadow: '0 24px 64px rgba(0,0,0,0.18)', overflow: 'hidden' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 24px', background: 'var(--gray-50)', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -793,9 +823,8 @@ const Cursos = () => {
         </div>
       )}
 
-      {/* MODAL PAGOS PENDIENTES */}
       {showPagosModal && (
-        <div onClick={() => setShowPagosModal(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.42)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.42)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
           <div className="curso-modal" onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 'var(--radius-lg)', width: '100%', maxWidth: '780px', maxHeight: '90vh', display: 'flex', flexDirection: 'column', boxShadow: '0 24px 64px rgba(0,0,0,0.18)', overflow: 'hidden' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 24px', background: '#FFF7ED', borderBottom: '1px solid #FED7AA', flexShrink: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -868,7 +897,6 @@ const Cursos = () => {
                             <div style={{ fontSize: '11px', color: 'var(--gray-400)', fontFamily: "'DM Sans', sans-serif" }}>Solicitado: {formatDate(pago.fechaCreacion)}</div>
                           </div>
                         </div>
-                        {/* Botones de acción: Confirmar + Declinar */}
                         <div style={{ padding: '12px 20px', background: 'var(--gray-50)', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
                           <button
                             onClick={() => openDeclinarModal(pago)}
@@ -926,9 +954,8 @@ const Cursos = () => {
         </div>
       )}
 
-      {/* MODAL CONFIRMACIÓN DE PAGO */}
       {showConfirmModal && pagoToConfirm && (
-        <div onClick={() => setShowConfirmModal(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.42)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, padding: '20px' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.42)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, padding: '20px' }}>
           <div className="curso-modal" onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 'var(--radius-lg)', width: '100%', maxWidth: '500px', boxShadow: '0 24px 64px rgba(0,0,0,0.25)', overflow: 'hidden' }}>
             <div style={{ background: '#F0FDF4', padding: '20px 24px', borderBottom: '1px solid #BBF7D0', display: 'flex', alignItems: 'center', gap: '14px' }}>
               <div style={{ width: '44px', height: '44px', background: '#16A34A', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(22,163,74,0.25)' }}>
@@ -973,9 +1000,8 @@ const Cursos = () => {
         </div>
       )}
 
-      {/* MODAL DECLINAR INSCRIPCIÓN */}
       {showDeclinarModal && pagoToDeclinar && (
-        <div onClick={() => setShowDeclinarModal(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.42)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, padding: '20px' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.42)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, padding: '20px' }}>
           <div className="curso-modal" onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 'var(--radius-lg)', width: '100%', maxWidth: '500px', boxShadow: '0 24px 64px rgba(0,0,0,0.25)', overflow: 'hidden' }}>
             <div style={{ background: '#FEF2F2', padding: '20px 24px', borderBottom: '1px solid #FECACA', display: 'flex', alignItems: 'center', gap: '14px' }}>
               <div style={{ width: '44px', height: '44px', background: '#EF4444', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(239,68,68,0.25)' }}>

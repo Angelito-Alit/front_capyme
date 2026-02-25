@@ -29,7 +29,6 @@ import {
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
-// ─── Datos geográficos ────────────────────────────────────────────────────────
 const ESTADOS_MEXICO = [
   { nombre: 'Aguascalientes', municipios: ['Aguascalientes','Asientos','Calvillo','Cosío','Jesús María','Pabellón de Arteaga','Rincón de Romos','San José de Gracia','Tepezalá','El Llano','San Francisco de los Romo'] },
   { nombre: 'Baja California', municipios: ['Ensenada','Mexicali','Tecate','Tijuana','Playas de Rosarito','San Quintín'] },
@@ -65,16 +64,14 @@ const ESTADOS_MEXICO = [
   { nombre: 'Zacatecas', municipios: ['Zacatecas','Fresnillo','Guadalupe','Jerez','Calera','Sombrerete','Tlaltenango'] },
 ];
 
-// ─── Configuración de estados de postulación ──────────────────────────────────
 const ESTADOS_CONFIG = {
-  pendiente:    { label: 'Pendiente',    bg: '#FEF3C7', color: '#92400E', Icon: Clock },
+  pendiente:    { label: 'Pendiente',   bg: '#FEF3C7', color: '#92400E', Icon: Clock },
   en_revision:  { label: 'En Revisión',  bg: '#DBEAFE', color: '#1E40AF', Icon: AlertCircle },
   aprobada:     { label: 'Aprobada',     bg: '#D1FAE5', color: '#065F46', Icon: CheckCircle },
   rechazada:    { label: 'Rechazada',    bg: '#FEE2E2', color: '#991B1B', Icon: XCircle },
   completada:   { label: 'Completada',   bg: '#EDE9FE', color: '#5B21B6', Icon: CheckCircle },
 };
 
-// ─── Form data inicial ────────────────────────────────────────────────────────
 const initialFormData = {
   negocioId: '',
   programaId: '',
@@ -88,7 +85,6 @@ const initialEstadoData = {
   notasAdmin: '',
 };
 
-/* ─── Modal de confirmación reutilizable ─────────────────── */
 const ConfirmModal = ({ config, onClose }) => {
   if (!config?.show) return null;
   const isDanger  = config.variant === 'danger';
@@ -112,7 +108,6 @@ const ConfirmModal = ({ config, onClose }) => {
 
   return (
     <div
-      onClick={onClose}
       style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.45)', backdropFilter:'blur(4px)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:1200, padding:'20px' }}
     >
       <div
@@ -164,7 +159,6 @@ const ConfirmModal = ({ config, onClose }) => {
   );
 };
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
 const SectionTitle = ({ icon: Icon, text }) => (
   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
     <Icon style={{ width: '15px', height: '15px', color: 'var(--capyme-blue-mid)' }} />
@@ -175,21 +169,21 @@ const SectionTitle = ({ icon: Icon, text }) => (
   </div>
 );
 
-const ErrorMsg = ({ msg }) => msg
-  ? <p style={{ fontSize: '12px', color: '#EF4444', marginTop: '4px', fontFamily: "'DM Sans', sans-serif" }}>{msg}</p>
-  : null;
+const ErrorMsg = ({ text }) => (
+  <p style={{ marginTop: '4px', fontSize: '12px', color: '#EF4444', display: 'flex', alignItems: 'center', gap: '4px', fontFamily: "'DM Sans', sans-serif" }}>
+    <AlertCircle style={{ width: '12px', height: '12px' }} /> {text}
+  </p>
+);
 
 const formatDate = (date) => {
   if (!date) return 'N/A';
   return new Date(date).toLocaleDateString('es-MX', { year: 'numeric', month: 'short', day: 'numeric' });
 };
 
-// ─── Componente principal ─────────────────────────────────────────────────────
 const Postulaciones = () => {
   const authStorage = JSON.parse(localStorage.getItem('auth-storage') || '{}');
   const currentUser = authStorage?.state?.user || {};
 
-  // ── Estado principal ──────────────────────────────────────────────────────
   const [postulaciones, setPostulaciones] = useState([]);
   const [programas, setProgramas] = useState([]);
   const [negocios, setNegocios] = useState([]);
@@ -197,19 +191,16 @@ const Postulaciones = () => {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
-  // ── Modales ───────────────────────────────────────────────────────────────
   const [showModal, setShowModal] = useState(false);
   const [showDetalle, setShowDetalle] = useState(false);
   const [showEstado, setShowEstado] = useState(false);
   const [modalMode, setModalMode] = useState('create');
   const [selectedPost, setSelectedPost] = useState(null);
 
-  // ── Modal de confirmación ─────────────────────────────────────────────────
   const [confirmConfig, setConfirmConfig] = useState({ show: false });
   const showConfirm = (cfg) => setConfirmConfig({ show: true, ...cfg });
   const closeConfirm = () => setConfirmConfig({ show: false });
 
-  // ── Filtros ───────────────────────────────────────────────────────────────
   const [searchTerm, setSearchTerm] = useState('');
   const [filterPrograma, setFilterPrograma] = useState('');
   const [filterEstadoPost, setFilterEstadoPost] = useState('');
@@ -217,13 +208,11 @@ const Postulaciones = () => {
   const [filterMunicipio, setFilterMunicipio] = useState('');
   const [viewMode, setViewMode] = useState('list');
 
-  // ── Formularios ───────────────────────────────────────────────────────────
   const [formData, setFormData] = useState(initialFormData);
   const [formErrors, setFormErrors] = useState({});
   const [estadoData, setEstadoData] = useState(initialEstadoData);
   const [hoveredRow, setHoveredRow] = useState(null);
 
-  // ─── Estilos base ──────────────────────────────────────────────────────────
   const inputBaseStyle = {
     width: '100%', padding: '10px 12px',
     border: '1px solid var(--border)', borderRadius: 'var(--radius-md)',
@@ -241,7 +230,6 @@ const Postulaciones = () => {
   const selectStyle = { ...inputBaseStyle, appearance: 'none', paddingRight: '36px', cursor: 'pointer' };
   const textareaStyle = { ...inputBaseStyle, resize: 'vertical', minHeight: '90px' };
 
-  // ─── Carga de datos ────────────────────────────────────────────────────────
   useEffect(() => { cargarDatos(); }, [filterPrograma, filterEstadoPost, filterEstadoGeo, filterMunicipio]);
 
   const cargarDatos = async () => {
@@ -274,7 +262,6 @@ const Postulaciones = () => {
     }
   };
 
-  // ─── Filtrado local ───────────────────────────────────────────────────────
   const postulacionesFiltradas = postulaciones.filter(p => {
     const texto = searchTerm.toLowerCase();
     return (
@@ -287,7 +274,6 @@ const Postulaciones = () => {
     );
   });
 
-  // ─── Estadísticas ─────────────────────────────────────────────────────────
   const stats = [
     { label: 'Total', value: postulaciones.length, color: 'var(--capyme-blue-mid)' },
     { label: 'Pendientes', value: postulaciones.filter(p => p.estado === 'pendiente').length, color: '#92400E' },
@@ -296,7 +282,6 @@ const Postulaciones = () => {
     { label: 'Completadas', value: postulaciones.filter(p => p.estado === 'completada').length, color: '#5B21B6' },
   ];
 
-  // ─── Handlers modales ────────────────────────────────────────────────────
   const handleOpenCreate = () => {
     setModalMode('create');
     setSelectedPost(null);
@@ -343,7 +328,6 @@ const Postulaciones = () => {
     setFormErrors({});
   };
 
-  // ─── Validación ──────────────────────────────────────────────────────────
   const validateForm = () => {
     const errors = {};
     if (!formData.negocioId) errors.negocioId = 'Selecciona un negocio';
@@ -351,6 +335,8 @@ const Postulaciones = () => {
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
+
+  const isFormValid = formData.negocioId !== '' && formData.programaId !== '';
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -369,7 +355,6 @@ const Postulaciones = () => {
     if (formErrors[name]) setFormErrors(prev => ({ ...prev, [name]: '' }));
   };
 
-  // ─── Submit crear / editar ────────────────────────────────────────────────
   const handleSubmit = async () => {
     if (!validateForm()) return;
     setSubmitting(true);
@@ -412,7 +397,6 @@ const Postulaciones = () => {
     }
   };
 
-  // ─── Cambiar estado ───────────────────────────────────────────────────────
   const handleActualizarEstado = async () => {
     try {
       await postulacionesService.updateEstado(selectedPost.id, estadoData.estado, estadoData.notasAdmin);
@@ -424,7 +408,6 @@ const Postulaciones = () => {
     }
   };
 
-  // ─── Toggle activo con ConfirmModal ───────────────────────────────────────
   const handleToggleActivo = (post) => {
     const marcarCompletada = post.estado !== 'completada';
     showConfirm({
@@ -447,7 +430,6 @@ const Postulaciones = () => {
     });
   };
 
-  // ─── Render estado badge ──────────────────────────────────────────────────
   const EstadoBadge = ({ estado }) => {
     const cfg = ESTADOS_CONFIG[estado] || ESTADOS_CONFIG.pendiente;
     const { Icon } = cfg;
@@ -465,7 +447,6 @@ const Postulaciones = () => {
     );
   };
 
-  // ─── Loading ──────────────────────────────────────────────────────────────
   if (loading) {
     return (
       <Layout>
@@ -476,7 +457,6 @@ const Postulaciones = () => {
     );
   }
 
-  // ─── Render ───────────────────────────────────────────────────────────────
   return (
     <Layout>
       <style>{`
@@ -490,7 +470,6 @@ const Postulaciones = () => {
 
       <div style={{ padding: '0 0 40px' }}>
 
-        {/* ── HEADER ── */}
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '28px', flexWrap: 'wrap', gap: '16px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
             <div style={{
@@ -530,7 +509,6 @@ const Postulaciones = () => {
           )}
         </div>
 
-        {/* ── STATS ── */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '12px', marginBottom: '20px' }}>
           {stats.map((stat, i) => (
             <div key={i} style={{
@@ -544,7 +522,6 @@ const Postulaciones = () => {
           ))}
         </div>
 
-        {/* ── FILTROS ── */}
         <div style={{
           background: '#fff', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)',
           padding: '16px 20px', marginBottom: '20px',
@@ -603,7 +580,6 @@ const Postulaciones = () => {
           </div>
         </div>
 
-        {/* ── CONTENIDO ── */}
         {postulacionesFiltradas.length === 0 ? (
           <div style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '60px 20px', textAlign: 'center', boxShadow: 'var(--shadow-sm)' }}>
             <ClipboardList style={{ width: '48px', height: '48px', color: 'var(--gray-300)', margin: '0 auto 12px' }} />
@@ -612,7 +588,6 @@ const Postulaciones = () => {
           </div>
         ) : viewMode === 'grid' ? (
 
-          // ── GRID VIEW ────────────────────────────────────────────────────
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '16px' }}>
             {postulacionesFiltradas.map((post, idx) => (
               <div key={post.id} className="post-card" style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '18px 20px', boxShadow: 'var(--shadow-sm)', transition: 'all 200ms ease', animationDelay: `${idx * 0.04}s` }}>
@@ -679,7 +654,6 @@ const Postulaciones = () => {
 
         ) : (
 
-          // ── LIST / TABLE VIEW ─────────────────────────────────────────────
           <div style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', overflow: 'hidden', boxShadow: 'var(--shadow-sm)' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
@@ -766,9 +740,8 @@ const Postulaciones = () => {
         )}
       </div>
 
-      {/* ════ MODAL CREAR / EDITAR ════ */}
       {showModal && (
-        <div onClick={handleCloseAll} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
           <div className="post-modal" onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 'var(--radius-xl)', width: '100%', maxWidth: '580px', maxHeight: '90vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 24px 64px rgba(0,0,0,0.18)' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 24px', background: 'var(--gray-50)', borderBottom: '1px solid var(--border)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -790,26 +763,26 @@ const Postulaciones = () => {
                   <div>
                     <label style={labelStyle}>Negocio <span style={{ color: '#EF4444' }}>*</span></label>
                     <div style={{ position: 'relative' }}>
-                      <select name="negocioId" value={formData.negocioId} onChange={handleChange} disabled={modalMode === 'edit' && currentUser.rol !== 'admin'} style={{ ...selectStyle, ...(formErrors.negocioId ? inputErrorStyle : {}), opacity: (modalMode === 'edit' && currentUser.rol !== 'admin') ? 0.6 : 1 }}>
+                      <select name="negocioId" value={formData.negocioId} onChange={handleChange} disabled={modalMode === 'edit' && currentUser.rol !== 'admin'} style={{ ...selectStyle, ...(formErrors.negocioId ? inputErrorStyle : {}), opacity: (modalMode === 'edit' && currentUser.rol !== 'admin') ? 0.6 : 1 }} onFocus={e => { if (!formErrors.negocioId) { e.target.style.borderColor = 'var(--capyme-blue-mid)'; e.target.style.boxShadow = '0 0 0 3px rgba(43,91,166,0.12)'; } }} onBlur={e => { if (!formErrors.negocioId) { e.target.style.borderColor = 'var(--border)'; e.target.style.boxShadow = 'none'; } }}>
                         <option value="">Selecciona un negocio</option>
                         {negocios.map(n => <option key={n.id} value={n.id}>{n.nombreNegocio}</option>)}
                       </select>
                       <ChevronDown style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', width: '14px', height: '14px', color: 'var(--gray-400)', pointerEvents: 'none' }} />
                     </div>
                     {modalMode === 'edit' && currentUser.rol !== 'admin' && <p style={{ fontSize: '11px', color: 'var(--gray-400)', marginTop: '4px', fontFamily: "'DM Sans', sans-serif" }}>Solo el admin puede reasignar el negocio</p>}
-                    <ErrorMsg msg={formErrors.negocioId} />
+                    {formErrors.negocioId && <ErrorMsg text={formErrors.negocioId} />}
                   </div>
                   <div>
                     <label style={labelStyle}>Programa <span style={{ color: '#EF4444' }}>*</span></label>
                     <div style={{ position: 'relative' }}>
-                      <select name="programaId" value={formData.programaId} onChange={handleChange} disabled={modalMode === 'edit' && currentUser.rol !== 'admin'} style={{ ...selectStyle, ...(formErrors.programaId ? inputErrorStyle : {}), opacity: (modalMode === 'edit' && currentUser.rol !== 'admin') ? 0.6 : 1 }}>
+                      <select name="programaId" value={formData.programaId} onChange={handleChange} disabled={modalMode === 'edit' && currentUser.rol !== 'admin'} style={{ ...selectStyle, ...(formErrors.programaId ? inputErrorStyle : {}), opacity: (modalMode === 'edit' && currentUser.rol !== 'admin') ? 0.6 : 1 }} onFocus={e => { if (!formErrors.programaId) { e.target.style.borderColor = 'var(--capyme-blue-mid)'; e.target.style.boxShadow = '0 0 0 3px rgba(43,91,166,0.12)'; } }} onBlur={e => { if (!formErrors.programaId) { e.target.style.borderColor = 'var(--border)'; e.target.style.boxShadow = 'none'; } }}>
                         <option value="">Selecciona un programa</option>
                         {programas.filter(p => p.activo).map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
                       </select>
                       <ChevronDown style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', width: '14px', height: '14px', color: 'var(--gray-400)', pointerEvents: 'none' }} />
                     </div>
                     {modalMode === 'edit' && currentUser.rol !== 'admin' && <p style={{ fontSize: '11px', color: 'var(--gray-400)', marginTop: '4px', fontFamily: "'DM Sans', sans-serif" }}>Solo el admin puede reasignar el programa</p>}
-                    <ErrorMsg msg={formErrors.programaId} />
+                    {formErrors.programaId && <ErrorMsg text={formErrors.programaId} />}
                   </div>
                 </div>
                 {formData.negocioId && (() => {
@@ -881,7 +854,29 @@ const Postulaciones = () => {
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', padding: '16px 24px', background: 'var(--gray-50)', borderTop: '1px solid var(--border)' }}>
               <button onClick={handleCloseAll} style={{ padding: '9px 18px', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', background: '#fff', color: 'var(--gray-700)', fontSize: '14px', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", cursor: 'pointer' }}>Cancelar</button>
-              <button onClick={handleSubmit} disabled={submitting} style={{ padding: '9px 22px', border: 'none', borderRadius: 'var(--radius-md)', background: submitting ? 'var(--gray-300)' : 'linear-gradient(135deg, var(--capyme-blue-mid), var(--capyme-blue))', color: '#fff', fontSize: '14px', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", cursor: submitting ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <button
+                onClick={handleSubmit}
+                disabled={submitting || Object.keys(formErrors).length > 0 || !isFormValid}
+                style={{
+                  padding: '9px 22px',
+                  border: 'none',
+                  borderRadius: 'var(--radius-md)',
+                  background: 'linear-gradient(135deg, var(--capyme-blue-mid), var(--capyme-blue))',
+                  color: '#fff',
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  fontFamily: "'DM Sans', sans-serif",
+                  cursor: submitting || Object.keys(formErrors).length > 0 || !isFormValid ? 'not-allowed' : 'pointer',
+                  opacity: submitting || Object.keys(formErrors).length > 0 || !isFormValid ? 0.6 : 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  boxShadow: '0 2px 8px rgba(31,78,158,0.28)',
+                  transition: 'all 200ms ease'
+                }}
+                onMouseEnter={e => { if (!submitting && isFormValid && Object.keys(formErrors).length === 0) e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
+              >
                 {submitting && <div style={{ width: '14px', height: '14px', border: '2px solid rgba(255,255,255,0.4)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />}
                 {modalMode === 'create' ? 'Crear Postulación' : 'Guardar Cambios'}
               </button>
@@ -890,9 +885,8 @@ const Postulaciones = () => {
         </div>
       )}
 
-      {/* ════ MODAL DETALLE ════ */}
       {showDetalle && selectedPost && (
-        <div onClick={handleCloseAll} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
           <div className="post-modal" onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 'var(--radius-xl)', width: '100%', maxWidth: '720px', maxHeight: '90vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 24px 64px rgba(0,0,0,0.18)' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 24px', background: 'var(--gray-50)', borderBottom: '1px solid var(--border)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -971,9 +965,8 @@ const Postulaciones = () => {
         </div>
       )}
 
-      {/* ════ MODAL CAMBIAR ESTADO ════ */}
       {showEstado && selectedPost && (
-        <div onClick={handleCloseAll} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
           <div className="post-modal" onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 'var(--radius-xl)', width: '100%', maxWidth: '440px', overflow: 'hidden', boxShadow: '0 24px 64px rgba(0,0,0,0.18)' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 22px', background: 'var(--gray-50)', borderBottom: '1px solid var(--border)' }}>
               <h2 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--gray-900)', margin: 0, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Cambiar Estado</h2>
@@ -1010,7 +1003,6 @@ const Postulaciones = () => {
         </div>
       )}
 
-      {/* ════ MODAL CONFIRMACIÓN ════ */}
       <ConfirmModal config={confirmConfig} onClose={closeConfirm} />
     </Layout>
   );

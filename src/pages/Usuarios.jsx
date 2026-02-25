@@ -27,11 +27,9 @@ const initialFormData = {
   email: '',
   password: '',
   telefono: '',
-  rol: 'cliente',
-  activo: true
+  rol: 'cliente'
 };
 
-/* ─── Modal de confirmación reutilizable ─────────────────── */
 const ConfirmModal = ({ config, onClose }) => {
   if (!config?.show) return null;
   const isDanger  = config.variant === 'danger';
@@ -55,7 +53,6 @@ const ConfirmModal = ({ config, onClose }) => {
 
   return (
     <div
-      onClick={onClose}
       style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.45)', backdropFilter:'blur(4px)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:1200, padding:'20px' }}
     >
       <div
@@ -147,7 +144,6 @@ const Usuarios = () => {
   const [formErrors, setFormErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
 
-  /* ── Modal de confirmación ── */
   const [confirmConfig, setConfirmConfig] = useState({ show: false });
   const showConfirm = (cfg) => setConfirmConfig({ show: true, ...cfg });
   const closeConfirm = () => setConfirmConfig({ show: false });
@@ -189,6 +185,12 @@ const Usuarios = () => {
     return Object.keys(errors).length === 0;
   };
 
+  const isFormValid = formData.nombre.trim() !== '' && 
+                      formData.apellido.trim() !== '' && 
+                      formData.email.trim() !== '' && 
+                      /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email) && 
+                      (modalMode === 'edit' || (formData.password && formData.password.length >= 6));
+
   const handleOpenModal = (mode, usuario = null) => {
     setModalMode(mode);
     setSelectedUsuario(usuario);
@@ -201,8 +203,7 @@ const Usuarios = () => {
         email: usuario.email || '',
         password: '',
         telefono: usuario.telefono || '',
-        rol: usuario.rol || 'cliente',
-        activo: usuario.activo ?? true
+        rol: usuario.rol || 'cliente'
       });
     } else {
       setFormData({ ...initialFormData });
@@ -260,7 +261,6 @@ const Usuarios = () => {
       confirmLabel: desactivar ? 'Sí, desactivar' : 'Sí, activar',
       onConfirm: async () => {
         try {
-          // ✅ PATCH /:id/toggle-activo — no PUT con activo en el body
           await usuariosService.toggleActivo(usuario.id);
           toast.success(`Usuario ${desactivar ? 'desactivado' : 'activado'} exitosamente`);
           cargarUsuarios();
@@ -623,7 +623,6 @@ const Usuarios = () => {
         </div>
       </div>
 
-      {/* ════ MODAL CREAR / EDITAR ════ */}
       {showModal && (
         <div
           style={{
@@ -633,7 +632,6 @@ const Usuarios = () => {
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             zIndex: 50, padding: '16px',
           }}
-          onClick={handleCloseModal}
         >
           <div
             style={{
@@ -806,17 +804,6 @@ const Usuarios = () => {
                       </p>
                     )}
                   </div>
-
-                  <div>
-                    <label style={labelStyle}>Estado</label>
-                    <div style={{ position: 'relative' }}>
-                      <select value={formData.activo.toString()} onChange={(e) => handleChange('activo', e.target.value === 'true')} style={selectStyle}>
-                        <option value="true">Activo</option>
-                        <option value="false">Inactivo</option>
-                      </select>
-                      <ChevronDown style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', width: '16px', height: '16px', color: 'var(--gray-400)', pointerEvents: 'none' }} />
-                    </div>
-                  </div>
                 </div>
               </div>
             </form>
@@ -847,7 +834,7 @@ const Usuarios = () => {
                 Cancelar
               </button>
               <button
-                type="submit" onClick={handleSubmit} disabled={submitting}
+                type="submit" onClick={handleSubmit} disabled={submitting || Object.keys(formErrors).length > 0 || !isFormValid}
                 style={{
                   display: 'flex', alignItems: 'center', gap: '8px',
                   padding: '10px 24px',
@@ -857,12 +844,12 @@ const Usuarios = () => {
                   background: 'linear-gradient(135deg, var(--capyme-blue-mid), var(--capyme-blue))',
                   border: 'none',
                   borderRadius: 'var(--radius-md)',
-                  cursor: submitting ? 'not-allowed' : 'pointer',
-                  opacity: submitting ? 0.7 : 1,
+                  cursor: submitting || Object.keys(formErrors).length > 0 || !isFormValid ? 'not-allowed' : 'pointer',
+                  opacity: submitting || Object.keys(formErrors).length > 0 || !isFormValid ? 0.6 : 1,
                   boxShadow: '0 2px 8px rgba(31,78,158,0.28)',
                   transition: 'all 200ms ease',
                 }}
-                onMouseEnter={e => { if (!submitting) e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                onMouseEnter={e => { if (!submitting && isFormValid && Object.keys(formErrors).length === 0) e.currentTarget.style.transform = 'translateY(-1px)'; }}
                 onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
               >
                 {submitting && (
@@ -881,7 +868,6 @@ const Usuarios = () => {
         </div>
       )}
 
-      {/* ════ MODAL CONFIRMACIÓN ════ */}
       <ConfirmModal config={confirmConfig} onClose={closeConfirm} />
     </Layout>
   );
