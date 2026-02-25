@@ -27,6 +27,7 @@ import ClienteFinanciamiento from './pages/cliente/Financiamiento';
 import ClienteAvisos from './pages/cliente/Avisos';
 import ClienteRecursos from './pages/cliente/Recursos';
 import ClienteContacto from './pages/cliente/Contacto';
+import JovenesConstruyendoFuturo from './pages/JovenesConstruyendoFuturo';
 
 function App() {
   return (
@@ -66,6 +67,7 @@ function App() {
         <Route path="/enlaces" element={<ProtectedRoute allowedRoles={['admin', 'colaborador']}><Enlaces /></ProtectedRoute>} />
         <Route path="/contacto" element={<ProtectedRoute allowedRoles={['admin', 'colaborador']}><Contacto /></ProtectedRoute>} />
         <Route path="/historial" element={<ProtectedRoute allowedRoles={['admin']}><Historial /></ProtectedRoute>} />
+        <Route path="/jcf" element={<ProtectedRoute allowedRoles={['admin', 'colaborador']}><JovenesConstruyendoFuturo /></ProtectedRoute>} />
 
         {/* ── Cliente ── */}
         <Route path="/cliente/dashboard" element={<ProtectedRoute allowedRoles={['cliente']}><ClienteDashboard /></ProtectedRoute>} />

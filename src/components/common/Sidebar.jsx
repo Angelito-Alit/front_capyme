@@ -14,6 +14,7 @@ import {
   X,
   ChevronRight,
   MessageCircle,
+  UserCheck,
 } from 'lucide-react';
 import LogoCapyme from '../../assets/LogoCapyme.png';
 import { History } from 'lucide-react';
@@ -28,18 +29,20 @@ const Sidebar = ({ isOpen, onClose }) => {
       { path: '/negocios',       icon: Building2,       label: 'Negocios' },
       { path: '/programas',      icon: FileText,        label: 'Programas' },
       { path: '/postulaciones',  icon: ClipboardList,   label: 'Postulaciones' },
+      { path: '/jcf',            icon: UserCheck,       label: 'Jóvenes JCF' },  // ← añadir
       { path: '/cursos',         icon: GraduationCap,   label: 'Cursos' },
       { path: '/usuarios',       icon: Users,           label: 'Usuarios' },
       { path: '/avisos',         icon: BellRing,        label: 'Avisos' },
       { path: '/enlaces',        icon: Link2,           label: 'Recursos' },
       { path: '/contacto',       icon: Phone,           label: 'Contacto' },
-      { path: '/historial', icon: History, label: 'Historial' },
+      { path: '/historial',      icon: History,         label: 'Historial' },
     ],
     colaborador: [
       { path: '/dashboard',      icon: LayoutDashboard, label: 'Dashboard' },
       { path: '/negocios',       icon: Building2,       label: 'Negocios' },
       { path: '/programas',      icon: FileText,        label: 'Programas' },
       { path: '/postulaciones',  icon: ClipboardList,   label: 'Postulaciones' },
+      { path: '/jcf',            icon: UserCheck,       label: 'Jóvenes JCF' },  // ← añadir
       { path: '/cursos',         icon: GraduationCap,   label: 'Cursos' },
       { path: '/usuarios',       icon: Users,           label: 'Usuarios' },
       { path: '/avisos',         icon: BellRing,        label: 'Avisos' },

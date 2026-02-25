@@ -5,8 +5,7 @@ npx prisma generate
 
 importante por hacer:
 -
-- si yo inactivo a un usuario, el usuario no puede iniciar sesion y si inició entonces al pasar de una pagina a otra debe de haber algo para que cheque si está activo el usuario o no y si no entonces se cerrará la sesión y mandará un alerta (modal) diciendole que su usuario ha sido dado de baja, ponerse en contacto con capyme y pone el correo y whatsapp de capyme guardados del primer administrador
-
+- 
 
 
 
