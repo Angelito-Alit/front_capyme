@@ -1,49 +1,18 @@
 import api from './axios';
 
 export const dashboardService = {
-  getEstadisticas: async () => {
-    const response = await api.get('/dashboard/estadisticas');
-    return response.data;
-  },
+  getEstadisticas: async () => (await api.get('/dashboard/estadisticas')).data,
+  getNegociosPorCategoria: async () => (await api.get('/dashboard/negocios-categoria')).data,
+  getPostulacionesPorEstado: async () => (await api.get('/dashboard/postulaciones-estado')).data,
+  getPostulacionesPorPrograma: async () => (await api.get('/dashboard/postulaciones-programa')).data,
+  getUltimosNegocios: async (limit = 5) => (await api.get('/dashboard/ultimos-negocios', { params: { limit } })).data,
+  getUltimasPostulaciones: async (limit = 5) => (await api.get('/dashboard/ultimas-postulaciones', { params: { limit } })).data,
+  getEstadisticasCliente: async () => (await api.get('/dashboard/cliente/estadisticas')).data,
+  getCursosMasInscritos: async (limit = 5) => (await api.get('/dashboard/cursos-inscritos', { params: { limit } })).data,
 
-  getNegociosPorCategoria: async () => {
-    const response = await api.get('/dashboard/negocios-categoria');
-    return response.data;
-  },
-
-  getPostulacionesPorEstado: async () => {
-    const response = await api.get('/dashboard/postulaciones-estado');
-    return response.data;
-  },
-
-  getPostulacionesPorPrograma: async () => {
-    const response = await api.get('/dashboard/postulaciones-programa');
-    return response.data;
-  },
-
-  getUltimosNegocios: async (limit = 5) => {
-    const response = await api.get('/dashboard/ultimos-negocios', {
-      params: { limit }
-    });
-    return response.data;
-  },
-
-  getUltimasPostulaciones: async (limit = 5) => {
-    const response = await api.get('/dashboard/ultimas-postulaciones', {
-      params: { limit }
-    });
-    return response.data;
-  },
-
-  getEstadisticasCliente: async () => {
-    const response = await api.get('/dashboard/cliente/estadisticas');
-    return response.data;
-  },
-
-  getCursosMasInscritos: async (limit = 5) => {
-    const response = await api.get('/dashboard/cursos-inscritos', {
-      params: { limit }
-    });
-    return response.data;
-  }
+  getPostulacionesPorMes: async () => (await api.get('/dashboard/postulaciones-mes')).data,
+  getNegociosPorEstado: async () => (await api.get('/dashboard/negocios-estado')).data,
+  getInscripcionesPorCurso: async () => (await api.get('/dashboard/inscripciones-cursos')).data,
+  getUsuariosPorRol: async () => (await api.get('/dashboard/usuarios-rol')).data,
+  getFinanciamientoPorEstado: async () => (await api.get('/dashboard/financiamiento-estado')).data,
 };
