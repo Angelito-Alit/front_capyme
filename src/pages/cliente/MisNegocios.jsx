@@ -82,8 +82,14 @@ const MisNegocios = () => {
     if (formData.emailNegocio && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.emailNegocio)) {
       errors.emailNegocio = 'Email inválido';
     }
-    return errors;
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
   };
+
+  const isFormValid = formData.nombreNegocio.trim() !== '' &&
+                      formData.categoriaId !== '' &&
+                      (!formData.rfc || /^[A-ZÑ&]{3,4}[0-9]{6}[A-Z0-9]{3}$/i.test(formData.rfc.trim())) &&
+                      (!formData.emailNegocio || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.emailNegocio));
 
   const handleOpenModal = (mode, negocio = null) => {
     setModalMode(mode);
@@ -125,11 +131,7 @@ const MisNegocios = () => {
   };
 
   const handleSubmit = async () => {
-    const errors = validateForm();
-    if (Object.keys(errors).length > 0) {
-      setFormErrors(errors);
-      return;
-    }
+    if (!validateForm()) return;
     setSubmitting(true);
     try {
       const payload = {
@@ -200,6 +202,10 @@ const MisNegocios = () => {
 
   return (
     <Layout>
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes modalIn { from { opacity:0; transform:scale(0.96) translateY(8px); } to { opacity:1; transform:scale(1) translateY(0); } }
+      `}</style>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
 
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' }}>
@@ -253,6 +259,8 @@ const MisNegocios = () => {
                 background: '#fff',
                 border: '1px solid var(--border)',
               }}
+              onFocus={e => { e.target.style.borderColor = 'var(--capyme-blue-mid)'; e.target.style.boxShadow = '0 0 0 3px rgba(43,91,166,0.12)'; }}
+              onBlur={e => { e.target.style.borderColor = 'var(--border)'; e.target.style.boxShadow = 'none'; }}
             />
           </div>
         )}
@@ -328,7 +336,6 @@ const MisNegocios = () => {
 
       {showModal && (
         <div
-          onClick={handleCloseModal}
           style={{
             position: 'fixed', inset: 0,
             background: 'rgba(0,0,0,0.4)',
@@ -346,6 +353,7 @@ const MisNegocios = () => {
               maxHeight: '90vh',
               display: 'flex', flexDirection: 'column',
               boxShadow: '0 20px 60px rgba(0,0,0,0.18)',
+              animation: 'modalIn 0.25s ease both',
             }}
           >
             <div style={{
@@ -367,7 +375,7 @@ const MisNegocios = () => {
                 </div>
                 <h2 style={{
                   fontFamily: "'Plus Jakarta Sans', sans-serif",
-                  fontSize: '18px', fontWeight: 800, color: 'var(--gray-900)',
+                  fontSize: '18px', fontWeight: 800, color: 'var(--gray-900)', margin: 0,
                 }}>
                   {modalMode === 'create' ? 'Agregar Negocio' : 'Editar Negocio'}
                 </h2>
@@ -403,6 +411,8 @@ const MisNegocios = () => {
                         onChange={handleChange}
                         placeholder="Ej. Panadería La Esperanza"
                         style={{ ...inputBaseStyle, ...(formErrors.nombreNegocio ? inputErrorStyle : {}) }}
+                        onFocus={e => { if (!formErrors.nombreNegocio) { e.target.style.borderColor = 'var(--capyme-blue-mid)'; e.target.style.boxShadow = '0 0 0 3px rgba(43,91,166,0.12)'; } }}
+                        onBlur={e => { if (!formErrors.nombreNegocio) { e.target.style.borderColor = 'var(--border)'; e.target.style.boxShadow = 'none'; } }}
                       />
                       {formErrors.nombreNegocio && <ErrorMsg text={formErrors.nombreNegocio} />}
                     </div>
@@ -414,6 +424,8 @@ const MisNegocios = () => {
                           value={formData.categoriaId}
                           onChange={handleChange}
                           style={{ ...selectStyle, ...(formErrors.categoriaId ? inputErrorStyle : {}) }}
+                          onFocus={e => { if (!formErrors.categoriaId) { e.target.style.borderColor = 'var(--capyme-blue-mid)'; e.target.style.boxShadow = '0 0 0 3px rgba(43,91,166,0.12)'; } }}
+                          onBlur={e => { if (!formErrors.categoriaId) { e.target.style.borderColor = 'var(--border)'; e.target.style.boxShadow = 'none'; } }}
                         >
                           <option value="">Seleccionar categoría</option>
                           {categorias.map(cat => (
@@ -443,6 +455,8 @@ const MisNegocios = () => {
                           textTransform: 'uppercase',
                           ...(formErrors.rfc ? inputErrorStyle : {}),
                         }}
+                        onFocus={e => { if (!formErrors.rfc) { e.target.style.borderColor = 'var(--capyme-blue-mid)'; e.target.style.boxShadow = '0 0 0 3px rgba(43,91,166,0.12)'; } }}
+                        onBlur={e => { if (!formErrors.rfc) { e.target.style.borderColor = 'var(--border)'; e.target.style.boxShadow = 'none'; } }}
                       />
                       {formErrors.rfc && <ErrorMsg text={formErrors.rfc} />}
                     </div>
@@ -455,6 +469,8 @@ const MisNegocios = () => {
                         onChange={handleChange}
                         placeholder="Nombre legal de la empresa"
                         style={inputBaseStyle}
+                        onFocus={e => { e.target.style.borderColor = 'var(--capyme-blue-mid)'; e.target.style.boxShadow = '0 0 0 3px rgba(43,91,166,0.12)'; }}
+                        onBlur={e => { e.target.style.borderColor = 'var(--border)'; e.target.style.boxShadow = 'none'; }}
                       />
                     </div>
                     <div>
@@ -466,6 +482,8 @@ const MisNegocios = () => {
                         onChange={handleChange}
                         placeholder="Ej. Alimentos y bebidas"
                         style={inputBaseStyle}
+                        onFocus={e => { e.target.style.borderColor = 'var(--capyme-blue-mid)'; e.target.style.boxShadow = '0 0 0 3px rgba(43,91,166,0.12)'; }}
+                        onBlur={e => { e.target.style.borderColor = 'var(--border)'; e.target.style.boxShadow = 'none'; }}
                       />
                     </div>
                   </div>
@@ -483,6 +501,8 @@ const MisNegocios = () => {
                         onChange={handleChange}
                         placeholder="Calle, número, colonia"
                         style={inputBaseStyle}
+                        onFocus={e => { e.target.style.borderColor = 'var(--capyme-blue-mid)'; e.target.style.boxShadow = '0 0 0 3px rgba(43,91,166,0.12)'; }}
+                        onBlur={e => { e.target.style.borderColor = 'var(--border)'; e.target.style.boxShadow = 'none'; }}
                       />
                     </div>
                     <div>
@@ -494,6 +514,8 @@ const MisNegocios = () => {
                         onChange={handleChange}
                         placeholder="Querétaro"
                         style={inputBaseStyle}
+                        onFocus={e => { e.target.style.borderColor = 'var(--capyme-blue-mid)'; e.target.style.boxShadow = '0 0 0 3px rgba(43,91,166,0.12)'; }}
+                        onBlur={e => { e.target.style.borderColor = 'var(--border)'; e.target.style.boxShadow = 'none'; }}
                       />
                     </div>
                     <div>
@@ -505,6 +527,8 @@ const MisNegocios = () => {
                         onChange={handleChange}
                         placeholder="Querétaro"
                         style={inputBaseStyle}
+                        onFocus={e => { e.target.style.borderColor = 'var(--capyme-blue-mid)'; e.target.style.boxShadow = '0 0 0 3px rgba(43,91,166,0.12)'; }}
+                        onBlur={e => { e.target.style.borderColor = 'var(--border)'; e.target.style.boxShadow = 'none'; }}
                       />
                     </div>
                     <div>
@@ -516,6 +540,8 @@ const MisNegocios = () => {
                         onChange={handleChange}
                         placeholder="76000"
                         style={{ ...inputBaseStyle, fontFamily: "'JetBrains Mono', monospace" }}
+                        onFocus={e => { e.target.style.borderColor = 'var(--capyme-blue-mid)'; e.target.style.boxShadow = '0 0 0 3px rgba(43,91,166,0.12)'; }}
+                        onBlur={e => { e.target.style.borderColor = 'var(--border)'; e.target.style.boxShadow = 'none'; }}
                       />
                     </div>
                   </div>
@@ -533,6 +559,8 @@ const MisNegocios = () => {
                         onChange={handleChange}
                         placeholder="442 000 0000"
                         style={inputBaseStyle}
+                        onFocus={e => { e.target.style.borderColor = 'var(--capyme-blue-mid)'; e.target.style.boxShadow = '0 0 0 3px rgba(43,91,166,0.12)'; }}
+                        onBlur={e => { e.target.style.borderColor = 'var(--border)'; e.target.style.boxShadow = 'none'; }}
                       />
                     </div>
                     <div>
@@ -544,6 +572,8 @@ const MisNegocios = () => {
                         onChange={handleChange}
                         placeholder="negocio@ejemplo.com"
                         style={{ ...inputBaseStyle, ...(formErrors.emailNegocio ? inputErrorStyle : {}) }}
+                        onFocus={e => { if (!formErrors.emailNegocio) { e.target.style.borderColor = 'var(--capyme-blue-mid)'; e.target.style.boxShadow = '0 0 0 3px rgba(43,91,166,0.12)'; } }}
+                        onBlur={e => { if (!formErrors.emailNegocio) { e.target.style.borderColor = 'var(--border)'; e.target.style.boxShadow = 'none'; } }}
                       />
                       {formErrors.emailNegocio && <ErrorMsg text={formErrors.emailNegocio} />}
                     </div>
@@ -562,6 +592,8 @@ const MisNegocios = () => {
                         value={formData.numeroEmpleados}
                         onChange={handleChange}
                         style={inputBaseStyle}
+                        onFocus={e => { e.target.style.borderColor = 'var(--capyme-blue-mid)'; e.target.style.boxShadow = '0 0 0 3px rgba(43,91,166,0.12)'; }}
+                        onBlur={e => { e.target.style.borderColor = 'var(--border)'; e.target.style.boxShadow = 'none'; }}
                       />
                     </div>
                     <div>
@@ -575,6 +607,8 @@ const MisNegocios = () => {
                         onChange={handleChange}
                         placeholder={String(new Date().getFullYear())}
                         style={{ ...inputBaseStyle, fontFamily: "'JetBrains Mono', monospace" }}
+                        onFocus={e => { e.target.style.borderColor = 'var(--capyme-blue-mid)'; e.target.style.boxShadow = '0 0 0 3px rgba(43,91,166,0.12)'; }}
+                        onBlur={e => { e.target.style.borderColor = 'var(--border)'; e.target.style.boxShadow = 'none'; }}
                       />
                     </div>
                     <div style={{ gridColumn: '1 / -1' }}>
@@ -586,6 +620,8 @@ const MisNegocios = () => {
                         onChange={handleChange}
                         placeholder="Describe brevemente tu negocio..."
                         style={{ ...inputBaseStyle, resize: 'vertical', minHeight: '80px' }}
+                        onFocus={e => { e.target.style.borderColor = 'var(--capyme-blue-mid)'; e.target.style.boxShadow = '0 0 0 3px rgba(43,91,166,0.12)'; }}
+                        onBlur={e => { e.target.style.borderColor = 'var(--border)'; e.target.style.boxShadow = 'none'; }}
                       />
                     </div>
                   </div>
@@ -604,6 +640,7 @@ const MisNegocios = () => {
             }}>
               <button
                 onClick={handleCloseModal}
+                disabled={submitting}
                 style={{
                   padding: '9px 18px',
                   background: '#fff',
@@ -611,32 +648,38 @@ const MisNegocios = () => {
                   borderRadius: 'var(--radius-md)',
                   fontSize: '14px', fontWeight: 600,
                   color: 'var(--gray-600)',
-                  cursor: 'pointer',
+                  cursor: submitting ? 'not-allowed' : 'pointer',
+                  opacity: submitting ? 0.5 : 1,
                   fontFamily: "'DM Sans', sans-serif",
                   transition: 'all 150ms ease',
                 }}
-                onMouseEnter={e => e.currentTarget.style.background = 'var(--gray-100)'}
+                onMouseEnter={e => { if (!submitting) e.currentTarget.style.background = 'var(--gray-100)'; }}
                 onMouseLeave={e => e.currentTarget.style.background = '#fff'}
               >
                 Cancelar
               </button>
               <button
                 onClick={handleSubmit}
-                disabled={submitting}
+                disabled={submitting || Object.keys(formErrors).length > 0 || !isFormValid}
                 style={{
                   padding: '9px 22px',
-                  background: submitting ? 'var(--gray-300)' : 'linear-gradient(135deg, var(--capyme-blue-mid), var(--capyme-blue))',
+                  background: 'linear-gradient(135deg, var(--capyme-blue-mid), var(--capyme-blue))',
                   border: 'none',
                   borderRadius: 'var(--radius-md)',
                   fontSize: '14px', fontWeight: 600,
                   color: '#fff',
-                  cursor: submitting ? 'not-allowed' : 'pointer',
+                  cursor: submitting || Object.keys(formErrors).length > 0 || !isFormValid ? 'not-allowed' : 'pointer',
+                  opacity: submitting || Object.keys(formErrors).length > 0 || !isFormValid ? 0.6 : 1,
                   fontFamily: "'Plus Jakarta Sans', sans-serif",
-                  boxShadow: submitting ? 'none' : '0 2px 8px rgba(31,78,158,0.28)',
-                  transition: 'all 150ms ease',
+                  boxShadow: '0 2px 8px rgba(31,78,158,0.28)',
+                  transition: 'all 200ms ease',
+                  display: 'flex', alignItems: 'center', gap: '8px'
                 }}
+                onMouseEnter={e => { if (!submitting && isFormValid && Object.keys(formErrors).length === 0) e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
               >
-                {submitting ? 'Guardando...' : modalMode === 'create' ? 'Crear Negocio' : 'Guardar Cambios'}
+                {submitting && <span style={{ width: '14px', height: '14px', border: '2px solid rgba(255,255,255,0.4)', borderTopColor: '#fff', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} />}
+                {modalMode === 'create' ? 'Crear Negocio' : 'Guardar Cambios'}
               </button>
             </div>
           </div>

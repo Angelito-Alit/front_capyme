@@ -84,8 +84,17 @@ const ClienteFinanciamiento = () => {
       errors.ingresosMensuales = 'Ingresa tus ingresos mensuales';
     if (!formData.egresosMensuales || parseFloat(formData.egresosMensuales) < 0)
       errors.egresosMensuales = 'Ingresa tus egresos mensuales';
-    return errors;
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
   };
+
+  const isFormValid =
+    formData.negocioId !== '' &&
+    formData.montoSolicitado !== '' && parseFloat(formData.montoSolicitado) > 0 &&
+    formData.plazoMeses !== '' && parseInt(formData.plazoMeses) > 0 &&
+    formData.destinoCredito.trim() !== '' &&
+    formData.ingresosMensuales !== '' && parseFloat(formData.ingresosMensuales) >= 0 &&
+    formData.egresosMensuales !== '' && parseFloat(formData.egresosMensuales) >= 0;
 
   const handleOpenModal = () => {
     setFormData(initialForm);
@@ -105,11 +114,7 @@ const ClienteFinanciamiento = () => {
   };
 
   const handleSubmit = async () => {
-    const errors = validateForm();
-    if (Object.keys(errors).length > 0) {
-      setFormErrors(errors);
-      return;
-    }
+    if (!validateForm()) return;
     setSubmitting(true);
     try {
       await financiamientoService.create({
@@ -185,6 +190,10 @@ const ClienteFinanciamiento = () => {
 
   return (
     <Layout>
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes modalIn { from { opacity:0; transform:scale(0.96) translateY(8px); } to { opacity:1; transform:scale(1) translateY(0); } }
+      `}</style>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
 
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' }}>
@@ -271,6 +280,8 @@ const ClienteFinanciamiento = () => {
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
               style={{ ...inputBaseStyle, paddingLeft: '38px' }}
+              onFocus={e => { e.target.style.borderColor = 'var(--capyme-blue-mid)'; e.target.style.boxShadow = '0 0 0 3px rgba(43,91,166,0.12)'; }}
+              onBlur={e => { e.target.style.borderColor = 'var(--border)'; e.target.style.boxShadow = 'none'; }}
             />
           </div>
         )}
@@ -337,7 +348,6 @@ const ClienteFinanciamiento = () => {
 
       {showModal && (
         <div
-          onClick={handleCloseModal}
           style={{
             position: 'fixed', inset: 0,
             background: 'rgba(0,0,0,0.4)',
@@ -355,6 +365,7 @@ const ClienteFinanciamiento = () => {
               maxHeight: '90vh',
               display: 'flex', flexDirection: 'column',
               boxShadow: '0 20px 60px rgba(0,0,0,0.18)',
+              animation: 'modalIn 0.25s ease both',
             }}
           >
             <div style={{
@@ -422,6 +433,8 @@ const ClienteFinanciamiento = () => {
                         value={formData.negocioId}
                         onChange={handleChange}
                         style={{ ...selectStyle, ...(formErrors.negocioId ? inputErrorStyle : {}) }}
+                        onFocus={e => { if (!formErrors.negocioId) { e.target.style.borderColor = 'var(--capyme-blue-mid)'; e.target.style.boxShadow = '0 0 0 3px rgba(43,91,166,0.12)'; } }}
+                        onBlur={e => { if (!formErrors.negocioId) { e.target.style.borderColor = 'var(--border)'; e.target.style.boxShadow = 'none'; } }}
                       >
                         <option value="">Selecciona un negocio</option>
                         {negocios.map(n => (
@@ -452,6 +465,8 @@ const ClienteFinanciamiento = () => {
                       value={formData.montoSolicitado}
                       onChange={handleChange}
                       style={{ ...inputBaseStyle, ...(formErrors.montoSolicitado ? inputErrorStyle : {}) }}
+                      onFocus={e => { if (!formErrors.montoSolicitado) { e.target.style.borderColor = 'var(--capyme-blue-mid)'; e.target.style.boxShadow = '0 0 0 3px rgba(43,91,166,0.12)'; } }}
+                      onBlur={e => { if (!formErrors.montoSolicitado) { e.target.style.borderColor = 'var(--border)'; e.target.style.boxShadow = 'none'; } }}
                     />
                     {formErrors.montoSolicitado && <ErrorMsg text={formErrors.montoSolicitado} />}
                   </div>
@@ -465,6 +480,8 @@ const ClienteFinanciamiento = () => {
                       value={formData.plazoMeses}
                       onChange={handleChange}
                       style={{ ...inputBaseStyle, ...(formErrors.plazoMeses ? inputErrorStyle : {}) }}
+                      onFocus={e => { if (!formErrors.plazoMeses) { e.target.style.borderColor = 'var(--capyme-blue-mid)'; e.target.style.boxShadow = '0 0 0 3px rgba(43,91,166,0.12)'; } }}
+                      onBlur={e => { if (!formErrors.plazoMeses) { e.target.style.borderColor = 'var(--border)'; e.target.style.boxShadow = 'none'; } }}
                     />
                     {formErrors.plazoMeses && <ErrorMsg text={formErrors.plazoMeses} />}
                   </div>
@@ -480,6 +497,8 @@ const ClienteFinanciamiento = () => {
                         ...inputBaseStyle, resize: 'vertical', minHeight: '80px',
                         ...(formErrors.destinoCredito ? inputErrorStyle : {}),
                       }}
+                      onFocus={e => { if (!formErrors.destinoCredito) { e.target.style.borderColor = 'var(--capyme-blue-mid)'; e.target.style.boxShadow = '0 0 0 3px rgba(43,91,166,0.12)'; } }}
+                      onBlur={e => { if (!formErrors.destinoCredito) { e.target.style.borderColor = 'var(--border)'; e.target.style.boxShadow = 'none'; } }}
                     />
                     {formErrors.destinoCredito && <ErrorMsg text={formErrors.destinoCredito} />}
                   </div>
@@ -500,6 +519,8 @@ const ClienteFinanciamiento = () => {
                       value={formData.ingresosMensuales}
                       onChange={handleChange}
                       style={{ ...inputBaseStyle, ...(formErrors.ingresosMensuales ? inputErrorStyle : {}) }}
+                      onFocus={e => { if (!formErrors.ingresosMensuales) { e.target.style.borderColor = 'var(--capyme-blue-mid)'; e.target.style.boxShadow = '0 0 0 3px rgba(43,91,166,0.12)'; } }}
+                      onBlur={e => { if (!formErrors.ingresosMensuales) { e.target.style.borderColor = 'var(--border)'; e.target.style.boxShadow = 'none'; } }}
                     />
                     {formErrors.ingresosMensuales && <ErrorMsg text={formErrors.ingresosMensuales} />}
                   </div>
@@ -514,6 +535,8 @@ const ClienteFinanciamiento = () => {
                       value={formData.egresosMensuales}
                       onChange={handleChange}
                       style={{ ...inputBaseStyle, ...(formErrors.egresosMensuales ? inputErrorStyle : {}) }}
+                      onFocus={e => { if (!formErrors.egresosMensuales) { e.target.style.borderColor = 'var(--capyme-blue-mid)'; e.target.style.boxShadow = '0 0 0 3px rgba(43,91,166,0.12)'; } }}
+                      onBlur={e => { if (!formErrors.egresosMensuales) { e.target.style.borderColor = 'var(--border)'; e.target.style.boxShadow = 'none'; } }}
                     />
                     {formErrors.egresosMensuales && <ErrorMsg text={formErrors.egresosMensuales} />}
                   </div>
@@ -564,6 +587,8 @@ const ClienteFinanciamiento = () => {
                         value={formData.detallesCreditos}
                         onChange={handleChange}
                         style={{ ...inputBaseStyle, resize: 'vertical', minHeight: '80px' }}
+                        onFocus={e => { e.target.style.borderColor = 'var(--capyme-blue-mid)'; e.target.style.boxShadow = '0 0 0 3px rgba(43,91,166,0.12)'; }}
+                        onBlur={e => { e.target.style.borderColor = 'var(--border)'; e.target.style.boxShadow = 'none'; }}
                       />
                     </div>
                   )}
@@ -582,6 +607,7 @@ const ClienteFinanciamiento = () => {
             }}>
               <button
                 onClick={handleCloseModal}
+                disabled={submitting}
                 style={{
                   padding: '9px 18px',
                   background: '#fff',
@@ -589,34 +615,37 @@ const ClienteFinanciamiento = () => {
                   borderRadius: 'var(--radius-md)',
                   fontSize: '14px', fontWeight: 600,
                   color: 'var(--gray-600)',
-                  cursor: 'pointer',
+                  cursor: submitting ? 'not-allowed' : 'pointer',
+                  opacity: submitting ? 0.5 : 1,
                   fontFamily: "'DM Sans', sans-serif",
                   transition: 'all 150ms ease',
                 }}
-                onMouseEnter={e => e.currentTarget.style.background = 'var(--gray-100)'}
+                onMouseEnter={e => { if (!submitting) e.currentTarget.style.background = 'var(--gray-100)'; }}
                 onMouseLeave={e => e.currentTarget.style.background = '#fff'}
               >
                 Cancelar
               </button>
               <button
                 onClick={handleSubmit}
-                disabled={submitting || negocios.length === 0}
+                disabled={submitting || Object.keys(formErrors).length > 0 || !isFormValid || negocios.length === 0}
                 style={{
                   display: 'flex', alignItems: 'center', gap: '8px',
                   padding: '9px 22px',
-                  background: (submitting || negocios.length === 0)
-                    ? 'var(--gray-300)'
-                    : 'linear-gradient(135deg, var(--capyme-blue-mid), var(--capyme-blue))',
+                  background: 'linear-gradient(135deg, var(--capyme-blue-mid), var(--capyme-blue))',
                   border: 'none',
                   borderRadius: 'var(--radius-md)',
                   fontSize: '14px', fontWeight: 600,
                   color: '#fff',
-                  cursor: (submitting || negocios.length === 0) ? 'not-allowed' : 'pointer',
+                  cursor: submitting || Object.keys(formErrors).length > 0 || !isFormValid || negocios.length === 0 ? 'not-allowed' : 'pointer',
+                  opacity: submitting || Object.keys(formErrors).length > 0 || !isFormValid || negocios.length === 0 ? 0.6 : 1,
                   fontFamily: "'Plus Jakarta Sans', sans-serif",
-                  boxShadow: (submitting || negocios.length === 0) ? 'none' : '0 2px 8px rgba(31,78,158,0.28)',
+                  boxShadow: submitting || Object.keys(formErrors).length > 0 || !isFormValid || negocios.length === 0 ? 'none' : '0 2px 8px rgba(31,78,158,0.28)',
                   transition: 'all 150ms ease',
                 }}
+                onMouseEnter={e => { if (!submitting && isFormValid && Object.keys(formErrors).length === 0 && negocios.length > 0) e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
               >
+                {submitting && <span style={{ width: '14px', height: '14px', border: '2px solid rgba(255,255,255,0.4)', borderTopColor: '#fff', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} />}
                 {submitting ? 'Enviando...' : 'Enviar Solicitud'}
               </button>
             </div>
@@ -743,6 +772,7 @@ const DataChip = ({ icon: Icon, label, value, highlight, color }) => (
       fontSize: '13px', fontWeight: 700,
       color: color || (highlight ? 'var(--capyme-blue-mid)' : 'var(--gray-800)'),
       fontFamily: "'Plus Jakarta Sans', sans-serif",
+      margin: 0,
     }}>
       {value}
     </p>
