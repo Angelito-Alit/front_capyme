@@ -15,7 +15,6 @@ const initialFormData = {
   correo: '',
   telefono: '',
   curp: '',
-  municipio: '',
   fechaInicio: '',
   fechaTermino: '',
   clienteId: '',
@@ -44,9 +43,16 @@ const JovenesConstruyendoFuturo = () => {
   const [hoveredRow, setHoveredRow] = useState(null);
   const [showFilters, setShowFilters] = useState(false);
   const [filterEstado, setFilterEstado] = useState('');
-  const [filterMunicipio, setFilterMunicipio] = useState('');
   const [filterCliente, setFilterCliente] = useState('');
   const [filterNegocio, setFilterNegocio] = useState('');
+  const [filterEstadoGeo, setFilterEstadoGeo] = useState('');
+  const [filterMunicipioNegocio, setFilterMunicipioNegocio] = useState('');
+
+  // Negocio seleccionado en el form (para mostrar info geográfica)
+  const negocioSeleccionado = useMemo(() => {
+    if (!formData.negocioId) return null;
+    return negocios.find(n => String(n.id) === String(formData.negocioId)) || null;
+  }, [formData.negocioId, negocios]);
 
   const inputBaseStyle = {
     width: '100%', padding: '10px 12px',
@@ -79,6 +85,12 @@ const JovenesConstruyendoFuturo = () => {
     background: 'var(--gray-50)',
     color: 'var(--gray-400)',
     cursor: 'not-allowed',
+  };
+  const inputReadonlyStyle = {
+    ...inputBaseStyle,
+    background: 'var(--gray-50)',
+    color: 'var(--gray-500)',
+    cursor: 'default',
   };
 
   useEffect(() => {
@@ -118,10 +130,18 @@ const JovenesConstruyendoFuturo = () => {
     return negocios.filter(n => String(n.usuarioId) === String(formData.clienteId));
   }, [formData.clienteId, negocios]);
 
-  const municipiosUnicos = useMemo(() => {
-    const set = new Set(items.map(i => i.municipio).filter(Boolean));
+  const estadosGeoUnicos = useMemo(() => {
+    const set = new Set(items.map(i => i.negocio?.estado).filter(Boolean));
     return [...set].sort();
   }, [items]);
+
+  const municipiosNegocioUnicos = useMemo(() => {
+    const source = filterEstadoGeo
+      ? items.filter(i => i.negocio?.estado === filterEstadoGeo)
+      : items;
+    const set = new Set(source.map(i => i.negocio?.ciudad).filter(Boolean));
+    return [...set].sort();
+  }, [items, filterEstadoGeo]);
 
   const clientesFiltro = useMemo(() => {
     const map = new Map();
@@ -151,13 +171,16 @@ const JovenesConstruyendoFuturo = () => {
     return lista.sort((a, b) => a.nombreNegocio.localeCompare(b.nombreNegocio));
   }, [items, filterCliente]);
 
-  const activeFiltersCount = [filterEstado, filterMunicipio, filterCliente, filterNegocio].filter(Boolean).length;
+  const activeFiltersCount = [
+    filterEstado, filterCliente, filterNegocio, filterEstadoGeo, filterMunicipioNegocio
+  ].filter(Boolean).length;
 
   const clearFilters = () => {
     setFilterEstado('');
-    setFilterMunicipio('');
     setFilterCliente('');
     setFilterNegocio('');
+    setFilterEstadoGeo('');
+    setFilterMunicipioNegocio('');
   };
 
   const filtered = useMemo(() => {
@@ -168,17 +191,19 @@ const JovenesConstruyendoFuturo = () => {
         item.apellido?.toLowerCase().includes(term) ||
         item.curp?.toLowerCase().includes(term) ||
         item.correo?.toLowerCase().includes(term) ||
-        item.municipio?.toLowerCase().includes(term) ||
+        item.negocio?.ciudad?.toLowerCase().includes(term) ||
+        item.negocio?.estado?.toLowerCase().includes(term) ||
         item.negocio?.nombreNegocio?.toLowerCase().includes(term) ||
         `${item.negocio?.usuario?.nombre} ${item.negocio?.usuario?.apellido}`.toLowerCase().includes(term)
       );
       const matchEstado = !filterEstado || (filterEstado === 'activo' ? item.activo : !item.activo);
-      const matchMunicipio = !filterMunicipio || item.municipio === filterMunicipio;
       const matchCliente = !filterCliente || String(item.negocio?.usuarioId) === String(filterCliente);
       const matchNegocio = !filterNegocio || String(item.negocioId) === String(filterNegocio);
-      return matchSearch && matchEstado && matchMunicipio && matchCliente && matchNegocio;
+      const matchEstadoGeo = !filterEstadoGeo || item.negocio?.estado === filterEstadoGeo;
+      const matchMunicipioNegocio = !filterMunicipioNegocio || item.negocio?.ciudad === filterMunicipioNegocio;
+      return matchSearch && matchEstado && matchCliente && matchNegocio && matchEstadoGeo && matchMunicipioNegocio;
     });
-  }, [items, searchTerm, filterEstado, filterMunicipio, filterCliente, filterNegocio]);
+  }, [items, searchTerm, filterEstado, filterCliente, filterNegocio, filterEstadoGeo, filterMunicipioNegocio]);
 
   const validateForm = () => {
     const errors = {};
@@ -214,7 +239,6 @@ const JovenesConstruyendoFuturo = () => {
         correo: item.correo || '',
         telefono: item.telefono || '',
         curp: item.curp || '',
-        municipio: item.municipio || '',
         fechaInicio: item.fechaInicio ? item.fechaInicio.split('T')[0] : '',
         fechaTermino: item.fechaTermino ? item.fechaTermino.split('T')[0] : '',
         clienteId,
@@ -248,13 +272,13 @@ const JovenesConstruyendoFuturo = () => {
     if (!validateForm()) return;
     setSubmitting(true);
     try {
+      // clienteId es solo para el select en UI, no se manda al backend
       const { clienteId, ...rest } = formData;
       const payload = { ...rest };
       payload.negocioId = parseInt(payload.negocioId);
       if (!payload.correo) delete payload.correo;
       if (!payload.telefono) delete payload.telefono;
       if (!payload.curp) delete payload.curp;
-      if (!payload.municipio) delete payload.municipio;
       if (!payload.fechaInicio) delete payload.fechaInicio;
       if (!payload.fechaTermino) delete payload.fechaTermino;
 
@@ -365,6 +389,7 @@ const JovenesConstruyendoFuturo = () => {
 
       <div style={{ padding: '28px 32px', animation: 'fadeIn 250ms ease' }}>
 
+        {/* Header */}
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '28px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
             <div style={{
@@ -414,6 +439,7 @@ const JovenesConstruyendoFuturo = () => {
           )}
         </div>
 
+        {/* Search + Filters */}
         <div style={{
           background: '#fff', borderRadius: 'var(--radius-lg)',
           border: '1px solid var(--border)', padding: '16px 20px',
@@ -427,7 +453,7 @@ const JovenesConstruyendoFuturo = () => {
               }} />
               <input
                 type="text"
-                placeholder="Buscar por nombre, CURP, correo, municipio, cliente o negocio..."
+                placeholder="Buscar por nombre, CURP, correo, ciudad, estado, cliente o negocio..."
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
                 style={{ ...inputBaseStyle, paddingLeft: '38px' }}
@@ -514,18 +540,18 @@ const JovenesConstruyendoFuturo = () => {
 
               <div>
                 <label style={{ ...labelStyle, fontSize: '12px', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                  <Building2 style={{ width: '11px', height: '11px' }} />
-                  Negocio
+                  <MapPin style={{ width: '11px', height: '11px' }} />
+                  Estado del negocio
                 </label>
                 <div style={{ position: 'relative' }}>
                   <select
-                    value={filterNegocio}
-                    onChange={e => setFilterNegocio(e.target.value)}
+                    value={filterEstadoGeo}
+                    onChange={e => { setFilterEstadoGeo(e.target.value); setFilterMunicipioNegocio(''); }}
                     style={{ ...selectStyle, fontSize: '13px', padding: '8px 30px 8px 10px' }}
                   >
-                    <option value="">Todos los negocios</option>
-                    {negociosFiltro.map(n => (
-                      <option key={n.id} value={n.id}>{n.nombreNegocio}</option>
+                    <option value="">Todos los estados</option>
+                    {estadosGeoUnicos.map(e => (
+                      <option key={e} value={e}>{e}</option>
                     ))}
                   </select>
                   <SmallDropArrow />
@@ -535,16 +561,16 @@ const JovenesConstruyendoFuturo = () => {
               <div>
                 <label style={{ ...labelStyle, fontSize: '12px', display: 'flex', alignItems: 'center', gap: '5px' }}>
                   <MapPin style={{ width: '11px', height: '11px' }} />
-                  Municipio
+                  Ciudad del negocio
                 </label>
                 <div style={{ position: 'relative' }}>
                   <select
-                    value={filterMunicipio}
-                    onChange={e => setFilterMunicipio(e.target.value)}
+                    value={filterMunicipioNegocio}
+                    onChange={e => setFilterMunicipioNegocio(e.target.value)}
                     style={{ ...selectStyle, fontSize: '13px', padding: '8px 30px 8px 10px' }}
                   >
-                    <option value="">Todos los municipios</option>
-                    {municipiosUnicos.map(m => (
+                    <option value="">Todas las ciudades</option>
+                    {municipiosNegocioUnicos.map(m => (
                       <option key={m} value={m}>{m}</option>
                     ))}
                   </select>
@@ -574,6 +600,7 @@ const JovenesConstruyendoFuturo = () => {
           )}
         </div>
 
+        {/* Table */}
         <div style={{
           background: '#fff', borderRadius: 'var(--radius-lg)',
           border: '1px solid var(--border)', overflow: 'hidden',
@@ -583,8 +610,8 @@ const JovenesConstruyendoFuturo = () => {
             <thead>
               <tr style={{ background: 'var(--gray-50)' }}>
                 {[
-                  'Beneficiario', 'CURP', 'Contacto', 'Municipio',
-                  'Cliente', 'Negocio Asignado', 'Periodo', 'Estado',
+                  'Beneficiario', 'CURP', 'Contacto',
+                  'Cliente', 'Negocio Asignado', 'Ubicación', 'Periodo', 'Estado',
                   ...(currentUser.rol !== 'cliente' ? ['Recursos', 'Acciones'] : [])
                 ].map((col, i) => (
                   <th key={i} style={{
@@ -673,15 +700,6 @@ const JovenesConstruyendoFuturo = () => {
                   </td>
 
                   <td style={{ padding: '12px 16px' }}>
-                    {item.municipio ? (
-                      <span style={{ fontSize: '13px', color: 'var(--gray-700)', fontFamily: "'DM Sans', sans-serif", display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <MapPin style={{ width: '12px', height: '12px', color: 'var(--gray-400)' }} />
-                        {item.municipio}
-                      </span>
-                    ) : <span style={{ color: 'var(--gray-300)', fontSize: '13px' }}>—</span>}
-                  </td>
-
-                  <td style={{ padding: '12px 16px' }}>
                     {item.negocio?.usuario ? (
                       <div>
                         <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--gray-800)', fontFamily: "'DM Sans', sans-serif" }}>
@@ -701,6 +719,16 @@ const JovenesConstruyendoFuturo = () => {
                         {item.negocio.nombreNegocio}
                       </span>
                     ) : <span style={{ color: 'var(--gray-300)', fontSize: '13px' }}>—</span>}
+                  </td>
+
+                  {/* Columna Ubicación — viene del negocio */}
+                  <td style={{ padding: '12px 16px' }}>
+                    {(item.negocio?.ciudad || item.negocio?.estado) ? (
+                      <span style={{ fontSize: '12px', color: 'var(--gray-600)', fontFamily: "'DM Sans', sans-serif", display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <MapPin style={{ width: '11px', height: '11px', color: 'var(--gray-400)', flexShrink: 0 }} />
+                        {[item.negocio.ciudad, item.negocio.estado].filter(Boolean).join(', ')}
+                      </span>
+                    ) : <span style={{ color: 'var(--gray-300)', fontSize: '12px' }}>—</span>}
                   </td>
 
                   <td style={{ padding: '12px 16px' }}>
@@ -838,6 +866,7 @@ const JovenesConstruyendoFuturo = () => {
         </div>
       </div>
 
+      {/* Modal crear/editar */}
       {showModal && (
         <div
           onClick={handleCloseModal}
@@ -858,6 +887,7 @@ const JovenesConstruyendoFuturo = () => {
               animation: 'modalIn 200ms ease'
             }}
           >
+            {/* Modal header */}
             <div style={{
               padding: '20px 24px', background: 'var(--gray-50)',
               borderBottom: '1px solid var(--border)',
@@ -888,8 +918,10 @@ const JovenesConstruyendoFuturo = () => {
               </button>
             </div>
 
+            {/* Modal body */}
             <div style={{ overflowY: 'auto', flex: 1, padding: '24px' }}>
 
+              {/* Sección asignación */}
               <SectionTitle icon={Building2} text="Asignación al programa" />
               <div style={{ marginTop: '14px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px' }}>
                 <div>
@@ -950,6 +982,39 @@ const JovenesConstruyendoFuturo = () => {
                   )}
                 </div>
 
+                {/* Ubicación del negocio (solo lectura, viene automático) */}
+                <div>
+                  <label style={labelStyle}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                      <MapPin style={{ width: '12px', height: '12px' }} />
+                      Ciudad del negocio
+                      <span style={{ fontWeight: 400, color: 'var(--gray-400)', fontSize: '11px' }}>— automático</span>
+                    </span>
+                  </label>
+                  <input
+                    readOnly
+                    value={negocioSeleccionado?.ciudad || ''}
+                    placeholder="Se obtiene del negocio seleccionado"
+                    style={inputReadonlyStyle}
+                  />
+                </div>
+
+                <div>
+                  <label style={labelStyle}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                      <MapPin style={{ width: '12px', height: '12px' }} />
+                      Estado del negocio
+                      <span style={{ fontWeight: 400, color: 'var(--gray-400)', fontSize: '11px' }}>— automático</span>
+                    </span>
+                  </label>
+                  <input
+                    readOnly
+                    value={negocioSeleccionado?.estado || ''}
+                    placeholder="Se obtiene del negocio seleccionado"
+                    style={inputReadonlyStyle}
+                  />
+                </div>
+
                 <div>
                   <label style={labelStyle}>Fecha de inicio</label>
                   <input
@@ -970,6 +1035,7 @@ const JovenesConstruyendoFuturo = () => {
                 </div>
               </div>
 
+              {/* Sección datos personales */}
               <SectionTitle icon={Users} text="Datos personales del beneficiario" />
               <div style={{ marginTop: '14px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px' }}>
                 <div>
@@ -1007,16 +1073,9 @@ const JovenesConstruyendoFuturo = () => {
                   />
                   {formErrors.curp && <ErrorMsg text={formErrors.curp} />}
                 </div>
-                <div>
-                  <label style={labelStyle}>Municipio</label>
-                  <input
-                    name="municipio" value={formData.municipio} onChange={handleChange}
-                    placeholder="Municipio de residencia"
-                    style={inputBaseStyle}
-                  />
-                </div>
               </div>
 
+              {/* Sección contacto */}
               <SectionTitle icon={Phone} text="Contacto" />
               <div style={{ marginTop: '14px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '8px' }}>
                 <div>
@@ -1041,6 +1100,7 @@ const JovenesConstruyendoFuturo = () => {
 
             </div>
 
+            {/* Modal footer */}
             <div style={{
               padding: '16px 24px', background: 'var(--gray-50)',
               borderTop: '1px solid var(--border)',
@@ -1084,6 +1144,7 @@ const JovenesConstruyendoFuturo = () => {
         </div>
       )}
 
+      {/* Modal recurso */}
       {showRecursoModal && recursoItem && (
         <div
           onClick={handleCloseRecurso}
