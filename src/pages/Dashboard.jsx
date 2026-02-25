@@ -361,11 +361,11 @@ const Dashboard = () => {
           </button>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '16px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '16px' }}>
           {statCards.map((s, i) => <StatCard key={i} {...s} />)}
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '20px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
           <CardShell icon={Activity} iconBg='#EEF4FF' iconColor='var(--capyme-blue-mid)' titulo='Postulaciones por Mes'>
             <LineaChart data={postulacionesPorMes} />
           </CardShell>
@@ -375,7 +375,7 @@ const Dashboard = () => {
           </CardShell>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '20px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
           <CardShell icon={TrendingUp} iconBg='#EEF4FF' iconColor='var(--capyme-blue-mid)' titulo='Negocios por Categoría'>
             <BarrasHorizontales data={negociosPorCategoria} labelKey='categoria' valueKey='total' />
           </CardShell>
@@ -385,7 +385,7 @@ const Dashboard = () => {
           </CardShell>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '20px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
           <CardShell icon={GraduationCap} iconBg='#EFF6FF' iconColor='#2563EB' titulo='Cursos: Inscritos vs Cupo'>
             <BarrasDobles data={inscripcionesPorCurso} />
           </CardShell>
@@ -395,7 +395,7 @@ const Dashboard = () => {
           </CardShell>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '20px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
           <CardShell icon={FileText} iconBg='#ECFDF5' iconColor='#059669' titulo='Financiamiento por Estado'>
             <BarrasVerticales data={financiamientoPorEstado} labelKey='estado' valueKey='total' color2Key />
           </CardShell>
@@ -421,7 +421,7 @@ const Dashboard = () => {
           </CardShell>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '20px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
           <CardShell icon={Calendar} iconBg='#F5F3FF' iconColor='#7C3AED' titulo='Últimas Postulaciones'>
             <div style={{ display: 'flex', flexDirection: 'column' }}>
               {ultimasPostulaciones.length > 0 ? ultimasPostulaciones.map(p => {
@@ -445,6 +445,8 @@ const Dashboard = () => {
               }) : <EmptyState />}
             </div>
           </CardShell>
+
+          <div />
         </div>
 
       </div>
