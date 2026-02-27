@@ -171,6 +171,7 @@ const CursosDisponibles = () => {
 };
 
 const CursoCard = ({ curso, formatCurrency, formatDate, inscribiendo, onInscribir, onVerPago }) => {
+  
   const mod = modalidadConfig[curso.modalidad] || modalidadConfig.online;
   const ModIcon = mod.icon;
   const gratuito = !curso.costo || parseFloat(curso.costo) === 0;
@@ -183,6 +184,7 @@ const CursoCard = ({ curso, formatCurrency, formatDate, inscribiendo, onInscribi
 
   // miPagoPendiente viene del backend — persiste al recargar
   const tienePagoPendiente = !!curso.miPagoPendiente;
+  const yaInscrito = !!curso.yaInscrito;
 
   return (
     <div
@@ -243,14 +245,26 @@ const CursoCard = ({ curso, formatCurrency, formatDate, inscribiendo, onInscribi
 
         <div style={{ marginTop: 'auto', paddingTop: '4px' }}>
           {tienePagoPendiente ? (
+          <button
+            onClick={onVerPago}
+            style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '9px 0', background: 'linear-gradient(135deg, #D97706, #B45309)', border: 'none', borderRadius: 'var(--radius-md)', color: '#fff', fontSize: '13px', fontWeight: 600, fontFamily: "'Plus Jakarta Sans', sans-serif", cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.18)', transition: 'all 150ms ease' }}
+            onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-1px)'}
+            onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
+          >
+            <RefreshCw style={{ width: '14px', height: '14px' }} /> Ver mi pago pendiente
+          </button>
+          ) : yaInscrito ? (
             <button
-              onClick={onVerPago}
-              style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '9px 0', background: 'linear-gradient(135deg, #D97706, #B45309)', border: 'none', borderRadius: 'var(--radius-md)', color: '#fff', fontSize: '13px', fontWeight: 600, fontFamily: "'Plus Jakarta Sans', sans-serif", cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.18)', transition: 'all 150ms ease' }}
-              onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-1px)'}
-              onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
+              disabled
+              style={{
+                width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                gap: '6px', padding: '9px 0', background: '#ECFDF5', border: '1px solid #A7F3D0',
+                borderRadius: 'var(--radius-md)', color: '#065F46', fontSize: '13px', fontWeight: 600,
+                fontFamily: "'Plus Jakarta Sans', sans-serif", cursor: 'default',
+              }}
             >
-              <RefreshCw style={{ width: '14px', height: '14px' }} />
-              Ver mi pago pendiente
+              <CheckCircle style={{ width: '14px', height: '14px' }} />
+              Ya estás inscrito
             </button>
           ) : (
             <button
