@@ -119,7 +119,7 @@ const ApoyarModal = ({ campana, currentUser, onClose, onSuccess }) => {
 
   return (
     <div
-      onClick={fase === 'processing' ? undefined : onClose}
+      onClick={fase === 'monto' ? onClose : undefined}
       style={{position:'fixed',inset:0,background:'rgba(0,0,0,.5)',backdropFilter:'blur(6px)',zIndex:1100,display:'flex',alignItems:'center',justifyContent:'center',padding:'20px'}}
     >
       <div
