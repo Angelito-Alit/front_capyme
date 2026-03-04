@@ -17,7 +17,7 @@ import {
   UserCheck,
 } from 'lucide-react';
 import LogoCapyme from '../../assets/LogoCapyme.png';
-import { History } from 'lucide-react';
+import { History, Megaphone  } from 'lucide-react';
 
 const Sidebar = ({ isOpen, onClose }) => {
   const location = useLocation();
@@ -36,6 +36,7 @@ const Sidebar = ({ isOpen, onClose }) => {
       { path: '/enlaces',        icon: Link2,           label: 'Recursos' },
       { path: '/contacto',       icon: Phone,           label: 'Contacto' },
       { path: '/historial',      icon: History,         label: 'Historial' },
+      { path: '/campanas', label: 'Campañas', icon: Megaphone, roles: ['admin'] },
     ],
     colaborador: [
       { path: '/dashboard',      icon: LayoutDashboard, label: 'Dashboard' },
@@ -48,6 +49,7 @@ const Sidebar = ({ isOpen, onClose }) => {
       { path: '/avisos',         icon: BellRing,        label: 'Avisos' },
       { path: '/enlaces',        icon: Link2,           label: 'Recursos' },
       { path: '/contacto',       icon: Phone,           label: 'Contacto' },
+      { path: '/campanas', label: 'Campañas', icon: Megaphone, roles: ['colaborador'] },
     ],
     cliente: [
       { path: '/cliente/dashboard',     icon: LayoutDashboard, label: 'Inicio' },
@@ -58,7 +60,9 @@ const Sidebar = ({ isOpen, onClose }) => {
       { path: '/cliente/financiamiento',icon: Briefcase,       label: 'Financiamiento' },
       { path: '/cliente/avisos',        icon: BellRing,        label: 'Avisos' },
       { path: '/cliente/recursos',      icon: Link2,           label: 'Recursos' },
+      { path: '/campanas', label: 'Campañas', icon: Megaphone, roles: ['cliente'] },
     ],
+    
   };
 
   const currentMenu = menuItems[user?.rol] || menuItems.cliente;
