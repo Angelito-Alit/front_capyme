@@ -29,6 +29,7 @@ import ClienteRecursos from './pages/cliente/Recursos';
 import ClienteContacto from './pages/cliente/Contacto';
 import JovenesConstruyendoFuturo from './pages/JovenesConstruyendoFuturo';
 import Campanas from './pages/Campanas';
+import Inversiones from './pages/Inversiones';
 
 function App() {
   return (
@@ -85,6 +86,7 @@ function App() {
         {/* ── Compartidas ── */}
         <Route path="/perfil" element={<ProtectedRoute><Perfil /></ProtectedRoute>} />
         <Route path="/campanas" element={<ProtectedRoute><Campanas /></ProtectedRoute>} />
+        <Route path="/inversiones" element={<ProtectedRoute><Inversiones /></ProtectedRoute>} />
 
         {/* ── Redirects ── */}
         <Route path="/" element={<Navigate to="/login" replace />} />
