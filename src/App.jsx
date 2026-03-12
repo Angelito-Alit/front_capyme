@@ -1,7 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import ProtectedRoute from './components/ProtectedRoute';
-import InactivoModal from './components/InactivoModal';   // ← nuevo
+import InactivoModal from './components/InactivoModal';
 
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
@@ -30,6 +30,8 @@ import ClienteContacto from './pages/cliente/Contacto';
 import JovenesConstruyendoFuturo from './pages/JovenesConstruyendoFuturo';
 import Campanas from './pages/Campanas';
 import Inversiones from './pages/Inversiones';
+import MisCampanas from './pages/MisCampanas';       // ← Panel del emprendedor
+import MisInversiones from './pages/MisInversiones'; // ← Panel del inversor
 
 function App() {
   return (
@@ -83,10 +85,14 @@ function App() {
         <Route path="/cliente/recursos" element={<ProtectedRoute allowedRoles={['cliente']}><ClienteRecursos /></ProtectedRoute>} />
         <Route path="/cliente/contacto" element={<ProtectedRoute allowedRoles={['cliente']}><ClienteContacto /></ProtectedRoute>} />
 
-        {/* ── Compartidas ── */}
-        <Route path="/perfil" element={<ProtectedRoute><Perfil /></ProtectedRoute>} />
-        <Route path="/campanas" element={<ProtectedRoute><Campanas /></ProtectedRoute>} />
-        <Route path="/inversiones" element={<ProtectedRoute><Inversiones /></ProtectedRoute>} />
+        {/* ── Compartidas (admin + colaborador + cliente) ── */}
+        <Route path="/perfil"      element={<ProtectedRoute><Perfil /></ProtectedRoute>} />
+        <Route path="/campanas"    element={<ProtectedRoute><Campanas /></ProtectedRoute>} />
+        <Route path="/inversiones" element={<ProtectedRoute><Inversiones /></ProtectedRoute>} />   {/* ← nuevo */}
+
+        {/* ── Crowdfunding — todos los roles ── */}
+        <Route path="/mis-campanas"   element={<ProtectedRoute><MisCampanas /></ProtectedRoute>} />
+        <Route path="/mis-inversiones" element={<ProtectedRoute><MisInversiones /></ProtectedRoute>} />
 
         {/* ── Redirects ── */}
         <Route path="/" element={<Navigate to="/login" replace />} />

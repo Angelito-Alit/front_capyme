@@ -2,6 +2,7 @@ import api from './axios';
 
 export const inversionesService = {
   getAll: async (params = {}) => (await api.get('/inversiones', { params })).data,
+  getMias: async (params = {}) => (await api.get('/inversiones/mias', { params })).data,
   getPendientes: async () => (await api.get('/inversiones/pendientes')).data,
   getByCampana: async (campanaId) => (await api.get(`/inversiones/campana/${campanaId}`)).data,
   getById: async (id) => (await api.get(`/inversiones/${id}`)).data,
