@@ -6,12 +6,23 @@ import api from '../services/axios';
 /**
  * ProtectedRoute
  *
- * Además de las comprobaciones habituales (autenticado + rol permitido),
- * cada vez que el usuario navega a una ruta protegida se hace una llamada
- * silenciosa a /usuarios/perfil para verificar que su cuenta sigue activa.
+ * Props:
+ *  - children      : el componente a renderizar si pasa las guards
+ *  - allowedRoles  : string[] de roles permitidos, ej. ['admin', 'colaborador']
+ *                    Si está vacío, cualquier usuario autenticado puede acceder.
  *
- * Si el backend devuelve 401 con mensaje de "inactivo", el interceptor de axios
- * se encarga de mostrar el InactivoModal y hacer logout.
+ * Lógica de redirección:
+ *  1. No autenticado           → /login
+ *  2. Autenticado, rol no permitido:
+ *       - rol === 'cliente'    → /dashboard
+ *       - rol === 'admin'
+ *         || 'colaborador'     → /admin
+ *  3. Autenticado, rol OK      → renderiza children
+ *
+ * Efecto secundario:
+ *  Cada vez que el usuario navega a una ruta protegida distinta, se hace
+ *  una llamada silenciosa a GET /usuarios/perfil para verificar que la
+ *  cuenta sigue activa. El interceptor de axios maneja el 401 resultante.
  */
 const ProtectedRoute = ({ children, allowedRoles = [] }) => {
   const { isAuthenticated, user } = useAuthStore();
@@ -19,25 +30,29 @@ const ProtectedRoute = ({ children, allowedRoles = [] }) => {
   const lastCheckedPath = useRef(null);
 
   useEffect(() => {
-    // Solo verificar si estamos autenticados y es una ruta nueva
     if (!isAuthenticated) return;
+    // Evitar re-verificar la misma ruta en re-renders
     if (lastCheckedPath.current === location.pathname) return;
     lastCheckedPath.current = location.pathname;
 
-    // Llamada silenciosa; el interceptor de axios maneja el 401
+    // Llamada silenciosa; el interceptor de axios maneja el 401 / inactivo
     api.get('/usuarios/perfil').catch(() => {
-      // Los errores de red (offline, etc.) no deben cerrar sesión
+      // Errores de red (offline, timeout) no deben cerrar la sesión
     });
   }, [location.pathname, isAuthenticated]);
 
+  // 1. Sin autenticar → login
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
+  // 2. Rol no permitido → redirigir según rol
   if (allowedRoles.length > 0 && !allowedRoles.includes(user?.rol)) {
-    return <Navigate to="/unauthorized" replace />;
+    const fallback = user?.rol === 'cliente' ? '/dashboard' : '/admin';
+    return <Navigate to={fallback} replace />;
   }
 
+  // 3. Todo OK
   return children;
 };
 
