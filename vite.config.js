@@ -34,7 +34,7 @@ export default defineConfig({
             type: 'image/png'
           },
           {
-            src: '/icons/icon-144x144.png',
+            src: '',
             sizes: '144x144',
             type: 'image/png'
           },
@@ -64,7 +64,7 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         runtimeCaching: [
           {
-            urlPattern: /^https:\/\/api\.capyme\.com\/.*/i,
+            urlPattern: /\/api\/.*/i,
             handler: 'NetworkFirst',
             options: {
               cacheName: 'api-cache',

@@ -86,14 +86,8 @@ const UrlField = ({ name, label, Icon, placeholder, isAdmin, value, onChange, er
         onChange={onChange}
         placeholder={placeholder}
         disabled={!isAdmin}
-        style={{ ...sInputBase, ...sInputIcon, paddingRight: value && !error ? '40px' : '12px', ...(error ? sInputErr : {}), ...(!isAdmin ? sInputOff : {}) }}
+        style={{ ...sInputBase, ...sInputIcon, ...(error ? sInputErr : {}), ...(!isAdmin ? sInputOff : {}) }}
       />
-      {value && !error && (
-        <a href={value} target="_blank" rel="noopener noreferrer"
-          style={{ position: 'absolute', right: '11px', top: '50%', transform: 'translateY(-50%)', color: 'var(--capyme-blue-mid)', lineHeight: 0 }}>
-          <ExternalLink style={{ width: '14px', height: '14px' }} />
-        </a>
-      )}
     </div>
     {error && <ErrorMsg text={error} />}
   </div>
