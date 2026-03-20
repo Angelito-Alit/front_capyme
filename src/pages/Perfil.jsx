@@ -17,7 +17,6 @@ import {
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
-/* ── helpers ───────────────────────────────────────────── */
 const getRoleName  = (r) => ({ admin: 'Administrador', colaborador: 'Colaborador', cliente: 'Cliente' }[r] || r);
 const getRoleStyle = (r) => ({
   admin:       { bg: '#FEF2F2', color: '#DC2626', border: '#FECACA' },
@@ -32,7 +31,6 @@ const formatDate = (d) => d
 const getInitials = (nombre, apellido) =>
   `${(nombre || '').charAt(0)}${(apellido || '').charAt(0)}`.toUpperCase();
 
-/* ── tiny sub-components ──────────────────────────────── */
 const Label = ({ children }) => (
   <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--gray-600)', marginBottom: '6px', fontFamily: "'DM Sans', sans-serif" }}>
     {children}
@@ -77,7 +75,6 @@ const InfoRow = ({ icon: Icon, label, value, highlight }) => (
   </div>
 );
 
-/* ══════════════════════════════════════════════════════ */
 const Perfil = () => {
   const { user, updateUser } = useAuthStore();
 
@@ -87,13 +84,12 @@ const Perfil = () => {
   const [showNewPass,  setShowNewPass]  = useState(false);
   const [showConfPass, setShowConfPass] = useState(false);
 
-  const [formData, setFormData] = useState({ nombre: '', apellido: '', telefono: '', clabeInterbancaria: '' });
+  const [formData, setFormData] = useState({ nombre: '', apellido: '', telefono: '' });
   const [formErrors, setFormErrors] = useState({});
 
   const [passData, setPassData] = useState({ newPassword: '', confirmPassword: '' });
   const [passErrors, setPassErrors] = useState({});
 
-  /* strength meter */
   const passStrength = (() => {
     const p = passData.newPassword;
     if (!p) return 0;
@@ -112,8 +108,7 @@ const Perfil = () => {
     if (user) setFormData({
       nombre: user.nombre || '',
       apellido: user.apellido || '',
-      telefono: user.telefono || '',
-      clabeInterbancaria: user.clabeInterbancaria || ''
+      telefono: user.telefono || ''
     });
   }, [user]);
 
@@ -121,9 +116,6 @@ const Perfil = () => {
     const e = {};
     if (!formData.nombre.trim()) e.nombre = 'El nombre es requerido';
     if (!formData.apellido.trim()) e.apellido = 'El apellido es requerido';
-    if (formData.clabeInterbancaria && formData.clabeInterbancaria.length !== 18) {
-      e.clabeInterbancaria = 'La CLABE debe tener exactamente 18 dígitos';
-    }
     setFormErrors(e);
     return !Object.keys(e).length;
   };
@@ -185,7 +177,6 @@ const Perfil = () => {
         .btn-secondary:hover { background: var(--gray-100) !important; }
         .pass-toggle:hover { color: var(--gray-700) !important; }
 
-        /* ── Layout principal ── */
         .perfil-layout {
           display: grid;
           grid-template-columns: 1fr 280px;
@@ -193,7 +184,6 @@ const Perfil = () => {
           align-items: start;
         }
 
-        /* ── Grid nombre/apellido ── */
         .perfil-nombre-grid {
           display: grid;
           grid-template-columns: 1fr 1fr;
@@ -201,7 +191,6 @@ const Perfil = () => {
           margin-bottom: 20px;
         }
 
-        /* ── Avatar row ── */
         .perfil-avatar-row {
           display: flex;
           align-items: flex-end;
@@ -215,7 +204,6 @@ const Perfil = () => {
           padding-bottom: 4px;
         }
 
-        /* ── Header ── */
         .perfil-header-inner {
           display: flex;
           align-items: center;
@@ -223,16 +211,12 @@ const Perfil = () => {
           padding: 18px 24px;
         }
 
-        /* ══ RESPONSIVE ══ */
-
-        /* Tablet: 768px - columna derecha debajo */
         @media (max-width: 860px) {
           .perfil-layout {
             grid-template-columns: 1fr;
           }
         }
 
-        /* Mobile grande: 600px */
         @media (max-width: 600px) {
           .perfil-nombre-grid {
             grid-template-columns: 1fr;
@@ -280,7 +264,6 @@ const Perfil = () => {
           }
         }
 
-        /* Mobile pequeño: 400px */
         @media (max-width: 400px) {
           .perfil-card-padding {
             padding: 0 14px 20px !important;
@@ -298,7 +281,6 @@ const Perfil = () => {
 
       <div style={{ maxWidth: '860px', margin: '0 auto', padding: '0 0 48px' }}>
 
-        {/* ── PAGE HEADER ── */}
         <div style={{ marginBottom: '28px' }}>
           <h1 style={{ fontSize: '22px', fontWeight: 800, color: 'var(--gray-900)', fontFamily: "'Plus Jakarta Sans', sans-serif", margin: 0, lineHeight: 1.2 }}>Mi Perfil</h1>
           <p style={{ fontSize: '13px', color: 'var(--gray-500)', margin: '4px 0 0', fontFamily: "'DM Sans', sans-serif" }}>Gestiona tu información personal y seguridad de cuenta</p>
@@ -306,20 +288,16 @@ const Perfil = () => {
 
         <div className="perfil-layout">
 
-          {/* ══ COLUMNA IZQUIERDA ══ */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
 
-            {/* ── TARJETA IDENTIDAD ── */}
             <div className="perfil-section" style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', overflow: 'hidden', boxShadow: 'var(--shadow-sm)', animationDelay: '0ms' }}>
 
-              {/* Banner */}
               <div style={{ height: '72px', background: 'linear-gradient(135deg, var(--capyme-blue-mid) 0%, var(--capyme-blue) 100%)', position: 'relative', flexShrink: 0 }}>
                 <div style={{ position: 'absolute', inset: 0, backgroundImage: 'radial-gradient(circle at 20% 50%, rgba(255,255,255,0.08) 0%, transparent 60%), radial-gradient(circle at 80% 20%, rgba(255,255,255,0.06) 0%, transparent 50%)' }} />
               </div>
 
               <div className="perfil-card-padding" style={{ padding: '0 24px 24px', position: 'relative' }}>
 
-                {/* Avatar row */}
                 <div className="perfil-avatar-row">
                   <div style={{ width: '72px', height: '72px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--capyme-blue-mid), var(--capyme-blue))', border: '4px solid #fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: '-36px', boxShadow: '0 4px 16px rgba(31,78,158,0.25)', color: '#fff', fontSize: '24px', fontWeight: 800, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
                     {getInitials(user?.nombre, user?.apellido)}
@@ -337,7 +315,6 @@ const Perfil = () => {
                   </div>
                 </div>
 
-                {/* Nombre / Apellido */}
                 <div className="perfil-nombre-grid">
                   <div>
                     <Label>Nombre <span style={{ color: '#EF4444' }}>*</span></Label>
@@ -363,7 +340,6 @@ const Perfil = () => {
                   </div>
                 </div>
 
-                {/* Teléfono */}
                 <div style={{ marginBottom: '20px' }}>
                   <Label>Teléfono</Label>
                   <InputBase
@@ -375,38 +351,6 @@ const Perfil = () => {
                   />
                 </div>
 
-                {/* CLABE — solo admin / colaborador */}
-                {(user?.rol === 'admin' || user?.rol === 'colaborador') && (
-                  <div style={{ marginBottom: '20px' }}>
-                    <Label>
-                      CLABE Interbancaria
-                      <span style={{ fontSize: '11px', fontWeight: 400, color: 'var(--gray-400)', marginLeft: '6px' }}>
-                        (requerida para cursos con costo)
-                      </span>
-                    </Label>
-                    <InputBase
-                      type="text"
-                      value={formData.clabeInterbancaria}
-                      onChange={onChangeInfo('clabeInterbancaria')}
-                      placeholder="18 dígitos"
-                      maxLength={18}
-                      error={formErrors.clabeInterbancaria}
-                    />
-                    {formErrors.clabeInterbancaria && <ErrMsg text={formErrors.clabeInterbancaria} />}
-                    {!formErrors.clabeInterbancaria && formData.clabeInterbancaria && formData.clabeInterbancaria.length !== 18 && (
-                      <p style={{ marginTop: '5px', fontSize: '12px', color: '#F97316', fontFamily: "'DM Sans', sans-serif" }}>
-                        La CLABE debe tener exactamente 18 dígitos
-                      </p>
-                    )}
-                    {!formData.clabeInterbancaria && (
-                      <p style={{ marginTop: '5px', fontSize: '12px', color: 'var(--gray-400)', fontFamily: "'DM Sans', sans-serif" }}>
-                        ⚠️ Sin CLABE no podrás crear cursos con costo
-                      </p>
-                    )}
-                  </div>
-                )}
-
-                {/* Guardar */}
                 <div className="perfil-save-row" style={{ display: 'flex', justifyContent: 'flex-end' }}>
                   <button
                     className="btn-primary"
@@ -423,7 +367,6 @@ const Perfil = () => {
               </div>
             </div>
 
-            {/* ── TARJETA SEGURIDAD ── */}
             <div className="perfil-section" style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', overflow: 'hidden', boxShadow: 'var(--shadow-sm)', animationDelay: '80ms' }}>
 
               <div className="perfil-header-inner" style={{ borderBottom: showPassSection ? '1px solid var(--border)' : 'none' }}>
@@ -451,7 +394,6 @@ const Perfil = () => {
               {showPassSection && (
                 <div className="perfil-section-padding" style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
 
-                  {/* Nueva contraseña */}
                   <div>
                     <Label>Nueva contraseña <span style={{ color: '#EF4444' }}>*</span></Label>
                     <div style={{ position: 'relative' }}>
@@ -474,7 +416,6 @@ const Perfil = () => {
                     </div>
                     {passErrors.newPassword && <ErrMsg text={passErrors.newPassword} />}
 
-                    {/* Strength bar */}
                     {passData.newPassword && (
                       <div style={{ marginTop: '8px' }}>
                         <div style={{ display: 'flex', gap: '4px', marginBottom: '4px' }}>
@@ -487,7 +428,6 @@ const Perfil = () => {
                     )}
                   </div>
 
-                  {/* Confirmar contraseña */}
                   <div>
                     <Label>Confirmar contraseña <span style={{ color: '#EF4444' }}>*</span></Label>
                     <div style={{ position: 'relative' }}>
@@ -514,7 +454,6 @@ const Perfil = () => {
                     {passErrors.confirmPassword && <ErrMsg text={passErrors.confirmPassword} />}
                   </div>
 
-                  {/* Actions */}
                   <div className="perfil-pass-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', paddingTop: '4px' }}>
                     <button
                       className="btn-secondary"
@@ -540,10 +479,8 @@ const Perfil = () => {
             </div>
           </div>
 
-          {/* ══ COLUMNA DERECHA — INFO CUENTA ══ */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
 
-            {/* Info de cuenta */}
             <div className="perfil-section" style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', overflow: 'hidden', boxShadow: 'var(--shadow-sm)', animationDelay: '40ms' }}>
               <div style={{ padding: '16px 18px', borderBottom: '1px solid var(--border)', background: 'var(--gray-50)' }}>
                 <h3 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--gray-700)', fontFamily: "'Plus Jakarta Sans', sans-serif", margin: 0 }}>Información de cuenta</h3>
@@ -558,7 +495,6 @@ const Perfil = () => {
               </div>
             </div>
 
-            {/* Tips card */}
             <div className="perfil-section" style={{ background: 'var(--capyme-blue-pale)', border: '1px solid #BFDBFE', borderRadius: 'var(--radius-lg)', padding: '16px 18px', animationDelay: '120ms' }}>
               <h4 style={{ fontSize: '13px', fontWeight: 700, color: 'var(--capyme-blue-mid)', fontFamily: "'Plus Jakarta Sans', sans-serif", margin: '0 0 10px' }}>💡 Tips de seguridad</h4>
               <ul style={{ margin: 0, padding: '0 0 0 16px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
