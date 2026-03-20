@@ -30,8 +30,10 @@ import ClienteContacto from './pages/cliente/Contacto';
 import JovenesConstruyendoFuturo from './pages/JovenesConstruyendoFuturo';
 import Campanas from './pages/Campanas';
 import Inversiones from './pages/Inversiones';
-import MisCampanas from './pages/MisCampanas';       // ← Panel del emprendedor
-import MisInversiones from './pages/MisInversiones'; // ← Panel del inversor
+import MisCampanas from './pages/MisCampanas';       
+import MisInversiones from './pages/MisInversiones'; 
+import PagoExitoso from './pages/PagoExitoso';
+import PagoFallido from './pages/PagoFallido';
 
 function App() {
   return (
@@ -93,6 +95,8 @@ function App() {
         {/* ── Crowdfunding — todos los roles ── */}
         <Route path="/mis-campanas"   element={<ProtectedRoute><MisCampanas /></ProtectedRoute>} />
         <Route path="/mis-inversiones" element={<ProtectedRoute><MisInversiones /></ProtectedRoute>} />
+        <Route path="/pago-exitoso" element={<PagoExitoso />} />
+        <Route path="/pago-fallido" element={<PagoFallido />} />
 
         {/* ── Redirects ── */}
         <Route path="/" element={<Navigate to="/login" replace />} />
