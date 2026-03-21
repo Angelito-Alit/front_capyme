@@ -11,4 +11,6 @@ export const inversionesService = {
   confirmar: async (id) => (await api.patch(`/inversiones/${id}/confirmar`)).data,
   rechazar: async (id) => (await api.patch(`/inversiones/${id}/rechazar`)).data,
   toggleActivo: async (id) => (await api.patch(`/inversiones/${id}/toggle-activo`)).data,
+  confirmarPorReferencia: async (referencia) =>
+    (await api.post('/inversiones/confirmar-por-referencia', { referencia })).data,
 };

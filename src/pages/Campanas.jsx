@@ -8,11 +8,11 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import Layout from '../components/common/Layout';
-import { campanasService } from '../services/campanasService';
-import { negociosService } from '../services/negociosService';
+import { campanasService }  from '../services/campanasService';
+import { negociosService }  from '../services/negociosService';
 import { inversionesService } from '../services/inversionesService';
+import { pagosService }     from '../services/pagosService';
 
-// ─── Config ───────────────────────────────────────────────────────────────────
 const ESTADO_INFO = {
   en_revision: { label: 'En revisión', bg: '#FEF9C3', color: '#854D0E', dot: '#F59E0B' },
   aprobada:    { label: 'Aprobada',    bg: '#DCFCE7', color: '#14532D', dot: '#22C55E' },
@@ -32,7 +32,6 @@ const COLORES = [
 
 const initForm = { titulo:'', descripcion:'', historia:'', negocioId:'', metaRecaudacion:'', fechaInicio:'', fechaCierre:'' };
 
-// ─── Utils ────────────────────────────────────────────────────────────────────
 const fmtM  = v => new Intl.NumberFormat('es-MX',{style:'currency',currency:'MXN',maximumFractionDigits:0}).format(v||0);
 const fmtD  = d => d ? new Date(d).toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'}) : '—';
 const getDias = c => { if(!c) return null; const d=Math.ceil((new Date(c)-new Date())/86400000); return d>0?d:0; };
@@ -40,7 +39,6 @@ const getPct  = (r,m) => (!m||!parseFloat(m)) ? 0 : Math.min(100,Math.round((par
 const isMeta  = c => parseFloat(c.metaRecaudacion||0)>0 && parseFloat(c.montoRecaudado||0)>=parseFloat(c.metaRecaudacion||1);
 const getClrs = c => COLORES[(c.id||0)%COLORES.length];
 
-// ─── EstadoBadge ──────────────────────────────────────────────────────────────
 const EstadoBadge = ({ campana, size='sm' }) => {
   const alc  = isMeta(campana);
   const info = ESTADO_INFO[campana.estado] || ESTADO_INFO.en_revision;
@@ -62,7 +60,6 @@ const EstadoBadge = ({ campana, size='sm' }) => {
   );
 };
 
-// ─── BarraProgreso ────────────────────────────────────────────────────────────
 const BarraProgreso = ({ campana, h=6 }) => {
   const p = getPct(campana.montoRecaudado, campana.metaRecaudacion);
   const alc = isMeta(campana);
@@ -85,233 +82,197 @@ const BarraProgreso = ({ campana, h=6 }) => {
   );
 };
 
-// ─── Modal de apoyo — SOLO monto + flujo de pago ──────────────────────────────
-// Fases: 'monto' → 'processing' → 'success'
 const ApoyarModal = ({ campana, currentUser, onClose, onSuccess }) => {
-  const [fase,   setFase]   = useState('monto');
-  const [monto,  setMonto]  = useState('');
-  const [notas,  setNotas]  = useState('');
-  const [err,    setErr]    = useState('');
-  const [invRes, setInvRes] = useState(null);
-  const alc = isMeta(campana);
+  const [monto,     setMonto]     = useState('');
+  const [notas,     setNotas]     = useState('');
+  const [err,       setErr]       = useState('');
+  const [loading,   setLoading]   = useState(false);
   const [c1,c2] = getClrs(campana);
 
   const handlePagar = async () => {
     const m = parseFloat(monto);
     if (!monto || isNaN(m) || m <= 0) { setErr('Ingresa un monto válido'); return; }
+
+    const restante = parseFloat(campana.metaRecaudacion||0) - parseFloat(campana.montoRecaudado||0);
+    if (m > restante) { setErr(`El máximo disponible es ${fmtM(restante)}`); return; }
+
     setErr('');
-    setFase('processing');
+    setLoading(true);
     try {
-      await new Promise(r => setTimeout(r, 1800)); // simula pasarela
-      const res = await inversionesService.create({
+      const invRes = await inversionesService.create({
         campanaId: campana.id,
         monto: m,
         notas: notas || undefined,
       });
-      setInvRes(res.data);
-      setFase('success');
-      onSuccess();
+
+      const referencia = invRes.referencia || invRes.data?.referencia;
+
+      const mpRes = await pagosService.crearPreferencia({
+        titulo:      `Inversión en campaña: ${campana.titulo}`,
+        precio:      m,
+        cantidad:    1,
+        idReferencia: referencia,
+        tipo:        'campana',
+      });
+
+      if (mpRes.success && mpRes.init_point) {
+        window.location.href = mpRes.init_point;
+      } else {
+        throw new Error('No se pudo iniciar el pago');
+      }
     } catch (e) {
-      toast.error(e?.response?.data?.message || 'Error al procesar el pago');
-      setFase('monto');
+      toast.error(e?.response?.data?.message || e?.message || 'Error al procesar el pago');
+      setLoading(false);
     }
   };
 
   return (
     <div
-      onClick={fase === 'monto' ? onClose : undefined}
+      onClick={!loading ? onClose : undefined}
       style={{position:'fixed',inset:0,background:'rgba(0,0,0,.5)',backdropFilter:'blur(6px)',zIndex:1100,display:'flex',alignItems:'center',justifyContent:'center',padding:'20px'}}
     >
       <div
         onClick={e => e.stopPropagation()}
         style={{background:'#fff',borderRadius:'24px',width:'100%',maxWidth:'420px',overflow:'hidden',boxShadow:'0 32px 80px rgba(0,0,0,.25)'}}
       >
-        {/* Header con gradiente de campaña */}
         <div style={{
           padding:'20px 24px',
-          background: fase === 'success'
-            ? 'linear-gradient(135deg,#10B981,#059669)'
-            : `linear-gradient(135deg,${c1},${c2})`,
+          background:`linear-gradient(135deg,${c1},${c2})`,
           display:'flex',alignItems:'center',gap:'12px',
-          transition:'background 600ms ease',
         }}>
           <div style={{width:'38px',height:'38px',borderRadius:'10px',background:'rgba(255,255,255,.2)',backdropFilter:'blur(8px)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
-            {fase==='success' ? <CheckCircle style={{width:'20px',height:'20px',color:'#fff'}}/> : <Heart style={{width:'20px',height:'20px',color:'#fff'}}/>}
+            <Heart style={{width:'20px',height:'20px',color:'#fff'}}/>
           </div>
           <div style={{flex:1}}>
             <div style={{fontSize:'16px',fontWeight:800,color:'#fff',fontFamily:"'Plus Jakarta Sans',sans-serif",textShadow:'0 1px 3px rgba(0,0,0,.15)'}}>
-              {fase==='monto' ? 'Apoyar campaña' : fase==='processing' ? 'Procesando pago...' : '¡Pago exitoso!'}
+              Apoyar campaña
             </div>
             <div style={{fontSize:'11px',color:'rgba(255,255,255,.75)',fontFamily:"'DM Sans',sans-serif",marginTop:'2px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
               {campana.titulo}
             </div>
           </div>
-          {fase === 'monto' && (
+          {!loading && (
             <button onClick={onClose} style={{width:'30px',height:'30px',border:'none',background:'rgba(255,255,255,.2)',borderRadius:'8px',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
               <X style={{width:'14px',height:'14px',color:'#fff'}}/>
             </button>
           )}
         </div>
 
-        {/* Cuerpo */}
         <div style={{padding:'24px'}}>
+          <div style={{marginBottom:'8px',fontSize:'13px',fontWeight:600,color:'var(--gray-500)',fontFamily:"'DM Sans',sans-serif"}}>
+            ¿Cuánto deseas aportar?
+          </div>
 
-          {/* ── fase: monto ── */}
-          {fase === 'monto' && (
-            <>
-              <div style={{marginBottom:'8px',fontSize:'13px',fontWeight:600,color:'var(--gray-500)',fontFamily:"'DM Sans',sans-serif"}}>
-                ¿Cuánto deseas aportar?
-              </div>
+          <div style={{position:'relative',marginBottom:'12px'}}>
+            <span style={{position:'absolute',left:'14px',top:'50%',transform:'translateY(-50%)',fontSize:'20px',fontWeight:900,color:'var(--gray-400)',fontFamily:"'Plus Jakarta Sans',sans-serif",pointerEvents:'none'}}>$</span>
+            <input
+              type="number"
+              min="1"
+              value={monto}
+              onChange={e => { setMonto(e.target.value); setErr(''); }}
+              placeholder="0"
+              autoFocus
+              disabled={loading}
+              style={{
+                width:'100%',padding:'14px 14px 14px 36px',
+                border: err ? '2px solid #EF4444' : '2px solid var(--border)',
+                borderRadius:'14px',
+                fontSize:'28px',fontWeight:900,fontFamily:"'Plus Jakarta Sans',sans-serif",
+                color:'var(--gray-900)',outline:'none',boxSizing:'border-box',
+                textAlign:'center', transition:'border-color 150ms',
+                background: loading ? 'var(--gray-50)' : '#fff',
+              }}
+              onFocus={e => { if (!err) e.currentTarget.style.borderColor = c1; }}
+              onBlur={e  => { if (!err) e.currentTarget.style.borderColor = 'var(--border)'; }}
+            />
+          </div>
 
-              {/* Input grande de monto */}
-              <div style={{position:'relative',marginBottom:'12px'}}>
-                <span style={{position:'absolute',left:'14px',top:'50%',transform:'translateY(-50%)',fontSize:'20px',fontWeight:900,color:'var(--gray-400)',fontFamily:"'Plus Jakarta Sans',sans-serif",pointerEvents:'none'}}>$</span>
-                <input
-                  type="number"
-                  min="1"
-                  value={monto}
-                  onChange={e => { setMonto(e.target.value); setErr(''); }}
-                  placeholder="0"
-                  autoFocus
-                  style={{
-                    width:'100%',padding:'14px 14px 14px 36px',
-                    border: err ? '2px solid #EF4444' : '2px solid var(--border)',
-                    borderRadius:'14px',
-                    fontSize:'28px',fontWeight:900,fontFamily:"'Plus Jakarta Sans',sans-serif",
-                    color:'var(--gray-900)',outline:'none',boxSizing:'border-box',
-                    textAlign:'center',
-                    transition:'border-color 150ms',
-                  }}
-                  onFocus={e => { if (!err) e.currentTarget.style.borderColor = c1; }}
-                  onBlur={e  => { if (!err) e.currentTarget.style.borderColor = 'var(--border)'; }}
-                />
-              </div>
-
-              {err && (
-                <p style={{margin:'0 0 12px',fontSize:'12px',color:'#EF4444',fontFamily:"'DM Sans',sans-serif",display:'flex',alignItems:'center',gap:'4px'}}>
-                  <AlertCircle style={{width:'12px',height:'12px'}}/>{err}
-                </p>
-              )}
-
-              {/* Pills de monto rápido */}
-              <div style={{display:'flex',gap:'8px',marginBottom:'20px',flexWrap:'wrap'}}>
-                {[500,1000,2500,5000].map(amt => {
-                  const sel = String(monto) === String(amt);
-                  return (
-                    <button key={amt} onClick={() => { setMonto(String(amt)); setErr(''); }} style={{
-                      padding:'6px 14px',borderRadius:'99px',
-                      border: sel ? 'none' : '1.5px solid var(--border)',
-                      background: sel ? `linear-gradient(135deg,${c1},${c2})` : '#fff',
-                      color: sel ? '#fff' : 'var(--gray-700)',
-                      fontSize:'13px',fontWeight:700,cursor:'pointer',
-                      fontFamily:"'DM Sans',sans-serif",
-                      transition:'all 150ms',
-                      boxShadow: sel ? '0 2px 8px rgba(0,0,0,.15)' : 'none',
-                    }}>
-                      {fmtM(amt)}
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Nota opcional */}
-              <div style={{marginBottom:'20px'}}>
-                <label style={{display:'block',fontSize:'12px',fontWeight:600,color:'var(--gray-500)',marginBottom:'6px',fontFamily:"'DM Sans',sans-serif"}}>
-                  Mensaje para el emprendedor (opcional)
-                </label>
-                <textarea
-                  value={notas}
-                  onChange={e => setNotas(e.target.value)}
-                  rows={2}
-                  placeholder="¡Mucho éxito con tu proyecto! 🚀"
-                  style={{width:'100%',padding:'10px 12px',border:'1.5px solid var(--border)',borderRadius:'10px',fontSize:'13px',fontFamily:"'DM Sans',sans-serif",color:'var(--gray-900)',outline:'none',resize:'none',boxSizing:'border-box'}}
-                />
-              </div>
-
-              {/* Resumen antes de pagar */}
-              {monto && parseFloat(monto) > 0 && (
-                <div style={{padding:'12px 16px',borderRadius:'12px',background:'var(--gray-50)',border:'1px solid var(--border)',marginBottom:'20px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-                  <div>
-                    <div style={{fontSize:'11px',color:'var(--gray-400)',fontFamily:"'DM Sans',sans-serif",textTransform:'uppercase',letterSpacing:'.05em'}}>Total a pagar</div>
-                    <div style={{fontSize:'22px',fontWeight:900,color:'var(--gray-900)',fontFamily:"'Plus Jakarta Sans',sans-serif"}}>{fmtM(monto)}</div>
-                  </div>
-                  <div style={{display:'flex',alignItems:'center',gap:'6px',fontSize:'12px',color:'var(--gray-500)',fontFamily:"'DM Sans',sans-serif",fontWeight:600}}>
-                    <CreditCard style={{width:'15px',height:'15px',color:'var(--capyme-blue-mid)'}}/>
-                    Pago electrónico
-                  </div>
-                </div>
-              )}
-
-              <button
-                onClick={handlePagar}
-                style={{
-                  width:'100%',padding:'14px',
-                  background: !monto || parseFloat(monto)<=0
-                    ? 'var(--gray-200)'
-                    : `linear-gradient(135deg,${c1},${c2})`,
-                  border:'none',borderRadius:'14px',color:'#fff',
-                  fontSize:'15px',fontWeight:800,cursor:'pointer',
-                  fontFamily:"'Plus Jakarta Sans',sans-serif",
-                  letterSpacing:'.02em',
-                  boxShadow: !monto||parseFloat(monto)<=0 ? 'none' : '0 4px 16px rgba(0,0,0,.2)',
-                  transition:'all 200ms',
-                  display:'flex',alignItems:'center',justifyContent:'center',gap:'9px',
-                }}
-                onMouseEnter={e => { if(monto&&parseFloat(monto)>0){e.currentTarget.style.transform='scale(1.01)';} }}
-                onMouseLeave={e => { e.currentTarget.style.transform='scale(1)'; }}
-              >
-                <CreditCard style={{width:'18px',height:'18px'}}/>
-                Pagar ahora
-              </button>
-            </>
+          {err && (
+            <p style={{margin:'0 0 12px',fontSize:'12px',color:'#EF4444',fontFamily:"'DM Sans',sans-serif",display:'flex',alignItems:'center',gap:'4px'}}>
+              <AlertCircle style={{width:'12px',height:'12px'}}/>{err}
+            </p>
           )}
 
-          {/* ── fase: processing ── */}
-          {fase === 'processing' && (
-            <div style={{display:'flex',flexDirection:'column',alignItems:'center',padding:'28px 0',gap:'20px'}}>
-              <div style={{width:'64px',height:'64px',border:`4px solid ${c1}30`,borderTopColor:c1,borderRadius:'50%',animation:'spin .8s linear infinite'}}/>
-              <div style={{textAlign:'center'}}>
-                <p style={{fontSize:'16px',fontWeight:700,color:'var(--gray-900)',fontFamily:"'Plus Jakarta Sans',sans-serif",margin:'0 0 6px'}}>Procesando tu pago...</p>
-                <p style={{fontSize:'13px',color:'var(--gray-500)',fontFamily:"'DM Sans',sans-serif",margin:0}}>No cierres esta ventana</p>
+          <div style={{display:'flex',gap:'8px',marginBottom:'20px',flexWrap:'wrap'}}>
+            {[500,1000,2500,5000].map(amt => {
+              const sel = String(monto) === String(amt);
+              return (
+                <button key={amt} onClick={() => { setMonto(String(amt)); setErr(''); }} disabled={loading} style={{
+                  padding:'6px 14px',borderRadius:'99px',
+                  border: sel ? 'none' : '1.5px solid var(--border)',
+                  background: sel ? `linear-gradient(135deg,${c1},${c2})` : '#fff',
+                  color: sel ? '#fff' : 'var(--gray-700)',
+                  fontSize:'13px',fontWeight:700,cursor:'pointer',
+                  fontFamily:"'DM Sans',sans-serif",
+                  transition:'all 150ms',
+                  boxShadow: sel ? '0 2px 8px rgba(0,0,0,.15)' : 'none',
+                }}>
+                  {fmtM(amt)}
+                </button>
+              );
+            })}
+          </div>
+
+          <div style={{marginBottom:'20px'}}>
+            <label style={{display:'block',fontSize:'12px',fontWeight:600,color:'var(--gray-500)',marginBottom:'6px',fontFamily:"'DM Sans',sans-serif"}}>
+              Mensaje para el emprendedor (opcional)
+            </label>
+            <textarea
+              value={notas}
+              onChange={e => setNotas(e.target.value)}
+              rows={2}
+              disabled={loading}
+              placeholder="¡Mucho éxito con tu proyecto! 🚀"
+              style={{width:'100%',padding:'10px 12px',border:'1.5px solid var(--border)',borderRadius:'10px',fontSize:'13px',fontFamily:"'DM Sans',sans-serif",color:'var(--gray-900)',outline:'none',resize:'none',boxSizing:'border-box'}}
+            />
+          </div>
+
+          {monto && parseFloat(monto) > 0 && (
+            <div style={{padding:'12px 16px',borderRadius:'12px',background:'var(--gray-50)',border:'1px solid var(--border)',marginBottom:'20px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+              <div>
+                <div style={{fontSize:'11px',color:'var(--gray-400)',fontFamily:"'DM Sans',sans-serif",textTransform:'uppercase',letterSpacing:'.05em'}}>Total a pagar</div>
+                <div style={{fontSize:'22px',fontWeight:900,color:'var(--gray-900)',fontFamily:"'Plus Jakarta Sans',sans-serif"}}>{fmtM(monto)}</div>
+              </div>
+              <div style={{display:'flex',alignItems:'center',gap:'6px',fontSize:'12px',color:'var(--gray-500)',fontFamily:"'DM Sans',sans-serif",fontWeight:600}}>
+                <CreditCard style={{width:'15px',height:'15px',color:'var(--capyme-blue-mid)'}}/>
+                Pago vía Mercado Pago
               </div>
             </div>
           )}
 
-          {/* ── fase: success ── */}
-          {fase === 'success' && invRes && (
-            <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:'18px'}}>
-              <div style={{width:'72px',height:'72px',background:'linear-gradient(135deg,#10B981,#059669)',borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',boxShadow:'0 8px 28px rgba(16,185,129,.4)',animation:'popIn .4s cubic-bezier(.34,1.56,.64,1)'}}>
-                <CheckCircle style={{width:'38px',height:'38px',color:'#fff'}}/>
-              </div>
-              <div style={{textAlign:'center'}}>
-                <p style={{fontSize:'20px',fontWeight:900,color:'var(--gray-900)',fontFamily:"'Plus Jakarta Sans',sans-serif",margin:'0 0 4px'}}>¡Gracias por tu apoyo!</p>
-                <p style={{fontSize:'13px',color:'var(--gray-500)',fontFamily:"'DM Sans',sans-serif",margin:0}}>Tu inversión fue confirmada</p>
-              </div>
-              <div style={{width:'100%',background:'var(--gray-50)',border:'1px solid var(--border)',borderRadius:'14px',padding:'16px',display:'flex',flexDirection:'column',gap:'8px'}}>
-                {[
-                  {k:'Referencia', v:invRes.referencia, mono:true},
-                  {k:'Monto invertido', v:fmtM(invRes.monto), bold:true, green:true},
-                  {k:'Campaña', v:invRes.campana?.titulo},
-                  {k:'Estado', v:'✓ Confirmado', green:true},
-                ].map(({k,v,mono,bold,green}) => (
-                  <div key={k} style={{display:'flex',justifyContent:'space-between',alignItems:'center',paddingBottom:'6px',borderBottom:'1px solid var(--gray-100)'}}>
-                    <span style={{fontSize:'12px',color:'var(--gray-400)',fontFamily:"'DM Sans',sans-serif"}}>{k}</span>
-                    <span style={{fontSize:bold?'15px':'13px',fontWeight:bold?900:600,color:green?'#065F46':'var(--gray-900)',fontFamily:mono?"'JetBrains Mono',monospace":"'DM Sans',sans-serif"}}>{v}</span>
-                  </div>
-                ))}
-              </div>
-              <button onClick={onClose} style={{width:'100%',padding:'13px',background:'linear-gradient(135deg,#10B981,#059669)',border:'none',borderRadius:'12px',color:'#fff',fontSize:'14px',fontWeight:800,cursor:'pointer',fontFamily:"'Plus Jakarta Sans',sans-serif",boxShadow:'0 4px 14px rgba(16,185,129,.35)'}}>
-                ¡Entendido!
-              </button>
-            </div>
-          )}
+          <button
+            onClick={handlePagar}
+            disabled={loading || !monto || parseFloat(monto) <= 0}
+            style={{
+              width:'100%',padding:'14px',
+              background: !monto || parseFloat(monto) <= 0 || loading
+                ? 'var(--gray-200)'
+                : `linear-gradient(135deg,${c1},${c2})`,
+              border:'none',borderRadius:'14px',color: loading ? 'var(--gray-500)' : '#fff',
+              fontSize:'15px',fontWeight:800,
+              cursor: !monto || parseFloat(monto) <= 0 || loading ? 'not-allowed' : 'pointer',
+              fontFamily:"'Plus Jakarta Sans',sans-serif",
+              letterSpacing:'.02em',
+              boxShadow: !monto || parseFloat(monto) <= 0 || loading ? 'none' : '0 4px 16px rgba(0,0,0,.2)',
+              transition:'all 200ms',
+              display:'flex',alignItems:'center',justifyContent:'center',gap:'9px',
+            }}
+          >
+            {loading
+              ? <><div style={{width:'18px',height:'18px',border:'2px solid rgba(0,0,0,.2)',borderTopColor:'var(--gray-600)',borderRadius:'50%',animation:'spin .8s linear infinite'}}/> Redirigiendo a Mercado Pago...</>
+              : <><CreditCard style={{width:'18px',height:'18px'}}/> Pagar con Mercado Pago</>
+            }
+          </button>
+
+          <p style={{textAlign:'center',fontSize:'11px',color:'var(--gray-400)',fontFamily:"'DM Sans',sans-serif",marginTop:'12px',marginBottom:0}}>
+            Serás redirigido al sitio seguro de Mercado Pago
+          </p>
         </div>
       </div>
     </div>
   );
 };
 
-// ─── CampanaCard ──────────────────────────────────────────────────────────────
 const CampanaCard = ({ campana:c, onClick, onEdit, onToggleEstado, onToggleActivo, onApoyar, esAdmin, esColab, currentUser }) => {
   const [hov, setHov] = useState(false);
   const d = getDias(c.fechaCierre);
@@ -332,7 +293,6 @@ const CampanaCard = ({ campana:c, onClick, onEdit, onToggleEstado, onToggleActiv
     }}>
       {alc&&<div style={{position:'absolute',top:0,left:0,right:0,height:'4px',zIndex:2,background:'linear-gradient(90deg,#7C3AED,#A855F7,#EC4899,#7C3AED)',backgroundSize:'200% 100%',animation:'shimmer 2s linear infinite'}}/>}
 
-      {/* Portada */}
       <div onClick={onClick} style={{height:'140px',background:alc?'linear-gradient(135deg,#7C3AED,#A855F7)':`linear-gradient(135deg,${c1},${c2})`,position:'relative',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
         <div style={{width:'56px',height:'56px',borderRadius:'16px',background:'rgba(255,255,255,.2)',backdropFilter:'blur(10px)',display:'flex',alignItems:'center',justifyContent:'center',border:'1px solid rgba(255,255,255,.3)'}}>
           {alc?<Trophy style={{width:'28px',height:'28px',color:'#fff'}}/>:<Megaphone style={{width:'26px',height:'26px',color:'#fff'}}/>}
@@ -352,7 +312,6 @@ const CampanaCard = ({ campana:c, onClick, onEdit, onToggleEstado, onToggleActiv
         )}
       </div>
 
-      {/* Body */}
       <div style={{padding:'16px',flex:1,display:'flex',flexDirection:'column'}}>
         <div onClick={onClick} style={{flex:1,display:'flex',flexDirection:'column'}}>
           <div style={{fontSize:'11px',color:'var(--gray-400)',fontFamily:"'DM Sans',sans-serif",marginBottom:'4px'}}>{c.negocio?.nombreNegocio}</div>
@@ -361,7 +320,6 @@ const CampanaCard = ({ campana:c, onClick, onEdit, onToggleEstado, onToggleActiv
           <BarraProgreso campana={c}/>
         </div>
 
-        {/* Footer */}
         <div style={{paddingTop:'12px',marginTop:'12px',borderTop:'1px solid var(--gray-100)',display:'flex',flexDirection:'column',gap:'10px'}}>
           <div style={{display:'flex',gap:'10px',alignItems:'center'}}>
             <div style={{display:'flex',alignItems:'center',gap:'4px'}}>
@@ -381,7 +339,6 @@ const CampanaCard = ({ campana:c, onClick, onEdit, onToggleEstado, onToggleActiv
             )}
           </div>
 
-          {/* Botón Apoyar en la card */}
           {puedeApoyar && (
             <button
               onClick={e => { e.stopPropagation(); onApoyar(); }}
@@ -417,7 +374,6 @@ const CampanaCard = ({ campana:c, onClick, onEdit, onToggleEstado, onToggleActiv
   );
 };
 
-// ─── Vista Detalle de campaña ─────────────────────────────────────────────────
 const CampanaDetalle = ({ campana:c, currentUser, onBack, onApoyar, recargar }) => {
   const [inversores, setInversores] = useState([]);
   const [loading,    setLoading]    = useState(true);
@@ -453,7 +409,6 @@ const CampanaDetalle = ({ campana:c, currentUser, onBack, onApoyar, recargar }) 
         </div>
       )}
 
-      {/* Hero */}
       <div style={{height:'260px',borderRadius:'20px',marginBottom:'28px',background:alc?'linear-gradient(135deg,#7C3AED,#A855F7)':`linear-gradient(135deg,${c1},${c2})`,position:'relative',overflow:'hidden',display:'flex',alignItems:'flex-end'}}>
         <div style={{position:'absolute',inset:0,background:'linear-gradient(to top,rgba(0,0,0,.5),transparent)'}}/>
         <div style={{position:'relative',padding:'28px',width:'100%'}}>
@@ -464,7 +419,6 @@ const CampanaDetalle = ({ campana:c, currentUser, onBack, onApoyar, recargar }) 
       </div>
 
       <div style={{display:'grid',gridTemplateColumns:'1fr 300px',gap:'28px',alignItems:'start'}}>
-        {/* Columna izquierda */}
         <div>
           {c.descripcion&&(
             <div style={{marginBottom:'24px'}}>
@@ -484,7 +438,7 @@ const CampanaDetalle = ({ campana:c, currentUser, onBack, onApoyar, recargar }) 
             <Users style={{width:'16px',height:'16px',color:'var(--gray-400)'}}/> Inversores ({confirmed.length})
           </h2>
           {loading ? (
-            <div style={{textAlign:'center',padding:'24px',color:'var(--gray-400)',fontSize:'13px',fontFamily:"'DM Sans',sans-serif"}}>Cargando...</div>
+            <div style={{textAlign:'center',padding:'24px',color:'var(--gray-400)',fontSize:'13px'}}>Cargando...</div>
           ) : confirmed.length===0 ? (
             <div style={{padding:'24px',borderRadius:'12px',border:'1.5px dashed var(--border)',textAlign:'center',color:'var(--gray-400)',fontSize:'13px',fontFamily:"'DM Sans',sans-serif"}}>
               {puedeApoyar?'Sé el primero en apoyar esta campaña 🚀':'Aún no hay inversores registrados'}
@@ -512,7 +466,6 @@ const CampanaDetalle = ({ campana:c, currentUser, onBack, onApoyar, recargar }) 
           )}
         </div>
 
-        {/* Panel lateral sticky */}
         <div style={{position:'sticky',top:'20px'}}>
           <div style={{borderRadius:'16px',border:`1.5px solid ${alc?'#A855F750':'var(--border)'}`,background:'#fff',padding:'20px',boxShadow:alc?'0 4px 24px rgba(168,85,247,.15)':'0 4px 20px rgba(0,0,0,.08)'}}>
             <div style={{marginBottom:'16px'}}>
@@ -528,10 +481,10 @@ const CampanaDetalle = ({ campana:c, currentUser, onBack, onApoyar, recargar }) 
 
             <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'10px',marginBottom:'20px'}}>
               {[
-                {icon:Users,label:'Inversores',value:confirmed.length},
-                {icon:Clock,label:d===0?'Finalizada':'Días restantes',value:d===0?'—':(d??'—'),red:d!==null&&d<=7&&d>0},
-                {icon:Calendar,label:'Inicio',value:fmtD(c.fechaInicio)},
-                {icon:Target,label:'Cierre',value:fmtD(c.fechaCierre)},
+                {icon:Users,   label:'Inversores',         value:confirmed.length},
+                {icon:Clock,   label:d===0?'Finalizada':'Días restantes', value:d===0?'—':(d??'—'), red:d!==null&&d<=7&&d>0},
+                {icon:Calendar,label:'Inicio',             value:fmtD(c.fechaInicio)},
+                {icon:Target,  label:'Cierre',             value:fmtD(c.fechaCierre)},
               ].map(({icon:Icon,label,value,red})=>(
                 <div key={label} style={{padding:'10px',borderRadius:'10px',background:'var(--gray-50)',border:'1px solid var(--gray-100)'}}>
                   <div style={{display:'flex',alignItems:'center',gap:'5px',marginBottom:'2px'}}>
@@ -574,7 +527,6 @@ const CampanaDetalle = ({ campana:c, currentUser, onBack, onApoyar, recargar }) 
   );
 };
 
-// ─── Dropdown de estado ───────────────────────────────────────────────────────
 const EstadoDropdown = ({ campana, pos, onSelect, onClose }) => {
   useEffect(()=>{ const fn=()=>onClose(); document.addEventListener('mousedown',fn); return ()=>document.removeEventListener('mousedown',fn); },[]);
   return (
@@ -593,7 +545,6 @@ const EstadoDropdown = ({ campana, pos, onSelect, onClose }) => {
   );
 };
 
-// ─── Modal Crear/Editar campaña ───────────────────────────────────────────────
 const CampanaModal = ({ mode, campana, negocios, currentUser, onClose, onSave }) => {
   const esCliente=currentUser.rol==='cliente';
   const metaBloq=mode==='edit'&&esCliente&&parseFloat(campana?.montoRecaudado||0)>0;
@@ -638,7 +589,6 @@ const CampanaModal = ({ mode, campana, negocios, currentUser, onClose, onSave })
   );
 };
 
-// ─── TablaAdmin ───────────────────────────────────────────────────────────────
 const TablaAdmin = ({ campanas, onEdit, onToggleEstado, onToggleActivo, esAdmin }) => {
   const [hovRow,setHovRow]=useState(null);
   if(!campanas.length) return <div style={{textAlign:'center',padding:'60px',color:'var(--gray-400)',fontSize:'14px',fontFamily:"'DM Sans',sans-serif"}}>No hay campañas</div>;
@@ -700,7 +650,6 @@ const TablaAdmin = ({ campanas, onEdit, onToggleEstado, onToggleActivo, esAdmin 
   );
 };
 
-// ─── PÁGINA PRINCIPAL ─────────────────────────────────────────────────────────
 const Campanas = () => {
   const authStorage = JSON.parse(localStorage.getItem('auth-storage')||'{}');
   const currentUser = authStorage?.state?.user || {};
@@ -712,7 +661,7 @@ const Campanas = () => {
   const [filtro,    setFiltro]    = useState('');
   const [vista,     setVista]     = useState('cards');
   const [detalle,   setDetalle]   = useState(null);
-  const [apoyarCampana, setApoyarCampana] = useState(null); // modal apoyar
+  const [apoyarCampana, setApoyarCampana] = useState(null);
   const [showCampanaModal, setShowCampanaModal] = useState(false);
   const [modalMode, setModalMode] = useState('create');
   const [selected,  setSelected]  = useState(null);
@@ -733,11 +682,7 @@ const Campanas = () => {
     finally { setLoading(false); }
   };
 
-  // Filtrado:
-  // - Admin/colaborador: ve TODAS
-  // - Cliente: ve las aprobadas/activas de cualquier negocio + las suyas propias en cualquier estado
   const campanasFiltradas = campanas.filter(c => {
-    // Visibilidad por rol
     if (esCliente) {
       const esDueno = c.negocio?.usuarioId === currentUser.id;
       const esPublica = c.activo && (c.estado==='aprobada'||c.estado==='activa');
@@ -774,7 +719,6 @@ const Campanas = () => {
     </div></Layout>
   );
 
-  // ── Vista detalle ──
   if(detalle) return(
     <Layout>
       <style>{`@keyframes spin{to{transform:rotate(360deg)}} @keyframes shimmer{to{background-position:200% 0}} @keyframes popIn{0%{transform:scale(.5);opacity:0}100%{transform:scale(1);opacity:1}}`}</style>
@@ -791,7 +735,7 @@ const Campanas = () => {
           campana={apoyarCampana}
           currentUser={currentUser}
           onClose={()=>setApoyarCampana(null)}
-          onSuccess={()=>{ cargarDatos(); }}
+          onSuccess={cargarDatos}
         />
       )}
     </Layout>
@@ -802,7 +746,6 @@ const Campanas = () => {
       <style>{`@keyframes spin{to{transform:rotate(360deg)}} @keyframes shimmer{to{background-position:200% 0}} @keyframes popIn{0%{transform:scale(.5);opacity:0}100%{transform:scale(1);opacity:1}}`}</style>
       <div style={{padding:'32px 24px',maxWidth:'1280px',margin:'0 auto'}}>
 
-        {/* Header */}
         <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',marginBottom:'28px',gap:'16px',flexWrap:'wrap'}}>
           <div>
             <h1 style={{fontSize:'28px',fontWeight:900,color:'var(--gray-900)',fontFamily:"'Plus Jakarta Sans',sans-serif",margin:'0 0 6px'}}>Campañas de crowdfunding</h1>
@@ -827,7 +770,6 @@ const Campanas = () => {
           </div>
         </div>
 
-        {/* Stats — admin/colab */}
         {(esAdmin||esColab)&&(
           <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(150px,1fr))',gap:'12px',marginBottom:'28px'}}>
             {[
@@ -845,7 +787,6 @@ const Campanas = () => {
           </div>
         )}
 
-        {/* Filtros */}
         <div style={{display:'flex',gap:'10px',marginBottom:'24px',flexWrap:'wrap',alignItems:'center'}}>
           <div style={{flex:1,minWidth:'200px',position:'relative'}}>
             <Search style={{position:'absolute',left:'12px',top:'50%',transform:'translateY(-50%)',width:'15px',height:'15px',color:'var(--gray-400)'}}/>
@@ -860,7 +801,6 @@ const Campanas = () => {
           </div>
         </div>
 
-        {/* Contenido */}
         {campanasFiltradas.length===0?(
           <div style={{textAlign:'center',padding:'80px 20px'}}>
             <Megaphone style={{width:'48px',height:'48px',color:'var(--gray-300)',margin:'0 auto 16px',display:'block'}}/>
@@ -888,7 +828,6 @@ const Campanas = () => {
         )}
       </div>
 
-      {/* Modal Apoyar */}
       {apoyarCampana&&(
         <ApoyarModal
           campana={apoyarCampana}
@@ -898,7 +837,6 @@ const Campanas = () => {
         />
       )}
 
-      {/* Modal Campaña crear/editar */}
       {showCampanaModal&&(
         <CampanaModal mode={modalMode} campana={selected}
           negocios={esCliente?negocios.filter(n=>n.usuarioId===currentUser.id&&n.activo):negocios.filter(n=>n.activo)}
@@ -907,7 +845,6 @@ const Campanas = () => {
           onSave={handleSave}/>
       )}
 
-      {/* Dropdown estado */}
       {estadoDrop&&<EstadoDropdown campana={estadoDrop.campana} pos={estadoDrop.pos} onSelect={est=>handleEstadoSelect(estadoDrop.campana,est)} onClose={()=>setEstadoDrop(null)}/>}
     </Layout>
   );
