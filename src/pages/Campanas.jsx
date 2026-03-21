@@ -4,15 +4,15 @@ import {
   Search, Plus, Users, Clock, ArrowLeft, Heart, Share2,
   CheckCircle, Edit2, ToggleLeft, ToggleRight, ChevronDown,
   X, Star, Megaphone, LayoutGrid, Table2, Trophy,
-  Target, Calendar, Ban, RotateCcw, DollarSign, CreditCard,
-  AlertCircle,
+  Target, Calendar, Ban, RotateCcw, CreditCard, AlertCircle,
 } from 'lucide-react';
 import Layout from '../components/common/Layout';
-import { campanasService }  from '../services/campanasService';
-import { negociosService }  from '../services/negociosService';
+import { campanasService }   from '../services/campanasService';
+import { negociosService }   from '../services/negociosService';
 import { inversionesService } from '../services/inversionesService';
-import { pagosService }     from '../services/pagosService';
+import { pagosService }      from '../services/pagosService';
 
+// ─── Config ───────────────────────────────────────────────────────────────────
 const ESTADO_INFO = {
   en_revision: { label: 'En revisión', bg: '#FEF9C3', color: '#854D0E', dot: '#F59E0B' },
   aprobada:    { label: 'Aprobada',    bg: '#DCFCE7', color: '#14532D', dot: '#22C55E' },
@@ -32,6 +32,7 @@ const COLORES = [
 
 const initForm = { titulo:'', descripcion:'', historia:'', negocioId:'', metaRecaudacion:'', fechaInicio:'', fechaCierre:'' };
 
+// ─── Utils ────────────────────────────────────────────────────────────────────
 const fmtM  = v => new Intl.NumberFormat('es-MX',{style:'currency',currency:'MXN',maximumFractionDigits:0}).format(v||0);
 const fmtD  = d => d ? new Date(d).toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'}) : '—';
 const getDias = c => { if(!c) return null; const d=Math.ceil((new Date(c)-new Date())/86400000); return d>0?d:0; };
@@ -39,27 +40,27 @@ const getPct  = (r,m) => (!m||!parseFloat(m)) ? 0 : Math.min(100,Math.round((par
 const isMeta  = c => parseFloat(c.metaRecaudacion||0)>0 && parseFloat(c.montoRecaudado||0)>=parseFloat(c.metaRecaudacion||1);
 const getClrs = c => COLORES[(c.id||0)%COLORES.length];
 
+// ─── EstadoBadge ──────────────────────────────────────────────────────────────
 const EstadoBadge = ({ campana, size='sm' }) => {
   const alc  = isMeta(campana);
   const info = ESTADO_INFO[campana.estado] || ESTADO_INFO.en_revision;
   return (
     <span style={{
-      padding: size==='sm'?'3px 10px':'5px 14px',
-      borderRadius:'99px', fontSize: size==='sm'?'11px':'13px', fontWeight:700,
+      padding: size==='sm'?'3px 10px':'5px 14px', borderRadius:'99px',
+      fontSize: size==='sm'?'11px':'13px', fontWeight:700,
       background: alc ? 'linear-gradient(135deg,#7C3AED,#A855F7)' : info.bg,
       color: alc ? '#fff' : info.color,
-      display:'inline-flex', alignItems:'center', gap:'5px',
-      fontFamily:"'DM Sans',sans-serif",
+      display:'inline-flex', alignItems:'center', gap:'5px', fontFamily:"'DM Sans',sans-serif",
       boxShadow: alc ? '0 2px 8px rgba(168,85,247,.35)' : 'none',
     }}>
       {alc
         ? <><Trophy style={{width:'11px',height:'11px'}}/> ¡Meta alcanzada!</>
-        : <><span style={{width:'6px',height:'6px',borderRadius:'50%',background:info.dot,flexShrink:0}}/>{info.label}</>
-      }
+        : <><span style={{width:'6px',height:'6px',borderRadius:'50%',background:info.dot,flexShrink:0}}/>{info.label}</>}
     </span>
   );
 };
 
+// ─── BarraProgreso ────────────────────────────────────────────────────────────
 const BarraProgreso = ({ campana, h=6 }) => {
   const p = getPct(campana.montoRecaudado, campana.metaRecaudacion);
   const alc = isMeta(campana);
@@ -82,40 +83,39 @@ const BarraProgreso = ({ campana, h=6 }) => {
   );
 };
 
-const ApoyarModal = ({ campana, currentUser, onClose, onSuccess }) => {
-  const [monto,     setMonto]     = useState('');
-  const [notas,     setNotas]     = useState('');
-  const [err,       setErr]       = useState('');
-  const [loading,   setLoading]   = useState(false);
+// ─── ApoyarModal ──────────────────────────────────────────────────────────────
+// Guarda la URL actual en localStorage antes de redirigir a MP
+// PagoExitoso.jsx lee 'capyme_return_url' y devuelve al usuario ahí
+const ApoyarModal = ({ campana, onClose }) => {
+  const [monto,   setMonto]   = useState('');
+  const [notas,   setNotas]   = useState('');
+  const [err,     setErr]     = useState('');
+  const [loading, setLoading] = useState(false);
   const [c1,c2] = getClrs(campana);
 
   const handlePagar = async () => {
     const m = parseFloat(monto);
     if (!monto || isNaN(m) || m <= 0) { setErr('Ingresa un monto válido'); return; }
-
     const restante = parseFloat(campana.metaRecaudacion||0) - parseFloat(campana.montoRecaudado||0);
     if (m > restante) { setErr(`El máximo disponible es ${fmtM(restante)}`); return; }
 
     setErr('');
     setLoading(true);
     try {
-      const invRes = await inversionesService.create({
-        campanaId: campana.id,
-        monto: m,
-        notas: notas || undefined,
-      });
-
+      const invRes = await inversionesService.create({ campanaId: campana.id, monto: m, notas: notas || undefined });
       const referencia = invRes.referencia || invRes.data?.referencia;
 
       const mpRes = await pagosService.crearPreferencia({
-        titulo:      `Inversión en campaña: ${campana.titulo}`,
-        precio:      m,
-        cantidad:    1,
+        titulo:       `Inversión en campaña: ${campana.titulo}`,
+        precio:       m,
+        cantidad:     1,
         idReferencia: referencia,
-        tipo:        'campana',
+        tipo:         'campana',
       });
 
       if (mpRes.success && mpRes.init_point) {
+        // Guardar URL actual para regresar después del pago
+        localStorage.setItem('capyme_return_url', window.location.pathname + window.location.search);
         window.location.href = mpRes.init_point;
       } else {
         throw new Error('No se pudo iniciar el pago');
@@ -127,29 +127,19 @@ const ApoyarModal = ({ campana, currentUser, onClose, onSuccess }) => {
   };
 
   return (
-    <div
-      onClick={!loading ? onClose : undefined}
-      style={{position:'fixed',inset:0,background:'rgba(0,0,0,.5)',backdropFilter:'blur(6px)',zIndex:1100,display:'flex',alignItems:'center',justifyContent:'center',padding:'20px'}}
-    >
-      <div
-        onClick={e => e.stopPropagation()}
-        style={{background:'#fff',borderRadius:'24px',width:'100%',maxWidth:'420px',overflow:'hidden',boxShadow:'0 32px 80px rgba(0,0,0,.25)'}}
-      >
-        <div style={{
-          padding:'20px 24px',
-          background:`linear-gradient(135deg,${c1},${c2})`,
-          display:'flex',alignItems:'center',gap:'12px',
-        }}>
+    <div onClick={!loading ? onClose : undefined}
+      style={{position:'fixed',inset:0,background:'rgba(0,0,0,.5)',backdropFilter:'blur(6px)',zIndex:1100,display:'flex',alignItems:'center',justifyContent:'center',padding:'20px'}}>
+      <div onClick={e=>e.stopPropagation()}
+        style={{background:'#fff',borderRadius:'24px',width:'100%',maxWidth:'420px',overflow:'hidden',boxShadow:'0 32px 80px rgba(0,0,0,.25)'}}>
+
+        {/* Header */}
+        <div style={{padding:'20px 24px',background:`linear-gradient(135deg,${c1},${c2})`,display:'flex',alignItems:'center',gap:'12px'}}>
           <div style={{width:'38px',height:'38px',borderRadius:'10px',background:'rgba(255,255,255,.2)',backdropFilter:'blur(8px)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
             <Heart style={{width:'20px',height:'20px',color:'#fff'}}/>
           </div>
           <div style={{flex:1}}>
-            <div style={{fontSize:'16px',fontWeight:800,color:'#fff',fontFamily:"'Plus Jakarta Sans',sans-serif",textShadow:'0 1px 3px rgba(0,0,0,.15)'}}>
-              Apoyar campaña
-            </div>
-            <div style={{fontSize:'11px',color:'rgba(255,255,255,.75)',fontFamily:"'DM Sans',sans-serif",marginTop:'2px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
-              {campana.titulo}
-            </div>
+            <div style={{fontSize:'16px',fontWeight:800,color:'#fff',fontFamily:"'Plus Jakarta Sans',sans-serif"}}>Apoyar campaña</div>
+            <div style={{fontSize:'11px',color:'rgba(255,255,255,.75)',fontFamily:"'DM Sans',sans-serif",marginTop:'2px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{campana.titulo}</div>
           </div>
           {!loading && (
             <button onClick={onClose} style={{width:'30px',height:'30px',border:'none',background:'rgba(255,255,255,.2)',borderRadius:'8px',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
@@ -158,32 +148,18 @@ const ApoyarModal = ({ campana, currentUser, onClose, onSuccess }) => {
           )}
         </div>
 
+        {/* Body */}
         <div style={{padding:'24px'}}>
-          <div style={{marginBottom:'8px',fontSize:'13px',fontWeight:600,color:'var(--gray-500)',fontFamily:"'DM Sans',sans-serif"}}>
-            ¿Cuánto deseas aportar?
-          </div>
+          <div style={{marginBottom:'8px',fontSize:'13px',fontWeight:600,color:'var(--gray-500)',fontFamily:"'DM Sans',sans-serif"}}>¿Cuánto deseas aportar?</div>
 
           <div style={{position:'relative',marginBottom:'12px'}}>
             <span style={{position:'absolute',left:'14px',top:'50%',transform:'translateY(-50%)',fontSize:'20px',fontWeight:900,color:'var(--gray-400)',fontFamily:"'Plus Jakarta Sans',sans-serif",pointerEvents:'none'}}>$</span>
             <input
-              type="number"
-              min="1"
-              value={monto}
-              onChange={e => { setMonto(e.target.value); setErr(''); }}
-              placeholder="0"
-              autoFocus
-              disabled={loading}
-              style={{
-                width:'100%',padding:'14px 14px 14px 36px',
-                border: err ? '2px solid #EF4444' : '2px solid var(--border)',
-                borderRadius:'14px',
-                fontSize:'28px',fontWeight:900,fontFamily:"'Plus Jakarta Sans',sans-serif",
-                color:'var(--gray-900)',outline:'none',boxSizing:'border-box',
-                textAlign:'center', transition:'border-color 150ms',
-                background: loading ? 'var(--gray-50)' : '#fff',
-              }}
-              onFocus={e => { if (!err) e.currentTarget.style.borderColor = c1; }}
-              onBlur={e  => { if (!err) e.currentTarget.style.borderColor = 'var(--border)'; }}
+              type="number" min="1" value={monto} onChange={e=>{setMonto(e.target.value);setErr('');}}
+              placeholder="0" autoFocus disabled={loading}
+              style={{width:'100%',padding:'14px 14px 14px 36px',border:err?'2px solid #EF4444':'2px solid var(--border)',borderRadius:'14px',fontSize:'28px',fontWeight:900,fontFamily:"'Plus Jakarta Sans',sans-serif",color:'var(--gray-900)',outline:'none',boxSizing:'border-box',textAlign:'center',transition:'border-color 150ms',background:loading?'var(--gray-50)':'#fff'}}
+              onFocus={e=>{if(!err)e.currentTarget.style.borderColor=c1;}}
+              onBlur={e=>{if(!err)e.currentTarget.style.borderColor='var(--border)';}}
             />
           </div>
 
@@ -193,40 +169,32 @@ const ApoyarModal = ({ campana, currentUser, onClose, onSuccess }) => {
             </p>
           )}
 
+          {/* Pills de monto rápido */}
           <div style={{display:'flex',gap:'8px',marginBottom:'20px',flexWrap:'wrap'}}>
-            {[500,1000,2500,5000].map(amt => {
-              const sel = String(monto) === String(amt);
+            {[500,1000,2500,5000].map(amt=>{
+              const sel=String(monto)===String(amt);
               return (
-                <button key={amt} onClick={() => { setMonto(String(amt)); setErr(''); }} disabled={loading} style={{
+                <button key={amt} onClick={()=>{setMonto(String(amt));setErr('');}} disabled={loading} style={{
                   padding:'6px 14px',borderRadius:'99px',
-                  border: sel ? 'none' : '1.5px solid var(--border)',
-                  background: sel ? `linear-gradient(135deg,${c1},${c2})` : '#fff',
-                  color: sel ? '#fff' : 'var(--gray-700)',
-                  fontSize:'13px',fontWeight:700,cursor:'pointer',
-                  fontFamily:"'DM Sans',sans-serif",
-                  transition:'all 150ms',
-                  boxShadow: sel ? '0 2px 8px rgba(0,0,0,.15)' : 'none',
-                }}>
-                  {fmtM(amt)}
-                </button>
+                  border:sel?'none':'1.5px solid var(--border)',
+                  background:sel?`linear-gradient(135deg,${c1},${c2})`:'#fff',
+                  color:sel?'#fff':'var(--gray-700)',fontSize:'13px',fontWeight:700,cursor:'pointer',
+                  fontFamily:"'DM Sans',sans-serif",transition:'all 150ms',
+                  boxShadow:sel?'0 2px 8px rgba(0,0,0,.15)':'none',
+                }}>{fmtM(amt)}</button>
               );
             })}
           </div>
 
+          {/* Nota opcional */}
           <div style={{marginBottom:'20px'}}>
-            <label style={{display:'block',fontSize:'12px',fontWeight:600,color:'var(--gray-500)',marginBottom:'6px',fontFamily:"'DM Sans',sans-serif"}}>
-              Mensaje para el emprendedor (opcional)
-            </label>
-            <textarea
-              value={notas}
-              onChange={e => setNotas(e.target.value)}
-              rows={2}
-              disabled={loading}
+            <label style={{display:'block',fontSize:'12px',fontWeight:600,color:'var(--gray-500)',marginBottom:'6px',fontFamily:"'DM Sans',sans-serif"}}>Mensaje para el emprendedor (opcional)</label>
+            <textarea value={notas} onChange={e=>setNotas(e.target.value)} rows={2} disabled={loading}
               placeholder="¡Mucho éxito con tu proyecto! 🚀"
-              style={{width:'100%',padding:'10px 12px',border:'1.5px solid var(--border)',borderRadius:'10px',fontSize:'13px',fontFamily:"'DM Sans',sans-serif",color:'var(--gray-900)',outline:'none',resize:'none',boxSizing:'border-box'}}
-            />
+              style={{width:'100%',padding:'10px 12px',border:'1.5px solid var(--border)',borderRadius:'10px',fontSize:'13px',fontFamily:"'DM Sans',sans-serif",color:'var(--gray-900)',outline:'none',resize:'none',boxSizing:'border-box'}}/>
           </div>
 
+          {/* Resumen */}
           {monto && parseFloat(monto) > 0 && (
             <div style={{padding:'12px 16px',borderRadius:'12px',background:'var(--gray-50)',border:'1px solid var(--border)',marginBottom:'20px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
               <div>
@@ -235,31 +203,23 @@ const ApoyarModal = ({ campana, currentUser, onClose, onSuccess }) => {
               </div>
               <div style={{display:'flex',alignItems:'center',gap:'6px',fontSize:'12px',color:'var(--gray-500)',fontFamily:"'DM Sans',sans-serif",fontWeight:600}}>
                 <CreditCard style={{width:'15px',height:'15px',color:'var(--capyme-blue-mid)'}}/>
-                Pago vía Mercado Pago
+                Mercado Pago
               </div>
             </div>
           )}
 
-          <button
-            onClick={handlePagar}
-            disabled={loading || !monto || parseFloat(monto) <= 0}
-            style={{
-              width:'100%',padding:'14px',
-              background: !monto || parseFloat(monto) <= 0 || loading
-                ? 'var(--gray-200)'
-                : `linear-gradient(135deg,${c1},${c2})`,
-              border:'none',borderRadius:'14px',color: loading ? 'var(--gray-500)' : '#fff',
-              fontSize:'15px',fontWeight:800,
-              cursor: !monto || parseFloat(monto) <= 0 || loading ? 'not-allowed' : 'pointer',
-              fontFamily:"'Plus Jakarta Sans',sans-serif",
-              letterSpacing:'.02em',
-              boxShadow: !monto || parseFloat(monto) <= 0 || loading ? 'none' : '0 4px 16px rgba(0,0,0,.2)',
-              transition:'all 200ms',
-              display:'flex',alignItems:'center',justifyContent:'center',gap:'9px',
-            }}
-          >
+          <button onClick={handlePagar} disabled={loading||!monto||parseFloat(monto)<=0} style={{
+            width:'100%',padding:'14px',
+            background:!monto||parseFloat(monto)<=0||loading?'var(--gray-200)':`linear-gradient(135deg,${c1},${c2})`,
+            border:'none',borderRadius:'14px',color:loading?'var(--gray-500)':'#fff',
+            fontSize:'15px',fontWeight:800,
+            cursor:!monto||parseFloat(monto)<=0||loading?'not-allowed':'pointer',
+            fontFamily:"'Plus Jakarta Sans',sans-serif",letterSpacing:'.02em',
+            boxShadow:!monto||parseFloat(monto)<=0||loading?'none':'0 4px 16px rgba(0,0,0,.2)',
+            transition:'all 200ms',display:'flex',alignItems:'center',justifyContent:'center',gap:'9px',
+          }}>
             {loading
-              ? <><div style={{width:'18px',height:'18px',border:'2px solid rgba(0,0,0,.2)',borderTopColor:'var(--gray-600)',borderRadius:'50%',animation:'spin .8s linear infinite'}}/> Redirigiendo a Mercado Pago...</>
+              ? <><div style={{width:'18px',height:'18px',border:'2px solid rgba(0,0,0,.2)',borderTopColor:'var(--gray-600)',borderRadius:'50%',animation:'spin .8s linear infinite'}}/> Redirigiendo...</>
               : <><CreditCard style={{width:'18px',height:'18px'}}/> Pagar con Mercado Pago</>
             }
           </button>
@@ -273,12 +233,13 @@ const ApoyarModal = ({ campana, currentUser, onClose, onSuccess }) => {
   );
 };
 
+// ─── CampanaCard ──────────────────────────────────────────────────────────────
 const CampanaCard = ({ campana:c, onClick, onEdit, onToggleEstado, onToggleActivo, onApoyar, esAdmin, esColab, currentUser }) => {
   const [hov, setHov] = useState(false);
   const d = getDias(c.fechaCierre);
   const [c1,c2] = getClrs(c);
   const alc = isMeta(c);
-  const esDueno = currentUser?.rol==='cliente' && c.negocio?.usuarioId===currentUser.id;
+  const esDueno   = currentUser?.rol==='cliente' && c.negocio?.usuarioId===currentUser.id;
   const puedeApoyar = !alc && c.activo && !esDueno && (c.estado==='aprobada'||c.estado==='activa');
 
   return (
@@ -286,8 +247,8 @@ const CampanaCard = ({ campana:c, onClick, onEdit, onToggleEstado, onToggleActiv
       borderRadius:'16px', border:`1.5px solid ${alc?'#A855F750':'var(--border)'}`,
       overflow:'hidden', background:'#fff',
       transition:'all 250ms cubic-bezier(.34,1.2,.64,1)',
-      transform: hov?'translateY(-6px)':'translateY(0)',
-      boxShadow: hov ? (alc?'0 20px 40px rgba(168,85,247,.2)':'0 20px 40px rgba(0,0,0,.12)') : '0 2px 8px rgba(0,0,0,.05)',
+      transform:hov?'translateY(-6px)':'translateY(0)',
+      boxShadow:hov?(alc?'0 20px 40px rgba(168,85,247,.2)':'0 20px 40px rgba(0,0,0,.12)'):'0 2px 8px rgba(0,0,0,.05)',
       cursor:'pointer', opacity:c.activo?1:.5,
       display:'flex', flexDirection:'column', position:'relative',
     }}>
@@ -300,11 +261,11 @@ const CampanaCard = ({ campana:c, onClick, onEdit, onToggleEstado, onToggleActiv
         <div style={{position:'absolute',top:'12px',left:'12px'}}><EstadoBadge campana={c}/></div>
         {(esAdmin||esColab)&&(
           <div style={{position:'absolute',top:'10px',right:'10px',display:'flex',gap:'4px'}}>
-            <button onClick={e=>{e.stopPropagation();onEdit();}} style={{width:'30px',height:'30px',borderRadius:'8px',background:'rgba(255,255,255,.9)',border:'none',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}} title="Editar">
+            <button onClick={e=>{e.stopPropagation();onEdit();}} style={{width:'30px',height:'30px',borderRadius:'8px',background:'rgba(255,255,255,.9)',border:'none',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}}>
               <Edit2 style={{width:'13px',height:'13px',color:'var(--gray-600)'}}/>
             </button>
             {esAdmin&&(
-              <button onClick={e=>{e.stopPropagation();onToggleActivo();}} style={{width:'30px',height:'30px',borderRadius:'8px',background:'rgba(255,255,255,.9)',border:'none',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}} title={c.activo?'Desactivar':'Activar'}>
+              <button onClick={e=>{e.stopPropagation();onToggleActivo();}} style={{width:'30px',height:'30px',borderRadius:'8px',background:'rgba(255,255,255,.9)',border:'none',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}}>
                 {c.activo?<ToggleRight style={{width:'14px',height:'14px',color:'#10B981'}}/>:<ToggleLeft style={{width:'14px',height:'14px',color:'#9CA3AF'}}/>}
               </button>
             )}
@@ -324,7 +285,7 @@ const CampanaCard = ({ campana:c, onClick, onEdit, onToggleEstado, onToggleActiv
           <div style={{display:'flex',gap:'10px',alignItems:'center'}}>
             <div style={{display:'flex',alignItems:'center',gap:'4px'}}>
               <Users style={{width:'12px',height:'12px',color:'var(--gray-400)'}}/>
-              <span style={{fontSize:'11px',color:'var(--gray-500)',fontFamily:"'DM Sans',sans-serif"}}>{c._count?.inversiones??c.inversiones?.length??0} inversores</span>
+              <span style={{fontSize:'11px',color:'var(--gray-500)',fontFamily:"'DM Sans',sans-serif"}}>{c._count?.inversiones??0} inversores</span>
             </div>
             {d!==null&&(
               <div style={{display:'flex',alignItems:'center',gap:'4px'}}>
@@ -340,53 +301,39 @@ const CampanaCard = ({ campana:c, onClick, onEdit, onToggleEstado, onToggleActiv
           </div>
 
           {puedeApoyar && (
-            <button
-              onClick={e => { e.stopPropagation(); onApoyar(); }}
-              style={{
-                width:'100%', padding:'9px',
-                background: `linear-gradient(135deg,${c1},${c2})`,
-                border:'none', borderRadius:'10px', color:'#fff',
-                fontSize:'13px', fontWeight:700, cursor:'pointer',
-                fontFamily:"'Plus Jakarta Sans',sans-serif",
-                display:'flex', alignItems:'center', justifyContent:'center', gap:'6px',
-                boxShadow:'0 2px 10px rgba(0,0,0,.15)',
-                transition:'all 200ms',
-              }}
-              onMouseEnter={e=>{e.currentTarget.style.transform='scale(1.01)';e.currentTarget.style.boxShadow='0 4px 16px rgba(0,0,0,.22)';}}
-              onMouseLeave={e=>{e.currentTarget.style.transform='scale(1)';e.currentTarget.style.boxShadow='0 2px 10px rgba(0,0,0,.15)';}}
-            >
+            <button onClick={e=>{e.stopPropagation();onApoyar();}} style={{
+              width:'100%',padding:'9px',background:`linear-gradient(135deg,${c1},${c2})`,
+              border:'none',borderRadius:'10px',color:'#fff',fontSize:'13px',fontWeight:700,cursor:'pointer',
+              fontFamily:"'Plus Jakarta Sans',sans-serif",display:'flex',alignItems:'center',justifyContent:'center',gap:'6px',
+              boxShadow:'0 2px 10px rgba(0,0,0,.15)',transition:'all 200ms',
+            }}
+            onMouseEnter={e=>{e.currentTarget.style.transform='scale(1.01)';}}
+            onMouseLeave={e=>{e.currentTarget.style.transform='scale(1)';}}>
               <Heart style={{width:'14px',height:'14px'}}/> Apoyar
             </button>
           )}
-          {alc && (
-            <div style={{textAlign:'center',padding:'8px',borderRadius:'10px',background:'linear-gradient(135deg,#7C3AED15,#A855F715)',border:'1px solid #A855F740',fontSize:'12px',fontWeight:700,color:'#581C87',fontFamily:"'DM Sans',sans-serif",display:'flex',alignItems:'center',justifyContent:'center',gap:'5px'}}>
-              <Trophy style={{width:'12px',height:'12px'}}/> Meta alcanzada
-            </div>
-          )}
-          {esDueno && !alc && (
-            <div style={{textAlign:'center',padding:'8px',borderRadius:'10px',background:'var(--capyme-blue-pale)',fontSize:'12px',fontWeight:600,color:'var(--capyme-blue-mid)',fontFamily:"'DM Sans',sans-serif"}}>
-              Tu campaña
-            </div>
-          )}
+          {alc&&<div style={{textAlign:'center',padding:'8px',borderRadius:'10px',background:'linear-gradient(135deg,#7C3AED15,#A855F715)',border:'1px solid #A855F740',fontSize:'12px',fontWeight:700,color:'#581C87',fontFamily:"'DM Sans',sans-serif",display:'flex',alignItems:'center',justifyContent:'center',gap:'5px'}}><Trophy style={{width:'12px',height:'12px'}}/> Meta alcanzada</div>}
+          {esDueno&&!alc&&<div style={{textAlign:'center',padding:'8px',borderRadius:'10px',background:'var(--capyme-blue-pale)',fontSize:'12px',fontWeight:600,color:'var(--capyme-blue-mid)',fontFamily:"'DM Sans',sans-serif"}}>Tu campaña</div>}
         </div>
       </div>
     </div>
   );
 };
 
-const CampanaDetalle = ({ campana:c, currentUser, onBack, onApoyar, recargar }) => {
+// ─── CampanaDetalle ───────────────────────────────────────────────────────────
+const CampanaDetalle = ({ campana:c, currentUser, onBack, onApoyar }) => {
   const [inversores, setInversores] = useState([]);
   const [loading,    setLoading]    = useState(true);
   const alc = isMeta(c);
   const d   = getDias(c.fechaCierre);
   const [c1,c2] = getClrs(c);
   const porcentaje = getPct(c.montoRecaudado, c.metaRecaudacion);
-  const esDueno = currentUser.rol==='cliente' && c.negocio?.usuarioId===currentUser.id;
+  const esDueno    = currentUser.rol==='cliente' && c.negocio?.usuarioId===currentUser.id;
   const puedeApoyar = !alc && c.activo && !esDueno && (c.estado==='aprobada'||c.estado==='activa');
 
   useEffect(()=>{
     inversionesService.getByCampana(c.id)
-      .then(r=>setInversores(r.data||[]))
+      .then(r => setInversores(r.data || []))
       .catch(()=>{})
       .finally(()=>setLoading(false));
   },[c.id]);
@@ -399,7 +346,7 @@ const CampanaDetalle = ({ campana:c, currentUser, onBack, onApoyar, recargar }) 
         <ArrowLeft style={{width:'15px',height:'15px'}}/> Volver a campañas
       </button>
 
-      {alc && (
+      {alc&&(
         <div style={{padding:'14px 18px',borderRadius:'14px',marginBottom:'24px',background:'linear-gradient(135deg,#7C3AED15,#A855F715)',border:'1.5px solid #A855F750',display:'flex',alignItems:'center',gap:'12px'}}>
           <div style={{width:'40px',height:'40px',borderRadius:'10px',flexShrink:0,background:'linear-gradient(135deg,#7C3AED,#A855F7)',display:'flex',alignItems:'center',justifyContent:'center',boxShadow:'0 4px 12px rgba(168,85,247,.35)'}}><Trophy style={{width:'20px',height:'20px',color:'#fff'}}/></div>
           <div>
@@ -420,12 +367,7 @@ const CampanaDetalle = ({ campana:c, currentUser, onBack, onApoyar, recargar }) 
 
       <div style={{display:'grid',gridTemplateColumns:'1fr 300px',gap:'28px',alignItems:'start'}}>
         <div>
-          {c.descripcion&&(
-            <div style={{marginBottom:'24px'}}>
-              <h2 style={{fontSize:'16px',fontWeight:800,color:'var(--gray-900)',fontFamily:"'Plus Jakarta Sans',sans-serif",margin:'0 0 10px'}}>Sobre este proyecto</h2>
-              <p style={{fontSize:'14px',color:'var(--gray-600)',lineHeight:1.7,fontFamily:"'DM Sans',sans-serif",margin:0}}>{c.descripcion}</p>
-            </div>
-          )}
+          {c.descripcion&&<div style={{marginBottom:'24px'}}><h2 style={{fontSize:'16px',fontWeight:800,color:'var(--gray-900)',fontFamily:"'Plus Jakarta Sans',sans-serif",margin:'0 0 10px'}}>Sobre este proyecto</h2><p style={{fontSize:'14px',color:'var(--gray-600)',lineHeight:1.7,fontFamily:"'DM Sans',sans-serif",margin:0}}>{c.descripcion}</p></div>}
           {c.historia&&(
             <div style={{padding:'20px',borderRadius:'14px',marginBottom:'24px',background:alc?'linear-gradient(135deg,#7C3AED10,#A855F710)':'linear-gradient(135deg,var(--capyme-blue-pale),#F0FDF4)',border:`1px solid ${alc?'#A855F740':'var(--border)'}`}}>
               <h2 style={{fontSize:'16px',fontWeight:800,color:'var(--gray-900)',fontFamily:"'Plus Jakarta Sans',sans-serif",margin:'0 0 10px',display:'flex',alignItems:'center',gap:'8px'}}>
@@ -437,13 +379,13 @@ const CampanaDetalle = ({ campana:c, currentUser, onBack, onApoyar, recargar }) 
           <h2 style={{fontSize:'16px',fontWeight:800,color:'var(--gray-900)',fontFamily:"'Plus Jakarta Sans',sans-serif",margin:'0 0 14px',display:'flex',alignItems:'center',gap:'8px'}}>
             <Users style={{width:'16px',height:'16px',color:'var(--gray-400)'}}/> Inversores ({confirmed.length})
           </h2>
-          {loading ? (
+          {loading?(
             <div style={{textAlign:'center',padding:'24px',color:'var(--gray-400)',fontSize:'13px'}}>Cargando...</div>
-          ) : confirmed.length===0 ? (
+          ):confirmed.length===0?(
             <div style={{padding:'24px',borderRadius:'12px',border:'1.5px dashed var(--border)',textAlign:'center',color:'var(--gray-400)',fontSize:'13px',fontFamily:"'DM Sans',sans-serif"}}>
               {puedeApoyar?'Sé el primero en apoyar esta campaña 🚀':'Aún no hay inversores registrados'}
             </div>
-          ) : (
+          ):(
             <div style={{display:'flex',flexDirection:'column',gap:'8px'}}>
               {confirmed.map(inv=>{
                 const ini=`${inv.inversor?.nombre?.[0]||''}${inv.inversor?.apellido?.[0]||''}`.toUpperCase();
@@ -481,10 +423,10 @@ const CampanaDetalle = ({ campana:c, currentUser, onBack, onApoyar, recargar }) 
 
             <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'10px',marginBottom:'20px'}}>
               {[
-                {icon:Users,   label:'Inversores',         value:confirmed.length},
-                {icon:Clock,   label:d===0?'Finalizada':'Días restantes', value:d===0?'—':(d??'—'), red:d!==null&&d<=7&&d>0},
-                {icon:Calendar,label:'Inicio',             value:fmtD(c.fechaInicio)},
-                {icon:Target,  label:'Cierre',             value:fmtD(c.fechaCierre)},
+                {icon:Users,   label:'Inversores',value:confirmed.length},
+                {icon:Clock,   label:d===0?'Finalizada':'Días restantes',value:d===0?'—':(d??'—'),red:d!==null&&d<=7&&d>0},
+                {icon:Calendar,label:'Inicio',    value:fmtD(c.fechaInicio)},
+                {icon:Target,  label:'Cierre',    value:fmtD(c.fechaCierre)},
               ].map(({icon:Icon,label,value,red})=>(
                 <div key={label} style={{padding:'10px',borderRadius:'10px',background:'var(--gray-50)',border:'1px solid var(--gray-100)'}}>
                   <div style={{display:'flex',alignItems:'center',gap:'5px',marginBottom:'2px'}}>
@@ -496,24 +438,20 @@ const CampanaDetalle = ({ campana:c, currentUser, onBack, onApoyar, recargar }) 
               ))}
             </div>
 
-            {alc ? (
+            {alc?(
               <div style={{padding:'14px',borderRadius:'12px',background:'linear-gradient(135deg,#7C3AED15,#A855F715)',border:'1.5px solid #A855F750',textAlign:'center'}}>
                 <Trophy style={{width:'24px',height:'24px',color:'#7C3AED',margin:'0 auto 6px',display:'block'}}/>
                 <div style={{fontSize:'13px',fontWeight:800,color:'#581C87',fontFamily:"'Plus Jakarta Sans',sans-serif"}}>¡Meta alcanzada!</div>
                 <div style={{fontSize:'11px',color:'#7C3AED',fontFamily:"'DM Sans',sans-serif",marginTop:'2px'}}>Esta campaña ya logró su objetivo</div>
               </div>
-            ) : puedeApoyar ? (
-              <button
-                onClick={onApoyar}
-                style={{width:'100%',padding:'14px',background:`linear-gradient(135deg,${c1},${c2})`,border:'none',borderRadius:'14px',color:'#fff',fontSize:'15px',fontWeight:800,cursor:'pointer',fontFamily:"'Plus Jakarta Sans',sans-serif",letterSpacing:'.02em',boxShadow:'0 4px 16px rgba(0,0,0,.2)',transition:'all 200ms',display:'flex',alignItems:'center',justifyContent:'center',gap:'9px'}}
-                onMouseEnter={e=>{e.currentTarget.style.transform='scale(1.02)';e.currentTarget.style.boxShadow='0 6px 20px rgba(0,0,0,.25)';}}
-                onMouseLeave={e=>{e.currentTarget.style.transform='scale(1)';e.currentTarget.style.boxShadow='0 4px 16px rgba(0,0,0,.2)';}}
-              >
+            ):puedeApoyar?(
+              <button onClick={onApoyar} style={{width:'100%',padding:'14px',background:`linear-gradient(135deg,${c1},${c2})`,border:'none',borderRadius:'14px',color:'#fff',fontSize:'15px',fontWeight:800,cursor:'pointer',fontFamily:"'Plus Jakarta Sans',sans-serif",letterSpacing:'.02em',boxShadow:'0 4px 16px rgba(0,0,0,.2)',transition:'all 200ms',display:'flex',alignItems:'center',justifyContent:'center',gap:'9px'}}
+                onMouseEnter={e=>{e.currentTarget.style.transform='scale(1.02)';}} onMouseLeave={e=>{e.currentTarget.style.transform='scale(1)';}}>
                 <Heart style={{width:'18px',height:'18px'}}/> Apoyar esta campaña
               </button>
-            ) : esDueno ? (
+            ):esDueno?(
               <div style={{padding:'12px',borderRadius:'10px',background:'var(--capyme-blue-pale)',border:'1px solid var(--capyme-blue-mid)',textAlign:'center',fontSize:'12px',color:'var(--capyme-blue-mid)',fontFamily:"'DM Sans',sans-serif",fontWeight:600}}>Esta es tu campaña — solo lectura</div>
-            ) : (
+            ):(
               <div style={{padding:'12px',borderRadius:'10px',background:'var(--gray-50)',border:'1px solid var(--border)',textAlign:'center',fontSize:'12px',color:'var(--gray-500)',fontFamily:"'DM Sans',sans-serif"}}>Esta campaña no acepta nuevas inversiones</div>
             )}
 
@@ -527,6 +465,7 @@ const CampanaDetalle = ({ campana:c, currentUser, onBack, onApoyar, recargar }) 
   );
 };
 
+// ─── EstadoDropdown ───────────────────────────────────────────────────────────
 const EstadoDropdown = ({ campana, pos, onSelect, onClose }) => {
   useEffect(()=>{ const fn=()=>onClose(); document.addEventListener('mousedown',fn); return ()=>document.removeEventListener('mousedown',fn); },[]);
   return (
@@ -545,6 +484,7 @@ const EstadoDropdown = ({ campana, pos, onSelect, onClose }) => {
   );
 };
 
+// ─── CampanaModal ─────────────────────────────────────────────────────────────
 const CampanaModal = ({ mode, campana, negocios, currentUser, onClose, onSave }) => {
   const esCliente=currentUser.rol==='cliente';
   const metaBloq=mode==='edit'&&esCliente&&parseFloat(campana?.montoRecaudado||0)>0;
@@ -589,6 +529,7 @@ const CampanaModal = ({ mode, campana, negocios, currentUser, onClose, onSave })
   );
 };
 
+// ─── TablaAdmin ───────────────────────────────────────────────────────────────
 const TablaAdmin = ({ campanas, onEdit, onToggleEstado, onToggleActivo, esAdmin }) => {
   const [hovRow,setHovRow]=useState(null);
   if(!campanas.length) return <div style={{textAlign:'center',padding:'60px',color:'var(--gray-400)',fontSize:'14px',fontFamily:"'DM Sans',sans-serif"}}>No hay campañas</div>;
@@ -604,9 +545,7 @@ const TablaAdmin = ({ campanas, onEdit, onToggleEstado, onToggleActivo, esAdmin 
         </thead>
         <tbody>
           {campanas.map(c=>{
-            const p=getPct(c.montoRecaudado,c.metaRecaudacion);
-            const alc=isMeta(c);
-            const [col1,col2]=getClrs(c);
+            const p=getPct(c.montoRecaudado,c.metaRecaudacion); const alc=isMeta(c); const [col1,col2]=getClrs(c);
             return (
               <tr key={c.id} onMouseEnter={()=>setHovRow(c.id)} onMouseLeave={()=>setHovRow(null)} style={{borderBottom:'1px solid var(--border)',background:hovRow===c.id?'var(--gray-50)':'#fff',transition:'background 120ms',opacity:c.activo?1:.55}}>
                 <td style={{padding:'12px 16px'}}>
@@ -616,20 +555,17 @@ const TablaAdmin = ({ campanas, onEdit, onToggleEstado, onToggleActivo, esAdmin 
                     </div>
                     <div>
                       <div style={{fontSize:'13px',fontWeight:700,color:'var(--gray-900)',fontFamily:"'DM Sans',sans-serif",maxWidth:'180px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{c.titulo}</div>
-                      <div style={{fontSize:'11px',color:'var(--gray-400)',fontFamily:"'DM Sans',sans-serif"}}>{c.creadoPor?.nombre} {c.creadoPor?.apellido}</div>
+                      <div style={{fontSize:'11px',color:'var(--gray-400)',fontFamily:"'DM Sans',sans-serif"}}>{c.creador?.nombre} {c.creador?.apellido}</div>
                     </div>
                   </div>
                 </td>
                 <td style={{padding:'12px 16px'}}><div style={{fontSize:'13px',color:'var(--gray-700)',fontFamily:"'DM Sans',sans-serif",maxWidth:'130px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{c.negocio?.nombreNegocio}</div></td>
                 <td style={{padding:'12px 16px',minWidth:'150px'}}>
-                  <div style={{height:'5px',borderRadius:'99px',background:'var(--gray-100)',overflow:'hidden',marginBottom:'4px'}}>
-                    <div style={{height:'100%',borderRadius:'99px',background:alc?'linear-gradient(90deg,#7C3AED,#A855F7)':`linear-gradient(90deg,${col1},${col2})`,width:`${p}%`}}/>
-                  </div>
+                  <div style={{height:'5px',borderRadius:'99px',background:'var(--gray-100)',overflow:'hidden',marginBottom:'4px'}}><div style={{height:'100%',borderRadius:'99px',background:alc?'linear-gradient(90deg,#7C3AED,#A855F7)':`linear-gradient(90deg,${col1},${col2})`,width:`${p}%`}}/></div>
                   <div style={{display:'flex',justifyContent:'space-between'}}>
                     <span style={{fontSize:'11px',color:'var(--gray-600)',fontFamily:"'DM Sans',sans-serif"}}>{fmtM(c.montoRecaudado)}</span>
                     <span style={{fontSize:'11px',fontWeight:700,color:alc?'#7C3AED':'var(--capyme-blue-mid)',fontFamily:"'DM Sans',sans-serif"}}>{p}%</span>
                   </div>
-                  {alc&&<div style={{fontSize:'10px',color:'#7C3AED',fontFamily:"'DM Sans',sans-serif",fontWeight:700,marginTop:'2px',display:'flex',alignItems:'center',gap:'3px'}}><Trophy style={{width:'9px',height:'9px'}}/> Meta alcanzada</div>}
                 </td>
                 <td style={{padding:'12px 16px'}}><div style={{fontSize:'11px',color:'var(--gray-600)',fontFamily:"'DM Sans',sans-serif",whiteSpace:'nowrap'}}><div>{fmtD(c.fechaInicio)}</div><div style={{color:'var(--gray-400)'}}>→ {fmtD(c.fechaCierre)}</div></div></td>
                 <td style={{padding:'12px 16px'}}><EstadoBadge campana={c}/></td>
@@ -637,8 +573,8 @@ const TablaAdmin = ({ campanas, onEdit, onToggleEstado, onToggleActivo, esAdmin 
                 <td style={{padding:'12px 16px',textAlign:'right'}}>
                   <div style={{display:'flex',gap:'4px',justifyContent:'flex-end'}}>
                     <button onClick={()=>onEdit(c)} style={{width:'32px',height:'32px',border:'none',borderRadius:'8px',background:'transparent',color:'var(--gray-400)',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}} onMouseEnter={e=>{e.currentTarget.style.background='#EEF4FF';e.currentTarget.style.color='var(--capyme-blue-mid)';}} onMouseLeave={e=>{e.currentTarget.style.background='transparent';e.currentTarget.style.color='var(--gray-400)';}}><Edit2 style={{width:'14px',height:'14px'}}/></button>
-                    {esAdmin&&<button onClick={e=>onToggleEstado(c,e)} style={{width:'32px',height:'32px',border:'none',borderRadius:'8px',background:'transparent',color:'var(--gray-400)',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}} onMouseEnter={e=>{e.currentTarget.style.background='#EEF4FF';e.currentTarget.style.color='var(--capyme-blue-mid)';}} onMouseLeave={e=>{e.currentTarget.style.background='transparent';e.currentTarget.style.color='var(--gray-400)';}} title="Estado"><ChevronDown style={{width:'14px',height:'14px'}}/></button>}
-                    {esAdmin&&<button onClick={()=>onToggleActivo(c)} style={{width:'32px',height:'32px',border:'none',borderRadius:'8px',background:'transparent',color:'var(--gray-400)',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}} onMouseEnter={e=>{e.currentTarget.style.background=c.activo?'#FEF2F2':'#ECFDF5';e.currentTarget.style.color=c.activo?'#DC2626':'#065F46';}} onMouseLeave={e=>{e.currentTarget.style.background='transparent';e.currentTarget.style.color='var(--gray-400)';}} title={c.activo?'Desactivar':'Activar'}>{c.activo?<Ban style={{width:'14px',height:'14px'}}/>:<RotateCcw style={{width:'14px',height:'14px'}}/>}</button>}
+                    {esAdmin&&<button onClick={e=>onToggleEstado(c,e)} style={{width:'32px',height:'32px',border:'none',borderRadius:'8px',background:'transparent',color:'var(--gray-400)',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}} onMouseEnter={e=>{e.currentTarget.style.background='#EEF4FF';e.currentTarget.style.color='var(--capyme-blue-mid)';}} onMouseLeave={e=>{e.currentTarget.style.background='transparent';e.currentTarget.style.color='var(--gray-400)';}}><ChevronDown style={{width:'14px',height:'14px'}}/></button>}
+                    {esAdmin&&<button onClick={()=>onToggleActivo(c)} style={{width:'32px',height:'32px',border:'none',borderRadius:'8px',background:'transparent',color:'var(--gray-400)',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}} onMouseEnter={e=>{e.currentTarget.style.background=c.activo?'#FEF2F2':'#ECFDF5';e.currentTarget.style.color=c.activo?'#DC2626':'#065F46';}} onMouseLeave={e=>{e.currentTarget.style.background='transparent';e.currentTarget.style.color='var(--gray-400)';}}>{c.activo?<Ban style={{width:'14px',height:'14px'}}/>:<RotateCcw style={{width:'14px',height:'14px'}}/>}</button>}
                   </div>
                 </td>
               </tr>
@@ -650,6 +586,7 @@ const TablaAdmin = ({ campanas, onEdit, onToggleEstado, onToggleActivo, esAdmin 
   );
 };
 
+// ─── PÁGINA PRINCIPAL ─────────────────────────────────────────────────────────
 const Campanas = () => {
   const authStorage = JSON.parse(localStorage.getItem('auth-storage')||'{}');
   const currentUser = authStorage?.state?.user || {};
@@ -684,7 +621,7 @@ const Campanas = () => {
 
   const campanasFiltradas = campanas.filter(c => {
     if (esCliente) {
-      const esDueno = c.negocio?.usuarioId === currentUser.id;
+      const esDueno  = c.negocio?.usuarioId === currentUser.id;
       const esPublica = c.activo && (c.estado==='aprobada'||c.estado==='activa');
       if (!esDueno && !esPublica) return false;
     }
@@ -721,29 +658,17 @@ const Campanas = () => {
 
   if(detalle) return(
     <Layout>
-      <style>{`@keyframes spin{to{transform:rotate(360deg)}} @keyframes shimmer{to{background-position:200% 0}} @keyframes popIn{0%{transform:scale(.5);opacity:0}100%{transform:scale(1);opacity:1}}`}</style>
+      <style>{`@keyframes spin{to{transform:rotate(360deg)}} @keyframes shimmer{to{background-position:200% 0}}`}</style>
       <div style={{padding:'28px 24px',maxWidth:'1080px',margin:'0 auto'}}>
-        <CampanaDetalle
-          campana={detalle} currentUser={currentUser}
-          onBack={()=>setDetalle(null)}
-          onApoyar={()=>setApoyarCampana(detalle)}
-          recargar={cargarDatos}
-        />
+        <CampanaDetalle campana={detalle} currentUser={currentUser} onBack={()=>setDetalle(null)} onApoyar={()=>setApoyarCampana(detalle)}/>
       </div>
-      {apoyarCampana && (
-        <ApoyarModal
-          campana={apoyarCampana}
-          currentUser={currentUser}
-          onClose={()=>setApoyarCampana(null)}
-          onSuccess={cargarDatos}
-        />
-      )}
+      {apoyarCampana&&<ApoyarModal campana={apoyarCampana} onClose={()=>setApoyarCampana(null)}/>}
     </Layout>
   );
 
   return(
     <Layout>
-      <style>{`@keyframes spin{to{transform:rotate(360deg)}} @keyframes shimmer{to{background-position:200% 0}} @keyframes popIn{0%{transform:scale(.5);opacity:0}100%{transform:scale(1);opacity:1}}`}</style>
+      <style>{`@keyframes spin{to{transform:rotate(360deg)}} @keyframes shimmer{to{background-position:200% 0}}`}</style>
       <div style={{padding:'32px 24px',maxWidth:'1280px',margin:'0 auto'}}>
 
         <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',marginBottom:'28px',gap:'16px',flexWrap:'wrap'}}>
@@ -811,8 +736,7 @@ const Campanas = () => {
         ):vista==='tabla'&&(esAdmin||esColab)?(
           <TablaAdmin campanas={campanasFiltradas} esAdmin={esAdmin}
             onEdit={c=>{setModalMode('edit');setSelected(c);setShowCampanaModal(true);}}
-            onToggleEstado={(c,e)=>openDrop(c,e)}
-            onToggleActivo={handleToggleActivo}/>
+            onToggleEstado={(c,e)=>openDrop(c,e)} onToggleActivo={handleToggleActivo}/>
         ):(
           <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))',gap:'20px'}}>
             {campanasFiltradas.map(c=>(
@@ -828,21 +752,12 @@ const Campanas = () => {
         )}
       </div>
 
-      {apoyarCampana&&(
-        <ApoyarModal
-          campana={apoyarCampana}
-          currentUser={currentUser}
-          onClose={()=>setApoyarCampana(null)}
-          onSuccess={cargarDatos}
-        />
-      )}
+      {apoyarCampana&&<ApoyarModal campana={apoyarCampana} onClose={()=>setApoyarCampana(null)}/>}
 
       {showCampanaModal&&(
         <CampanaModal mode={modalMode} campana={selected}
           negocios={esCliente?negocios.filter(n=>n.usuarioId===currentUser.id&&n.activo):negocios.filter(n=>n.activo)}
-          currentUser={currentUser}
-          onClose={()=>setShowCampanaModal(false)}
-          onSave={handleSave}/>
+          currentUser={currentUser} onClose={()=>setShowCampanaModal(false)} onSave={handleSave}/>
       )}
 
       {estadoDrop&&<EstadoDropdown campana={estadoDrop.campana} pos={estadoDrop.pos} onSelect={est=>handleEstadoSelect(estadoDrop.campana,est)} onClose={()=>setEstadoDrop(null)}/>}
