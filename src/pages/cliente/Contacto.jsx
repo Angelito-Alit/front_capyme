@@ -1,25 +1,169 @@
-import { useState, useEffect } from 'react';
-import Layout from '../../components/common/Layout';
-import { contactoService } from '../../services/contactoService';
+import { useState, useEffect, useCallback } from 'react';
+import Layout from '../components/common/Layout';
+import api from '../services/axios';
 import {
   Phone, Mail, MapPin, Clock, Facebook, Instagram, Linkedin,
-  Globe, MessageSquare, Contact, ExternalLink, ArrowUpRight,
+  Globe, MessageSquare, Save, AlertCircle, Eye,
+  Contact, CheckCircle, Lock,
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
-const ClienteContacto = () => {
-  const [contacto, setContacto] = useState(null);
+const sLabel = {
+  display: 'block', fontSize: '12px', fontWeight: 700,
+  color: 'var(--gray-500)', marginBottom: '6px',
+  fontFamily: "'Plus Jakarta Sans', sans-serif",
+  textTransform: 'uppercase', letterSpacing: '0.04em',
+};
+const sInputBase = {
+  width: '100%', padding: '11px 12px',
+  border: '1.5px solid var(--border)', borderRadius: 'var(--radius-md)',
+  fontSize: '14px', fontFamily: "'DM Sans', sans-serif",
+  color: 'var(--gray-900)', background: '#fff', outline: 'none',
+  transition: 'border-color 150ms, box-shadow 150ms', boxSizing: 'border-box',
+};
+const sInputIcon = { paddingLeft: '42px' };
+const sInputErr  = { borderColor: '#EF4444', boxShadow: '0 0 0 3px rgba(239,68,68,0.10)' };
+const sInputOff  = { background: 'var(--gray-50)', color: 'var(--gray-500)', cursor: 'not-allowed', borderColor: 'var(--gray-200)' };
+
+const initialForm = {
+  telefono: '', email: '', direccion: '', horarioAtencion: '',
+  whatsapp: '', facebookUrl: '', instagramUrl: '', linkedinUrl: '', sitioWeb: '',
+};
+
+const ErrorMsg = ({ text }) => (
+  <p style={{ margin: '5px 0 0', fontSize: '12px', color: '#EF4444', display: 'flex', alignItems: 'center', gap: '4px', fontFamily: "'DM Sans', sans-serif" }}>
+    <AlertCircle style={{ width: '11px', height: '11px', flexShrink: 0 }} /> {text}
+  </p>
+);
+
+const SectionCard = ({ icon: Icon, title, accentColor, children }) => (
+  <div style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', overflow: 'hidden', boxShadow: 'var(--shadow-sm)', marginBottom: '16px' }}>
+    <div style={{ padding: '14px 22px', background: 'var(--gray-50)', borderBottom: '1px solid var(--gray-100)', display: 'flex', alignItems: 'center', gap: '10px' }}>
+      <div style={{ width: '30px', height: '30px', borderRadius: '8px', background: `${accentColor}1A`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+        <Icon style={{ width: '14px', height: '14px', color: accentColor }} />
+      </div>
+      <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--gray-600)', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+        {title}
+      </span>
+    </div>
+    <div style={{ padding: '22px' }}>{children}</div>
+  </div>
+);
+
+const FieldRow = ({ name, label, Icon, type, placeholder, isAdmin, value, onChange, error }) => (
+  <div>
+    <label htmlFor={`f-${name}`} style={sLabel}>{label}</label>
+    <div style={{ position: 'relative' }}>
+      <Icon style={{ position: 'absolute', left: '13px', top: '50%', transform: 'translateY(-50%)', width: '15px', height: '15px', color: 'var(--gray-400)', pointerEvents: 'none' }} />
+      <input
+        id={`f-${name}`}
+        name={name}
+        type={type}
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        disabled={!isAdmin}
+        style={{ ...sInputBase, ...sInputIcon, ...(error ? sInputErr : {}), ...(!isAdmin ? sInputOff : {}) }}
+      />
+    </div>
+    {error && <ErrorMsg text={error} />}
+  </div>
+);
+
+const UrlField = ({ name, label, Icon, placeholder, isAdmin, value, onChange, error }) => (
+  <div>
+    <label htmlFor={`f-${name}`} style={sLabel}>{label}</label>
+    <div style={{ position: 'relative' }}>
+      <Icon style={{ position: 'absolute', left: '13px', top: '50%', transform: 'translateY(-50%)', width: '15px', height: '15px', color: 'var(--gray-400)', pointerEvents: 'none' }} />
+      <input
+        id={`f-${name}`}
+        name={name}
+        type="url"
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        disabled={!isAdmin}
+        style={{ ...sInputBase, ...sInputIcon, ...(error ? sInputErr : {}), ...(!isAdmin ? sInputOff : {}) }}
+      />
+    </div>
+    {error && <ErrorMsg text={error} />}
+  </div>
+);
+
+const SocialChip = ({ Icon, label }) => (
+  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '4px 12px', background: 'rgba(255,255,255,0.15)', borderRadius: '20px' }}>
+    <Icon style={{ width: '12px', height: '12px' }} />
+    <span style={{ fontSize: '11px', fontFamily: "'DM Sans', sans-serif", fontWeight: 600 }}>{label}</span>
+  </div>
+);
+
+const Contacto = () => {
+  const authStorage = JSON.parse(localStorage.getItem('auth-storage') || '{}');
+  const currentUser = authStorage?.state?.user || {};
+  const isAdmin = currentUser.rol === 'admin';
+
+  const [formData, setFormData] = useState(initialForm);
   const [loading,  setLoading]  = useState(true);
+  const [saving,   setSaving]   = useState(false);
+  const [saved,    setSaved]    = useState(false);
+  const [errors,   setErrors]   = useState({});
 
   useEffect(() => {
-    contactoService.get()
-      .then((res) => setContacto(res.data || null))
+    api.get('/contacto')
+      .then((res) => {
+        const raw = res.data?.data || res.data || {};
+        setFormData({
+          telefono:        raw.telefono        || raw.telefono        || '',
+          email:           raw.email           || '',
+          direccion:       raw.direccion       || '',
+          horarioAtencion: raw.horarioAtencion || raw.horario_atencion || '',
+          whatsapp:        raw.whatsapp        || '',
+          facebookUrl:     raw.facebookUrl     || raw.facebook_url    || '',
+          instagramUrl:    raw.instagramUrl    || raw.instagram_url   || '',
+          linkedinUrl:     raw.linkedinUrl     || raw.linkedin_url    || '',
+          sitioWeb:        raw.sitioWeb        || raw.sitio_web       || '',
+        });
+      })
       .catch(() => toast.error('Error al cargar información de contacto'))
       .finally(() => setLoading(false));
   }, []);
 
-  const hasInfo   = contacto && Object.entries(contacto).some(([k, v]) => k !== 'id' && k !== 'fechaActualizacion' && v);
-  const hasSocial = contacto && (contacto.facebookUrl || contacto.instagramUrl || contacto.linkedinUrl || contacto.sitioWeb);
+  const handleChange = useCallback((e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    setErrors((prev) => prev[name] ? { ...prev, [name]: '' } : prev);
+    setSaved(false);
+  }, []);
+
+  const validate = () => {
+    const e = {};
+    if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email))
+      e.email = 'Email no válido';
+    ['sitioWeb', 'facebookUrl', 'instagramUrl', 'linkedinUrl'].forEach((k) => {
+      if (formData[k] && !/^https?:\/\//.test(formData[k]))
+        e[k] = 'Debe comenzar con https://';
+    });
+    setErrors(e);
+    return Object.keys(e).length === 0;
+  };
+
+  const handleSave = async () => {
+    if (!validate()) return;
+    setSaving(true);
+    try {
+      await api.put('/contacto', formData);
+      toast.success('Información actualizada correctamente');
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Error al guardar');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const hasPreview = Object.values(formData).some((v) => v.trim() !== '');
+  const hasSocial  = formData.sitioWeb || formData.facebookUrl || formData.instagramUrl || formData.linkedinUrl;
 
   if (loading) return (
     <Layout>
@@ -31,138 +175,152 @@ const ClienteContacto = () => {
     </Layout>
   );
 
+  const saveButtonJSX = (
+    <button
+      onClick={handleSave}
+      disabled={saving}
+      style={{
+        display: 'inline-flex', alignItems: 'center', gap: '8px',
+        padding: '10px 22px',
+        background: saved ? 'linear-gradient(135deg,#059669,#10B981)' : saving ? 'var(--gray-300)' : 'linear-gradient(135deg, var(--capyme-blue-mid), var(--capyme-blue))',
+        color: '#fff', border: 'none', borderRadius: 'var(--radius-md)',
+        fontSize: '14px', fontWeight: 600, fontFamily: "'DM Sans', sans-serif",
+        cursor: saving ? 'not-allowed' : 'pointer',
+        boxShadow: saving ? 'none' : '0 2px 10px rgba(31,78,158,0.28)',
+        transition: 'all 150ms ease', whiteSpace: 'nowrap',
+      }}
+    >
+      {saving
+        ? <span style={{ width: '14px', height: '14px', border: '2px solid rgba(255,255,255,0.4)', borderTopColor: '#fff', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} />
+        : saved ? <CheckCircle style={{ width: '16px', height: '16px' }} />
+        : <Save style={{ width: '16px', height: '16px' }} />
+      }
+      {saving ? 'Guardando…' : saved ? 'Guardado' : 'Guardar Cambios'}
+    </button>
+  );
+
   return (
     <Layout>
       <style>{`
-        @keyframes spin  { to { transform: rotate(360deg); } }
+        @keyframes spin   { to { transform: rotate(360deg); } }
         @keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
-        .contact-card { transition: box-shadow 180ms ease, transform 180ms ease; }
-        .contact-card:hover { box-shadow: 0 6px 20px rgba(31,78,158,0.10); transform: translateY(-1px); }
-        .social-btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px; border-radius: var(--radius-md); font-size: 13px; font-weight: 600; font-family: 'DM Sans', sans-serif; text-decoration: none; cursor: pointer; transition: all 150ms ease; border: 1.5px solid var(--border); background: #fff; color: var(--gray-700); }
-        .social-btn:hover { border-color: var(--capyme-blue-mid); color: var(--capyme-blue-mid); background: var(--capyme-blue-pale); }
+        input:not(:disabled):focus, textarea:not(:disabled):focus {
+          border-color: var(--capyme-blue-mid) !important;
+          box-shadow: 0 0 0 3px rgba(31,78,158,0.12) !important;
+        }
       `}</style>
 
-      <div style={{ maxWidth: '680px', margin: '0 auto', paddingBottom: '40px', animation: 'fadeIn 0.3s ease both' }}>
+      <div style={{ maxWidth: '820px', margin: '0 auto', paddingBottom: '48px', animation: 'fadeIn 0.3s ease both' }}>
 
-        {/* HEADER */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '28px' }}>
-          <div style={{ width: '46px', height: '46px', background: 'linear-gradient(135deg, var(--capyme-blue-mid), var(--capyme-blue))', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(31,78,158,0.25)', flexShrink: 0 }}>
-            <Contact style={{ width: '22px', height: '22px', color: '#fff' }} />
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '28px', flexWrap: 'wrap', gap: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+            <div style={{ width: '48px', height: '48px', background: 'linear-gradient(135deg, var(--capyme-blue-mid), var(--capyme-blue))', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 14px rgba(31,78,158,0.28)', flexShrink: 0 }}>
+              <Contact style={{ width: '22px', height: '22px', color: '#fff' }} />
+            </div>
+            <div>
+              <h1 style={{ fontSize: '22px', fontWeight: 800, color: 'var(--gray-900)', fontFamily: "'Plus Jakarta Sans', sans-serif", margin: 0, lineHeight: 1.2 }}>Información de Contacto</h1>
+              <p style={{ fontSize: '13px', color: 'var(--gray-500)', margin: '3px 0 0', fontFamily: "'DM Sans', sans-serif" }}>Datos visibles para todos los usuarios del sistema</p>
+            </div>
           </div>
-          <div>
-            <h1 style={{ fontSize: '22px', fontWeight: 800, color: 'var(--gray-900)', fontFamily: "'Plus Jakarta Sans', sans-serif", margin: 0, lineHeight: 1.2 }}>
-              Contáctanos
-            </h1>
-            <p style={{ fontSize: '13px', color: 'var(--gray-500)', margin: '3px 0 0', fontFamily: "'DM Sans', sans-serif" }}>
-              Estamos aquí para ayudarte
-            </p>
-          </div>
+          {isAdmin && saveButtonJSX}
         </div>
 
-        {!hasInfo ? (
-          <div style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '60px 20px', textAlign: 'center', boxShadow: 'var(--shadow-sm)' }}>
-            <div style={{ width: '56px', height: '56px', background: 'var(--gray-100)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px' }}>
-              <Contact style={{ width: '24px', height: '24px', color: 'var(--gray-400)' }} />
-            </div>
-            <p style={{ fontSize: '15px', fontWeight: 600, color: 'var(--gray-700)', margin: '0 0 6px', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Sin información de contacto aún</p>
-            <p style={{ fontSize: '13px', color: 'var(--gray-400)', margin: 0, fontFamily: "'DM Sans', sans-serif" }}>El equipo CAPYME publicará sus datos de contacto pronto</p>
+        {!isAdmin && (
+          <div style={{ background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 'var(--radius-md)', padding: '12px 16px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <Lock style={{ width: '15px', height: '15px', color: '#D97706', flexShrink: 0 }} />
+            <span style={{ fontSize: '13px', color: '#92400E', fontFamily: "'DM Sans', sans-serif" }}>
+              Solo los administradores pueden editar esta información. Estás en modo lectura.
+            </span>
           </div>
-        ) : (
-          <>
-            {/* HERO */}
-            <div style={{ background: 'linear-gradient(135deg, var(--capyme-blue) 0%, var(--capyme-blue-mid) 100%)', borderRadius: 'var(--radius-lg)', padding: '32px 36px', marginBottom: '20px', color: '#fff', position: 'relative', overflow: 'hidden' }}>
-              <div style={{ position: 'absolute', top: '-40px', right: '-40px', width: '160px', height: '160px', background: 'rgba(255,255,255,0.06)', borderRadius: '50%', pointerEvents: 'none' }} />
-              <div style={{ position: 'absolute', bottom: '-20px', left: '30%', width: '80px', height: '80px', background: 'rgba(255,255,255,0.04)', borderRadius: '50%', pointerEvents: 'none' }} />
+        )}
 
-              <p style={{ fontSize: '12px', fontWeight: 700, opacity: 0.7, textTransform: 'uppercase', letterSpacing: '0.07em', fontFamily: "'Plus Jakarta Sans', sans-serif", margin: '0 0 18px' }}>
-                CAPYME — Centro de Apoyo PyME
-              </p>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                {contacto.telefono && <HeroRow Icon={Phone}         text={contacto.telefono} href={`tel:${contacto.telefono}`} />}
-                {contacto.whatsapp && <HeroRow Icon={MessageSquare} text={contacto.whatsapp} href={`https://wa.me/${contacto.whatsapp.replace(/\D/g,'')}`} external />}
-                {contacto.email    && <HeroRow Icon={Mail}          text={contacto.email}    href={`mailto:${contacto.email}`} />}
-                {contacto.horarioAtencion && <HeroRow Icon={Clock}  text={contacto.horarioAtencion} />}
-                {contacto.direccion && (
-                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-                    <div style={{ width: '32px', height: '32px', borderRadius: 'var(--radius-md)', background: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                      <MapPin style={{ width: '15px', height: '15px' }} />
-                    </div>
-                    <span style={{ fontSize: '14px', fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6, opacity: 0.95, paddingTop: '5px' }}>
-                      {contacto.direccion}
-                    </span>
+        {hasPreview && (
+          <div style={{ background: 'linear-gradient(135deg, var(--capyme-blue) 0%, var(--capyme-blue-mid) 100%)', borderRadius: 'var(--radius-lg)', padding: '24px 28px', marginBottom: '20px', color: '#fff', position: 'relative', overflow: 'hidden' }}>
+            <div style={{ position: 'absolute', top: '-40px', right: '-40px', width: '160px', height: '160px', background: 'rgba(255,255,255,0.06)', borderRadius: '50%', pointerEvents: 'none' }} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '18px' }}>
+              <Eye style={{ width: '13px', height: '13px', opacity: 0.7 }} />
+              <span style={{ fontSize: '10px', fontWeight: 700, fontFamily: "'Plus Jakarta Sans', sans-serif", textTransform: 'uppercase', letterSpacing: '0.08em', opacity: 0.7 }}>Vista previa pública</span>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '12px', marginBottom: hasSocial ? '16px' : 0 }}>
+              {[
+                { k: 'telefono',        Icon: Phone,         v: formData.telefono },
+                { k: 'whatsapp',        Icon: MessageSquare, v: formData.whatsapp },
+                { k: 'email',           Icon: Mail,          v: formData.email },
+                { k: 'horarioAtencion', Icon: Clock,         v: formData.horarioAtencion },
+              ].filter(f => f.v).map(({ k, Icon, v }) => (
+                <div key={k} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div style={{ width: '30px', height: '30px', borderRadius: '8px', background: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <Icon style={{ width: '14px', height: '14px' }} />
                   </div>
-                )}
+                  <span style={{ fontSize: '13px', fontFamily: "'DM Sans', sans-serif", opacity: 0.95 }}>{v}</span>
+                </div>
+              ))}
+              {formData.direccion && (
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', gridColumn: '1 / -1' }}>
+                  <div style={{ width: '30px', height: '30px', borderRadius: '8px', background: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <MapPin style={{ width: '14px', height: '14px' }} />
+                  </div>
+                  <span style={{ fontSize: '13px', fontFamily: "'DM Sans', sans-serif", opacity: 0.95, lineHeight: 1.6, paddingTop: '5px' }}>{formData.direccion}</span>
+                </div>
+              )}
+            </div>
+            {hasSocial && (
+              <div style={{ display: 'flex', gap: '8px', paddingTop: '14px', borderTop: '1px solid rgba(255,255,255,0.15)', flexWrap: 'wrap' }}>
+                {formData.sitioWeb     && <SocialChip Icon={Globe}     label="Sitio web" />}
+                {formData.facebookUrl  && <SocialChip Icon={Facebook}  label="Facebook" />}
+                {formData.instagramUrl && <SocialChip Icon={Instagram} label="Instagram" />}
+                {formData.linkedinUrl  && <SocialChip Icon={Linkedin}  label="LinkedIn" />}
+              </div>
+            )}
+          </div>
+        )}
+
+        <SectionCard icon={Phone} title="Información básica" accentColor="#2B5BA6">
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '18px' }}>
+            <FieldRow name="telefono"        label="Teléfono"            Icon={Phone}         type="tel"   placeholder="+52 442 123 4567"             isAdmin={isAdmin} value={formData.telefono}        onChange={handleChange} error={errors.telefono} />
+            <FieldRow name="whatsapp"        label="WhatsApp"            Icon={MessageSquare} type="tel"   placeholder="+52 442 123 4567"             isAdmin={isAdmin} value={formData.whatsapp}        onChange={handleChange} error={errors.whatsapp} />
+            <FieldRow name="email"           label="Email"               Icon={Mail}          type="email" placeholder="contacto@capyme.com"          isAdmin={isAdmin} value={formData.email}           onChange={handleChange} error={errors.email} />
+            <FieldRow name="horarioAtencion" label="Horario de Atención" Icon={Clock}         type="text"  placeholder="Lunes a Viernes 9:00 – 18:00" isAdmin={isAdmin} value={formData.horarioAtencion} onChange={handleChange} error={errors.horarioAtencion} />
+            <div style={{ gridColumn: '1 / -1' }}>
+              <label htmlFor="f-direccion" style={sLabel}>Dirección</label>
+              <div style={{ position: 'relative' }}>
+                <MapPin style={{ position: 'absolute', left: '13px', top: '13px', width: '15px', height: '15px', color: 'var(--gray-400)', pointerEvents: 'none' }} />
+                <textarea
+                  id="f-direccion"
+                  name="direccion"
+                  value={formData.direccion}
+                  onChange={handleChange}
+                  placeholder="Calle, Número, Colonia, Ciudad, Estado, CP"
+                  rows={2}
+                  disabled={!isAdmin}
+                  style={{ ...sInputBase, paddingLeft: '42px', resize: 'vertical', minHeight: '72px', ...(!isAdmin ? sInputOff : {}) }}
+                />
               </div>
             </div>
+          </div>
+        </SectionCard>
 
-            {/* ACCIÓN RÁPIDA: WhatsApp / Email */}
-            {(contacto.whatsapp || contacto.email) && (
-              <div style={{ display: 'grid', gridTemplateColumns: contacto.whatsapp && contacto.email ? '1fr 1fr' : '1fr', gap: '12px', marginBottom: '16px' }}>
-                {contacto.whatsapp && (
-                  <a
-                    href={`https://wa.me/${contacto.whatsapp.replace(/\D/g, '')}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', padding: '14px', background: '#25D366', color: '#fff', borderRadius: 'var(--radius-lg)', textDecoration: 'none', fontWeight: 700, fontSize: '14px', fontFamily: "'DM Sans', sans-serif", boxShadow: '0 2px 8px rgba(37,211,102,0.3)', transition: 'all 150ms ease' }}
-                    onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.9'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.transform = 'translateY(0)'; }}
-                  >
-                    <MessageSquare style={{ width: '18px', height: '18px' }} />
-                    Escribir por WhatsApp
-                    <ArrowUpRight style={{ width: '14px', height: '14px' }} />
-                  </a>
-                )}
-                
-              </div>
-            )}
+        <SectionCard icon={Globe} title="Redes sociales y sitio web" accentColor="#7C3AED">
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '18px' }}>
+            <div style={{ gridColumn: '1 / -1' }}>
+              <UrlField name="sitioWeb"     label="Sitio Web"  Icon={Globe}     placeholder="https://www.capyme.com"              isAdmin={isAdmin} value={formData.sitioWeb}     onChange={handleChange} error={errors.sitioWeb} />
+            </div>
+            <UrlField name="facebookUrl"  label="Facebook"   Icon={Facebook}  placeholder="https://facebook.com/capyme"         isAdmin={isAdmin} value={formData.facebookUrl}  onChange={handleChange} error={errors.facebookUrl} />
+            <UrlField name="instagramUrl" label="Instagram"  Icon={Instagram} placeholder="https://instagram.com/capyme"        isAdmin={isAdmin} value={formData.instagramUrl} onChange={handleChange} error={errors.instagramUrl} />
+            <div style={{ gridColumn: '1 / -1' }}>
+              <UrlField name="linkedinUrl"  label="LinkedIn"   Icon={Linkedin}  placeholder="https://linkedin.com/company/capyme" isAdmin={isAdmin} value={formData.linkedinUrl}  onChange={handleChange} error={errors.linkedinUrl} />
+            </div>
+          </div>
+        </SectionCard>
 
-            {/* REDES SOCIALES */}
-            {hasSocial && (
-              <div style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '22px 24px', boxShadow: 'var(--shadow-sm)' }}>
-                <p style={{ fontSize: '11px', fontWeight: 700, color: 'var(--gray-400)', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: "'Plus Jakarta Sans', sans-serif", margin: '0 0 16px' }}>
-                  Síguenos en redes
-                </p>
-                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                  {contacto.sitioWeb    && <SocialLink href={contacto.sitioWeb}    Icon={Globe}     label="Sitio web" />}
-                  {contacto.facebookUrl && <SocialLink href={contacto.facebookUrl} Icon={Facebook}  label="Facebook" />}
-                  {contacto.instagramUrl&& <SocialLink href={contacto.instagramUrl}Icon={Instagram} label="Instagram" />}
-                  {contacto.linkedinUrl && <SocialLink href={contacto.linkedinUrl} Icon={Linkedin}  label="LinkedIn" />}
-                </div>
-              </div>
-            )}
-          </>
+        {isAdmin && (
+          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+            {saveButtonJSX}
+          </div>
         )}
       </div>
     </Layout>
   );
 };
 
-const HeroRow = ({ Icon, text, href, external }) => {
-  const inner = (
-    <>
-      <div style={{ width: '32px', height: '32px', borderRadius: 'var(--radius-md)', background: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-        <Icon style={{ width: '15px', height: '15px' }} />
-      </div>
-      <span style={{ fontSize: '14px', fontFamily: "'DM Sans', sans-serif", opacity: 0.95 }}>{text}</span>
-      {external && <ExternalLink style={{ width: '13px', height: '13px', opacity: 0.6, marginLeft: 'auto' }} />}
-    </>
-  );
-  if (href) return (
-    <a href={href} target={external ? '_blank' : undefined} rel="noopener noreferrer"
-      style={{ display: 'flex', alignItems: 'center', gap: '12px', color: 'inherit', textDecoration: 'none' }}>
-      {inner}
-    </a>
-  );
-  return <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>{inner}</div>;
-};
-
-const SocialLink = ({ href, Icon, label }) => (
-  <a href={href} target="_blank" rel="noopener noreferrer" className="social-btn">
-    <Icon style={{ width: '16px', height: '16px' }} />
-    {label}
-    <ExternalLink style={{ width: '12px', height: '12px', opacity: 0.5 }} />
-  </a>
-);
-
-export default ClienteContacto;
+export default Contacto;

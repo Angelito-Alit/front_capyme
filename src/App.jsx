@@ -13,7 +13,6 @@ import Usuarios from './pages/Usuarios';
 import Perfil from './pages/Perfil';
 import Avisos from './pages/Avisos';
 import AvisoDetalle from './pages/AvisoDetalle';
-import Financiamiento from './pages/Financiamiento';
 import Enlaces from './pages/Enlaces';
 import Contacto from './pages/Contacto';
 import Historial from './pages/Historial';
@@ -28,14 +27,10 @@ import MisNegocios from './pages/cliente/MisNegocios';
 import ProgramasDisponibles from './pages/cliente/ProgramasDisponibles';
 import MisPostulaciones from './pages/cliente/MisPostulaciones';
 import CursosDisponibles from './pages/cliente/CursosDisponibles';
-import ClienteFinanciamiento from './pages/cliente/Financiamiento';
 import ClienteAvisos from './pages/cliente/Avisos';
 import ClienteRecursos from './pages/cliente/Recursos';
 import ClienteContacto from './pages/cliente/Contacto';
 
-// ⚠️ PÚBLICO — Mercado Pago redirige aquí directamente desde su checkout.
-// Si estuvieran dentro de <ProtectedRoute>, el usuario llegaría al login
-// porque la sesión puede haber expirado mientras pagaba en MP.
 import PagoExitoso from './pages/PagoExitoso';
 import PagoFallido from './pages/PagoFallido';
 
@@ -55,26 +50,18 @@ function App() {
       <InactivoModal />
 
       <Routes>
-        {/* ── Pública: login ── */}
         <Route path="/login" element={<Login />} />
 
-        {/* ── Públicas: páginas de retorno de Mercado Pago ────────────────
-            Estas NO pueden estar dentro de ProtectedRoute.
-            MP redirige aquí con ?payment_id=...&status=...&external_reference=...
-            Si el usuario tardó en pagar, su token puede haber expirado.
-        ─────────────────────────────────────────────────────────────────── */}
         <Route path="/pago-exitoso"   element={<PagoExitoso />} />
         <Route path="/pago-fallido"   element={<PagoFallido />} />
         <Route path="/pago-pendiente" element={<PagoFallido />} />
 
-        {/* ── Admin / Colaborador ── */}
         <Route path="/dashboard"      element={<ProtectedRoute allowedRoles={['admin','colaborador']}><Dashboard /></ProtectedRoute>} />
         <Route path="/negocios"       element={<ProtectedRoute allowedRoles={['admin','colaborador']}><Negocios /></ProtectedRoute>} />
         <Route path="/programas"      element={<ProtectedRoute allowedRoles={['admin','colaborador']}><Programas /></ProtectedRoute>} />
         <Route path="/cursos"         element={<ProtectedRoute allowedRoles={['admin','colaborador']}><Cursos /></ProtectedRoute>} />
         <Route path="/postulaciones"  element={<ProtectedRoute allowedRoles={['admin','colaborador']}><Postulaciones /></ProtectedRoute>} />
         <Route path="/usuarios"       element={<ProtectedRoute allowedRoles={['admin','colaborador']}><Usuarios /></ProtectedRoute>} />
-        <Route path="/financiamiento" element={<ProtectedRoute allowedRoles={['admin','colaborador']}><Financiamiento /></ProtectedRoute>} />
         <Route path="/avisos"         element={<ProtectedRoute allowedRoles={['admin','colaborador']}><Avisos /></ProtectedRoute>} />
         <Route path="/avisos/:id"     element={<ProtectedRoute allowedRoles={['admin','colaborador']}><AvisoDetalle /></ProtectedRoute>} />
         <Route path="/enlaces"        element={<ProtectedRoute allowedRoles={['admin','colaborador']}><Enlaces /></ProtectedRoute>} />
@@ -82,26 +69,22 @@ function App() {
         <Route path="/historial"      element={<ProtectedRoute allowedRoles={['admin']}><Historial /></ProtectedRoute>} />
         <Route path="/jcf"            element={<ProtectedRoute allowedRoles={['admin','colaborador']}><JovenesConstruyendoFuturo /></ProtectedRoute>} />
 
-        {/* ── Cliente ── */}
         <Route path="/cliente/dashboard"      element={<ProtectedRoute allowedRoles={['cliente']}><ClienteDashboard /></ProtectedRoute>} />
         <Route path="/cliente/mis-negocios"   element={<ProtectedRoute allowedRoles={['cliente']}><MisNegocios /></ProtectedRoute>} />
         <Route path="/cliente/programas"      element={<ProtectedRoute allowedRoles={['cliente']}><ProgramasDisponibles /></ProtectedRoute>} />
         <Route path="/cliente/postulaciones"  element={<ProtectedRoute allowedRoles={['cliente']}><MisPostulaciones /></ProtectedRoute>} />
         <Route path="/cliente/cursos"         element={<ProtectedRoute allowedRoles={['cliente']}><CursosDisponibles /></ProtectedRoute>} />
-        <Route path="/cliente/financiamiento" element={<ProtectedRoute allowedRoles={['cliente']}><ClienteFinanciamiento /></ProtectedRoute>} />
         <Route path="/cliente/avisos"         element={<ProtectedRoute allowedRoles={['cliente']}><ClienteAvisos /></ProtectedRoute>} />
         <Route path="/cliente/avisos/:id"     element={<ProtectedRoute allowedRoles={['cliente']}><AvisoDetalle /></ProtectedRoute>} />
         <Route path="/cliente/recursos"       element={<ProtectedRoute allowedRoles={['cliente']}><ClienteRecursos /></ProtectedRoute>} />
         <Route path="/cliente/contacto"       element={<ProtectedRoute allowedRoles={['cliente']}><ClienteContacto /></ProtectedRoute>} />
 
-        {/* ── Compartidas ── */}
         <Route path="/perfil"          element={<ProtectedRoute><Perfil /></ProtectedRoute>} />
         <Route path="/campanas"        element={<ProtectedRoute><Campanas /></ProtectedRoute>} />
         <Route path="/inversiones"     element={<ProtectedRoute><Inversiones /></ProtectedRoute>} />
         <Route path="/mis-campanas"    element={<ProtectedRoute><MisCampanas /></ProtectedRoute>} />
         <Route path="/mis-inversiones" element={<ProtectedRoute><MisInversiones /></ProtectedRoute>} />
 
-        {/* ── Fallback ── */}
         <Route path="/"  element={<Navigate to="/login" replace />} />
         <Route path="*"  element={<Navigate to="/login" replace />} />
       </Routes>

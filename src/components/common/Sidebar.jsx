@@ -2,11 +2,11 @@ import { Link, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 import {
   LayoutDashboard, Building2, FileText, GraduationCap,
-  Users, BellRing, Link2, Phone, Briefcase, ClipboardList,
+  Users, BellRing, Link2, Phone, ClipboardList,
   X, ChevronRight, MessageCircle, UserCheck,
+  History, Megaphone, TrendingUp, Heart,
 } from 'lucide-react';
 import LogoCapyme from '../../assets/LogoCapyme.png';
-import { History, Megaphone, TrendingUp, Heart } from 'lucide-react';
 
 const Sidebar = ({ isOpen, onClose }) => {
   const location = useLocation();
@@ -57,7 +57,6 @@ const Sidebar = ({ isOpen, onClose }) => {
       { path: '/cliente/programas',      icon: FileText,        label: 'Programas' },
       { path: '/cliente/postulaciones',  icon: ClipboardList,   label: 'Mis Postulaciones' },
       { path: '/cliente/cursos',         icon: GraduationCap,   label: 'Cursos' },
-      { path: '/cliente/financiamiento', icon: Briefcase,       label: 'Financiamiento' },
       { path: '/cliente/avisos',         icon: BellRing,        label: 'Avisos' },
       { path: '/cliente/recursos',       icon: Link2,           label: 'Recursos' },
       { section: 'Crowdfunding' },
