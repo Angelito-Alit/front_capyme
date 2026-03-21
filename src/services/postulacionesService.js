@@ -39,5 +39,20 @@ export const postulacionesService = {
   delete: async (id) => {
     const response = await api.delete(`/postulaciones/${id}`);
     return response.data;
-  }
+  },
+
+  getNotas: async (id) => {
+    const response = await api.get(`/postulaciones/${id}/notas`);
+    return response.data;
+  },
+
+  crearNota: async (id, nota) => {
+    const response = await api.post(`/postulaciones/${id}/notas`, { nota });
+    return response.data;
+  },
+
+  eliminarNota: async (postulacionId, notaId) => {
+    const response = await api.delete(`/postulaciones/${postulacionId}/notas/${notaId}`);
+    return response.data;
+  },
 };
