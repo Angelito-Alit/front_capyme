@@ -239,19 +239,6 @@ const Inversiones = () => {
           </p>
         </div>
 
-        {/* Alerta de pendientes */}
-        {pendientes.length>0&&(
-          <div style={{padding:'12px 16px',borderRadius:'12px',marginBottom:'20px',background:'#FFFBEB',border:'1px solid #FDE68A',display:'flex',alignItems:'center',gap:'10px'}}>
-            <AlertCircle style={{width:'16px',height:'16px',color:'#D97706',flexShrink:0}}/>
-            <span style={{fontSize:'13px',fontFamily:"'DM Sans',sans-serif",color:'#92400E',fontWeight:600}}>
-              {pendientes.length} inversión{pendientes.length!==1?'es pendientes':' pendiente'} de confirmación
-            </span>
-            <button onClick={()=>setFiltroEst('pendiente')} style={{marginLeft:'auto',padding:'4px 12px',border:'1.5px solid #D97706',borderRadius:'8px',background:'transparent',color:'#D97706',fontSize:'12px',fontWeight:600,cursor:'pointer',fontFamily:"'DM Sans',sans-serif"}}>
-              Ver pendientes
-            </button>
-          </div>
-        )}
-
         {/* Stat cards */}
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(180px,1fr))',gap:'14px',marginBottom:'28px'}}>
           <StatCard icon={DollarSign}  label="Total invertido"   value={fmtM(totalInvertido)}  color="#10B981"  sub={`${confirmadas.length} confirmadas`}/>

@@ -241,16 +241,6 @@ const MisInversiones = () => {
           <p style={{fontSize:'14px',color:'var(--gray-500)',margin:0,fontFamily:"'DM Sans',sans-serif"}}>Sigue el progreso de los proyectos que estás apoyando</p>
         </div>
 
-        {pendientes.length>0&&(
-          <div style={{padding:'12px 16px',borderRadius:'12px',marginBottom:'20px',background:'#FEF9C3',border:'1px solid #FDE68A',display:'flex',alignItems:'center',gap:'10px'}}>
-            <AlertCircle style={{width:'16px',height:'16px',color:'#D97706',flexShrink:0}}/>
-            <span style={{fontSize:'13px',fontFamily:"'DM Sans',sans-serif",color:'#92400E',fontWeight:600}}>
-              Tienes {pendientes.length} inversión{pendientes.length!==1?'es':''} en proceso de confirmación.
-            </span>
-            <button onClick={()=>setFiltro('pendientes')} style={{marginLeft:'auto',padding:'4px 12px',border:'1.5px solid #D97706',borderRadius:'8px',background:'transparent',color:'#D97706',fontSize:'12px',fontWeight:600,cursor:'pointer',fontFamily:"'DM Sans',sans-serif"}}>Ver</button>
-          </div>
-        )}
-
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(180px,1fr))',gap:'14px',marginBottom:'28px'}}>
           {[
             {icon:Heart,      label:'Total invertido',   value:fmtM(totalInvertido),   color:'#EF4444', sub:`${confirmadas.length} confirmadas`},
