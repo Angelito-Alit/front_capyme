@@ -2,28 +2,22 @@ import { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
 import {
   Megaphone, Plus, TrendingUp, Users, Clock, Trophy, Edit2,
-  ArrowRight, ChevronDown, X, CheckCircle, AlertCircle,
-  Bell, Send, Eye, Target, Calendar, DollarSign, Star,
-  Gift, Percent, BarChart2, FileText, Sparkles, Info,
+  X, AlertCircle,
+  Bell, Send, Eye, Target, DollarSign,
+  Gift, Sparkles, Info,
 } from 'lucide-react';
 import Layout from '../components/common/Layout';
 import { campanasService } from '../services/campanasService';
 import { negociosService } from '../services/negociosService';
 
-// ─── Config ───────────────────────────────────────────────────────────────────
 const ESTADO_INFO = {
-  en_revision: { label: 'En revisión',  bg: '#FEF9C3', color: '#854D0E', dot: '#F59E0B', desc: 'Siendo evaluada por CAPYME' },
-  aprobada:    { label: 'Aprobada',     bg: '#DCFCE7', color: '#14532D', dot: '#22C55E', desc: 'Lista para activar' },
-  rechazada:   { label: 'Rechazada',    bg: '#FEE2E2', color: '#991B1B', dot: '#EF4444', desc: 'No cumple los criterios' },
-  activa:      { label: 'Activa',       bg: '#DBEAFE', color: '#1E3A8A', dot: '#3B82F6', desc: 'Recibiendo inversiones' },
-  pausada:     { label: 'Pausada',      bg: '#F3F4F6', color: '#374151', dot: '#9CA3AF', desc: 'Temporalmente detenida' },
-  completada:  { label: 'Completada',   bg: '#FDF4FF', color: '#581C87', dot: '#A855F7', desc: '¡Meta alcanzada!' },
-  cancelada:   { label: 'Cancelada',    bg: '#FEF2F2', color: '#991B1B', dot: '#EF4444', desc: 'Campaña cancelada' },
-};
-
-const TIPO_INFO = {
-  reward:  { label: 'Recompensa',      icon: Gift,    color: '#F59E0B', bg: '#FEF9C3', desc: 'Los inversores reciben tu producto o servicio' },
-  lending: { label: 'Préstamo c/interés', icon: Percent, color: '#8B5CF6', bg: '#F5F3FF', desc: 'Los inversores reciben capital + intereses' },
+  en_revision: { label: 'En revisión',  bg: '#FEF9C3', color: '#854D0E', dot: '#F59E0B' },
+  aprobada:    { label: 'Aprobada',     bg: '#DCFCE7', color: '#14532D', dot: '#22C55E' },
+  rechazada:   { label: 'Rechazada',    bg: '#FEE2E2', color: '#991B1B', dot: '#EF4444' },
+  activa:      { label: 'Activa',       bg: '#DBEAFE', color: '#1E3A8A', dot: '#3B82F6' },
+  pausada:     { label: 'Pausada',      bg: '#F3F4F6', color: '#374151', dot: '#9CA3AF' },
+  completada:  { label: 'Completada',   bg: '#FDF4FF', color: '#581C87', dot: '#A855F7' },
+  cancelada:   { label: 'Cancelada',    bg: '#FEF2F2', color: '#991B1B', dot: '#EF4444' },
 };
 
 const COLORES = [
@@ -32,7 +26,6 @@ const COLORES = [
   ['#A18CD1','#FBC2EB'], ['#0BA360','#3CBA92'],
 ];
 
-// ─── Utils ────────────────────────────────────────────────────────────────────
 const fmtM  = v => new Intl.NumberFormat('es-MX',{style:'currency',currency:'MXN',maximumFractionDigits:0}).format(v||0);
 const fmtD  = d => d ? new Date(d).toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'}) : '—';
 const getDias = c => { if(!c) return null; const d=Math.ceil((new Date(c)-new Date())/86400000); return d>0?d:0; };
@@ -40,7 +33,6 @@ const getPct  = (r,m) => (!m||!parseFloat(m)) ? 0 : Math.min(100,Math.round((par
 const isMeta  = c => parseFloat(c.metaRecaudacion||0)>0 && parseFloat(c.montoRecaudado||0)>=parseFloat(c.metaRecaudacion||1);
 const getClr  = c => COLORES[(c.id||0)%COLORES.length];
 
-// ─── EstadoBadge ──────────────────────────────────────────────────────────────
 const EstadoBadge = ({ estado }) => {
   const info = ESTADO_INFO[estado] || ESTADO_INFO.en_revision;
   return (
@@ -51,18 +43,12 @@ const EstadoBadge = ({ estado }) => {
   );
 };
 
-// ─── TipoBadge ────────────────────────────────────────────────────────────────
-const TipoBadge = ({ tipo }) => {
-  const info = TIPO_INFO[tipo] || TIPO_INFO.reward;
-  const Icon = info.icon;
-  return (
-    <span style={{padding:'3px 10px',borderRadius:'99px',fontSize:'11px',fontWeight:700,background:info.bg,color:info.color,display:'inline-flex',alignItems:'center',gap:'4px',fontFamily:"'DM Sans',sans-serif"}}>
-      <Icon style={{width:'10px',height:'10px'}}/> {info.label}
-    </span>
-  );
-};
+const RewardBadge = () => (
+  <span style={{padding:'3px 10px',borderRadius:'99px',fontSize:'11px',fontWeight:700,background:'#FEF9C3',color:'#F59E0B',display:'inline-flex',alignItems:'center',gap:'4px',fontFamily:"'DM Sans',sans-serif"}}>
+    <Gift style={{width:'10px',height:'10px'}}/> Recompensa
+  </span>
+);
 
-// ─── Modal crear/editar campaña completo ──────────────────────────────────────
 const CampanaModal = ({ mode, campana, negocios, onClose, onSave }) => {
   const [form, setForm] = useState(mode === 'edit' && campana ? {
     titulo:           campana.titulo || '',
@@ -72,19 +58,16 @@ const CampanaModal = ({ mode, campana, negocios, onClose, onSave }) => {
     metaRecaudacion:  campana.metaRecaudacion || '',
     fechaInicio:      campana.fechaInicio ? campana.fechaInicio.slice(0,10) : '',
     fechaCierre:      campana.fechaCierre ? campana.fechaCierre.slice(0,10) : '',
-    tipoCrowdfunding: campana.tipoCrowdfunding || 'reward',
+    tipoCrowdfunding: 'reward',
     recompensaDesc:   campana.recompensaDesc || '',
-    interesPct:       campana.interesPct || '',
-    plazoRetornoDias: campana.plazoRetornoDias || '',
     imagenUrl:        campana.imagenUrl || '',
     videoUrl:         campana.videoUrl || '',
   } : {
     titulo:'', descripcion:'', historia:'', negocioId:'',
     metaRecaudacion:'', fechaInicio:'', fechaCierre:'',
-    tipoCrowdfunding:'reward', recompensaDesc:'', interesPct:'',
-    plazoRetornoDias:'', imagenUrl:'', videoUrl:'',
+    tipoCrowdfunding:'reward', recompensaDesc:'', imagenUrl:'', videoUrl:'',
   });
-  const [tab,    setTab]    = useState('basico'); // basico | retorno | media
+  const [tab,    setTab]    = useState('basico');
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
 
@@ -95,17 +78,17 @@ const CampanaModal = ({ mode, campana, negocios, onClose, onSave }) => {
     if(!form.titulo||form.titulo.length<3) e.titulo='Mínimo 3 caracteres';
     if(!form.negocioId) e.negocioId='Selecciona un negocio';
     if(!form.metaRecaudacion||parseFloat(form.metaRecaudacion)<=0) e.metaRecaudacion='Meta inválida';
-    if(form.tipoCrowdfunding==='lending') {
-      if(!form.interesPct||parseFloat(form.interesPct)<=0) e.interesPct='Ingresa el % de interés';
-      if(!form.plazoRetornoDias||parseInt(form.plazoRetornoDias)<=0) e.plazoRetornoDias='Ingresa el plazo en días';
-    }
-    if(form.tipoCrowdfunding==='reward' && !form.recompensaDesc) e.recompensaDesc='Describe la recompensa';
+    if(!form.recompensaDesc) e.recompensaDesc='Describe la recompensa';
     setErrors(e);
     return !Object.keys(e).length;
   };
 
   const handleSubmit = async () => {
-    if(!validate()) { setTab(Object.keys(errors)[0]==='interesPct'||Object.keys(errors)[0]==='plazoRetornoDias'||Object.keys(errors)[0]==='recompensaDesc' ? 'retorno' : 'basico'); return; }
+    if(!validate()) {
+      if(errors.recompensaDesc) { setTab('retorno'); return; }
+      setTab('basico');
+      return;
+    }
     setSaving(true);
     try { await onSave(form); } finally { setSaving(false); }
   };
@@ -115,16 +98,15 @@ const CampanaModal = ({ mode, campana, negocios, onClose, onSave }) => {
   const Err  = ({k}) => errors[k] ? <p style={{margin:'4px 0 0',fontSize:'11px',color:'#EF4444',fontFamily:"'DM Sans',sans-serif"}}>{errors[k]}</p> : null;
 
   const TABS = [
-    {k:'basico', label:'📋 Básico'},
-    {k:'retorno', label:'💰 Retorno'},
-    {k:'media', label:'🖼 Media'},
+    {k:'basico',  label:'📋 Básico'},
+    {k:'retorno', label:'🎁 Recompensa'},
+    {k:'media',   label:'🖼 Media'},
   ];
 
   return (
     <div onClick={onClose} style={{position:'fixed',inset:0,background:'rgba(0,0,0,.5)',backdropFilter:'blur(6px)',zIndex:1100,display:'flex',alignItems:'center',justifyContent:'center',padding:'20px'}}>
       <div onClick={e=>e.stopPropagation()} style={{background:'#fff',borderRadius:'24px',width:'100%',maxWidth:'660px',maxHeight:'90vh',display:'flex',flexDirection:'column',boxShadow:'0 32px 80px rgba(0,0,0,.25)'}}>
 
-        {/* Header */}
         <div style={{padding:'20px 24px',borderBottom:'1px solid var(--border)',display:'flex',alignItems:'center',gap:'12px'}}>
           <div style={{width:'40px',height:'40px',borderRadius:'12px',background:'linear-gradient(135deg,var(--capyme-blue-mid),#4F46E5)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
             <Megaphone style={{width:'20px',height:'20px',color:'#fff'}}/>
@@ -138,7 +120,6 @@ const CampanaModal = ({ mode, campana, negocios, onClose, onSave }) => {
           </button>
         </div>
 
-        {/* Tabs */}
         <div style={{display:'flex',padding:'0 24px',borderBottom:'1px solid var(--border)',gap:'4px'}}>
           {TABS.map(t=>(
             <button key={t.k} onClick={()=>setTab(t.k)} style={{
@@ -149,21 +130,22 @@ const CampanaModal = ({ mode, campana, negocios, onClose, onSave }) => {
               transition:'all 150ms',
             }}>
               {t.label}
-              {/* Indicador de error */}
-              {((t.k==='basico'&&(errors.titulo||errors.negocioId||errors.metaRecaudacion))||(t.k==='retorno'&&(errors.recompensaDesc||errors.interesPct||errors.plazoRetornoDias)))&&(
+              {((t.k==='basico'&&(errors.titulo||errors.negocioId||errors.metaRecaudacion))||(t.k==='retorno'&&errors.recompensaDesc))&&(
                 <span style={{marginLeft:'5px',width:'7px',height:'7px',borderRadius:'50%',background:'#EF4444',display:'inline-block',verticalAlign:'middle'}}/>
               )}
             </button>
           ))}
         </div>
 
-        {/* Body */}
         <div style={{overflowY:'auto',flex:1,padding:'24px'}}>
 
-          {/* Tab: Básico */}
           {tab==='basico'&&(
             <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'16px'}}>
-              <div style={{gridColumn:'1 / -1'}}><label style={lbl}>Título de la campaña *</label><input value={form.titulo} onChange={e=>setForm(p=>({...p,titulo:e.target.value}))} placeholder="Ej. Expansión de mi panadería artesanal" style={inp(errors.titulo)}/><Err k="titulo"/></div>
+              <div style={{gridColumn:'1 / -1'}}>
+                <label style={lbl}>Título de la campaña *</label>
+                <input value={form.titulo} onChange={e=>setForm(p=>({...p,titulo:e.target.value}))} placeholder="Ej. Expansión de mi panadería artesanal" style={inp(errors.titulo)}/>
+                <Err k="titulo"/>
+              </div>
               <div style={{gridColumn:'1 / -1'}}>
                 <label style={lbl}>Negocio *</label>
                 <select value={form.negocioId} onChange={e=>setForm(p=>({...p,negocioId:e.target.value}))} style={{...inp(errors.negocioId),appearance:'none',cursor:'pointer'}}>
@@ -179,79 +161,43 @@ const CampanaModal = ({ mode, campana, negocios, onClose, onSave }) => {
                 <Err k="metaRecaudacion"/>
               </div>
               <div/>
-              <div><label style={lbl}>Fecha de inicio</label><input type="date" value={form.fechaInicio} onChange={e=>setForm(p=>({...p,fechaInicio:e.target.value}))} style={inp()}/></div>
-              <div><label style={lbl}>Fecha de cierre</label><input type="date" value={form.fechaCierre} onChange={e=>setForm(p=>({...p,fechaCierre:e.target.value}))} style={inp()}/></div>
-              <div style={{gridColumn:'1 / -1'}}><label style={lbl}>Descripción breve (aparece en la card)</label><textarea value={form.descripcion} onChange={e=>setForm(p=>({...p,descripcion:e.target.value}))} rows={2} placeholder="Resumen de tu proyecto..." style={{...inp(),resize:'vertical'}}/></div>
-              <div style={{gridColumn:'1 / -1'}}><label style={lbl}>Historia completa del proyecto</label><textarea value={form.historia} onChange={e=>setForm(p=>({...p,historia:e.target.value}))} rows={4} placeholder="Cuéntanos tu historia, tu visión, por qué necesitas este financiamiento..." style={{...inp(),resize:'vertical'}}/></div>
+              <div>
+                <label style={lbl}>Fecha de inicio</label>
+                <input type="date" value={form.fechaInicio} onChange={e=>setForm(p=>({...p,fechaInicio:e.target.value}))} style={inp()}/>
+              </div>
+              <div>
+                <label style={lbl}>Fecha de cierre</label>
+                <input type="date" value={form.fechaCierre} onChange={e=>setForm(p=>({...p,fechaCierre:e.target.value}))} style={inp()}/>
+              </div>
+              <div style={{gridColumn:'1 / -1'}}>
+                <label style={lbl}>Descripción breve (aparece en la card)</label>
+                <textarea value={form.descripcion} onChange={e=>setForm(p=>({...p,descripcion:e.target.value}))} rows={2} placeholder="Resumen de tu proyecto..." style={{...inp(),resize:'vertical'}}/>
+              </div>
+              <div style={{gridColumn:'1 / -1'}}>
+                <label style={lbl}>Historia completa del proyecto</label>
+                <textarea value={form.historia} onChange={e=>setForm(p=>({...p,historia:e.target.value}))} rows={4} placeholder="Cuéntanos tu historia, tu visión, por qué necesitas este financiamiento..." style={{...inp(),resize:'vertical'}}/>
+              </div>
             </div>
           )}
 
-          {/* Tab: Retorno */}
           {tab==='retorno'&&(
             <div style={{display:'flex',flexDirection:'column',gap:'20px'}}>
-              {/* Selector tipo */}
-              <div>
-                <label style={lbl}>Tipo de crowdfunding *</label>
-                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'10px',marginTop:'4px'}}>
-                  {Object.entries(TIPO_INFO).map(([k,info])=>{
-                    const Icon=info.icon; const sel=form.tipoCrowdfunding===k;
-                    return (
-                      <button key={k} onClick={()=>setForm(p=>({...p,tipoCrowdfunding:k}))} style={{
-                        padding:'14px',borderRadius:'14px',border:`2px solid ${sel?info.color:'var(--border)'}`,
-                        background:sel?info.bg:'#fff',cursor:'pointer',textAlign:'left',
-                        transition:'all 150ms',
-                      }}>
-                        <div style={{display:'flex',alignItems:'center',gap:'8px',marginBottom:'6px'}}>
-                          <div style={{width:'32px',height:'32px',borderRadius:'8px',background:sel?info.color+'20':info.bg,display:'flex',alignItems:'center',justifyContent:'center'}}>
-                            <Icon style={{width:'16px',height:'16px',color:info.color}}/>
-                          </div>
-                          <span style={{fontSize:'13px',fontWeight:800,color:sel?info.color:'var(--gray-900)',fontFamily:"'Plus Jakarta Sans',sans-serif"}}>{info.label}</span>
-                          {sel&&<CheckCircle style={{width:'14px',height:'14px',color:info.color,marginLeft:'auto'}}/>}
-                        </div>
-                        <p style={{fontSize:'11px',color:'var(--gray-500)',fontFamily:"'DM Sans',sans-serif",margin:0,lineHeight:1.4}}>{info.desc}</p>
-                      </button>
-                    );
-                  })}
+              <div style={{padding:'12px 16px',borderRadius:'12px',background:'#FEF9C3',border:'1px solid #FDE68A',display:'flex',alignItems:'center',gap:'10px'}}>
+                <Gift style={{width:'16px',height:'16px',color:'#F59E0B',flexShrink:0}}/>
+                <div>
+                  <p style={{fontSize:'13px',fontWeight:700,color:'#92400E',fontFamily:"'DM Sans',sans-serif",margin:'0 0 2px'}}>Campaña de Recompensa</p>
+                  <p style={{fontSize:'12px',color:'#A16207',fontFamily:"'DM Sans',sans-serif",margin:0}}>Los inversores recibirán tu producto o servicio como recompensa por su apoyo.</p>
                 </div>
               </div>
-
-              {/* Campos según tipo */}
-              {form.tipoCrowdfunding==='reward'&&(
-                <div>
-                  <label style={lbl}>¿Qué recibirá el inversor? *</label>
-                  <textarea value={form.recompensaDesc} onChange={e=>setForm(p=>({...p,recompensaDesc:e.target.value}))} rows={3} placeholder="Ej. Una bolsa de café artesanal de 500g + acceso anticipado a nuestra tienda en línea, enviado dentro de los 60 días de cierre de campaña." style={{...inp(errors.recompensaDesc),resize:'vertical'}}/>
-                  <p style={{margin:'5px 0 0',fontSize:'11px',color:'var(--gray-400)',fontFamily:"'DM Sans',sans-serif"}}>💡 Sé específico: producto, cantidad, fecha estimada de entrega</p>
-                  <Err k="recompensaDesc"/>
-                </div>
-              )}
-
-              {form.tipoCrowdfunding==='lending'&&(
-                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'16px'}}>
-                  <div>
-                    <label style={lbl}>Tasa de interés anual (%) *</label>
-                    <input type="number" step="0.1" min="0" max="100" value={form.interesPct} onChange={e=>setForm(p=>({...p,interesPct:e.target.value}))} placeholder="12.5" style={inp(errors.interesPct)}/>
-                    <Err k="interesPct"/>
-                  </div>
-                  <div>
-                    <label style={lbl}>Plazo de retorno (días) *</label>
-                    <input type="number" min="1" value={form.plazoRetornoDias} onChange={e=>setForm(p=>({...p,plazoRetornoDias:e.target.value}))} placeholder="365" style={inp(errors.plazoRetornoDias)}/>
-                    <p style={{margin:'3px 0 0',fontSize:'11px',color:'var(--gray-400)',fontFamily:"'DM Sans',sans-serif"}}>Ej. 365 = 1 año, 180 = 6 meses</p>
-                    <Err k="plazoRetornoDias"/>
-                  </div>
-                  {form.interesPct&&form.metaRecaudacion&&(
-                    <div style={{gridColumn:'1 / -1',padding:'12px 16px',borderRadius:'12px',background:'#F5F3FF',border:'1px solid #DDD6FE'}}>
-                      <p style={{fontSize:'12px',fontWeight:700,color:'#5B21B6',fontFamily:"'DM Sans',sans-serif",margin:'0 0 4px'}}>💜 Ejemplo de retorno para un inversor de {fmtM(1000)}</p>
-                      <p style={{fontSize:'13px',color:'#6D28D9',fontFamily:"'Plus Jakarta Sans',sans-serif",fontWeight:800,margin:0}}>
-                        Recibe: {fmtM(1000 * (1 + parseFloat(form.interesPct||0)/100))} en {form.plazoRetornoDias||'N'} días
-                      </p>
-                    </div>
-                  )}
-                </div>
-              )}
+              <div>
+                <label style={lbl}>¿Qué recibirá el inversor? *</label>
+                <textarea value={form.recompensaDesc} onChange={e=>setForm(p=>({...p,recompensaDesc:e.target.value}))} rows={4} placeholder="Ej. Una bolsa de café artesanal de 500g + acceso anticipado a nuestra tienda en línea, enviado dentro de los 60 días de cierre de campaña." style={{...inp(errors.recompensaDesc),resize:'vertical'}}/>
+                <p style={{margin:'5px 0 0',fontSize:'11px',color:'var(--gray-400)',fontFamily:"'DM Sans',sans-serif"}}>💡 Sé específico: producto, cantidad, fecha estimada de entrega</p>
+                <Err k="recompensaDesc"/>
+              </div>
             </div>
           )}
 
-          {/* Tab: Media */}
           {tab==='media'&&(
             <div style={{display:'flex',flexDirection:'column',gap:'20px'}}>
               <div>
@@ -283,10 +229,9 @@ const CampanaModal = ({ mode, campana, negocios, onClose, onSave }) => {
           )}
         </div>
 
-        {/* Footer */}
         <div style={{padding:'16px 24px',borderTop:'1px solid var(--border)',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
           <div style={{display:'flex',gap:'6px'}}>
-            {TABS.map((t,i)=>(
+            {TABS.map(t=>(
               <div key={t.k} style={{width:'8px',height:'8px',borderRadius:'50%',background:tab===t.k?'var(--capyme-blue-mid)':'var(--gray-200)',transition:'all 150ms'}}/>
             ))}
           </div>
@@ -306,11 +251,10 @@ const CampanaModal = ({ mode, campana, negocios, onClose, onSave }) => {
   );
 };
 
-// ─── Modal de actualizaciones ─────────────────────────────────────────────────
 const ActualizacionModal = ({ campana, onClose, onSave }) => {
-  const [titulo,   setTitulo]   = useState('');
-  const [contenido,setContenido]= useState('');
-  const [saving,   setSaving]   = useState(false);
+  const [titulo,    setTitulo]    = useState('');
+  const [contenido, setContenido] = useState('');
+  const [saving,    setSaving]    = useState(false);
 
   const handleSave = async () => {
     if(!titulo.trim()) { toast.error('Ingresa un título'); return; }
@@ -362,15 +306,12 @@ const ActualizacionModal = ({ campana, onClose, onSave }) => {
   );
 };
 
-// ─── Card de campaña propia ───────────────────────────────────────────────────
 const MiCampanaCard = ({ campana:c, onEditar, onActualizar, onVerDetalle }) => {
   const [hov, setHov] = useState(false);
   const alc = isMeta(c);
   const pct = getPct(c.montoRecaudado, c.metaRecaudacion);
   const d   = getDias(c.fechaCierre);
   const [c1,c2] = getClr(c);
-  const tipoInfo = TIPO_INFO[c.tipoCrowdfunding] || TIPO_INFO.reward;
-  const TipoIcon = tipoInfo.icon;
 
   return (
     <div onMouseEnter={()=>setHov(true)} onMouseLeave={()=>setHov(false)} style={{
@@ -379,12 +320,11 @@ const MiCampanaCard = ({ campana:c, onEditar, onActualizar, onVerDetalle }) => {
       transition:'all 250ms cubic-bezier(.34,1.2,.64,1)',
       transform:hov?'translateY(-4px)':'none',
       boxShadow:hov?(alc?'0 16px 36px rgba(168,85,247,.2)':'0 16px 36px rgba(0,0,0,.1)'):'0 2px 8px rgba(0,0,0,.05)',
-      display:'flex',flexDirection:'column', position:'relative',
+      display:'flex',flexDirection:'column',position:'relative',
     }}>
       {alc&&<div style={{position:'absolute',top:0,left:0,right:0,height:'4px',background:'linear-gradient(90deg,#7C3AED,#A855F7,#EC4899,#7C3AED)',backgroundSize:'200% 100%',animation:'shimmer 2s linear infinite',zIndex:2}}/>}
 
-      {/* Banner */}
-      <div style={{height:'100px',background:alc?'linear-gradient(135deg,#7C3AED,#A855F7)':`linear-gradient(135deg,${c1},${c2})`,position:'relative',display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 16px',flexShrink:0}}>
+      <div style={{height:'100px',background:alc?'linear-gradient(135deg,#7C3AED,#A855F7)':`linear-gradient(135deg,${c1},${c2})`,position:'relative',display:'flex',alignItems:'center',padding:'0 16px',flexShrink:0}}>
         <div style={{width:'48px',height:'48px',borderRadius:'14px',background:'rgba(255,255,255,.2)',backdropFilter:'blur(8px)',display:'flex',alignItems:'center',justifyContent:'center',border:'1px solid rgba(255,255,255,.3)'}}>
           {alc?<Trophy style={{width:'24px',height:'24px',color:'#fff'}}/>:<Megaphone style={{width:'22px',height:'22px',color:'#fff'}}/>}
         </div>
@@ -398,18 +338,16 @@ const MiCampanaCard = ({ campana:c, onEditar, onActualizar, onVerDetalle }) => {
         </div>
         <div style={{position:'absolute',bottom:'10px',left:'16px',display:'flex',gap:'5px'}}>
           <EstadoBadge estado={c.estado}/>
-          <TipoBadge tipo={c.tipoCrowdfunding}/>
+          <RewardBadge/>
         </div>
       </div>
 
-      {/* Body */}
       <div style={{padding:'14px 16px',flex:1,display:'flex',flexDirection:'column',gap:'12px'}}>
         <div>
           <h3 style={{fontSize:'14px',fontWeight:800,color:'var(--gray-900)',fontFamily:"'Plus Jakarta Sans',sans-serif",margin:'0 0 3px',lineHeight:1.3,display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical',overflow:'hidden'}}>{c.titulo}</h3>
           <p style={{fontSize:'11px',color:'var(--gray-400)',fontFamily:"'DM Sans',sans-serif",margin:0}}>{c.negocio?.nombreNegocio}</p>
         </div>
 
-        {/* Barra progreso */}
         <div>
           <div style={{display:'flex',justifyContent:'space-between',marginBottom:'5px'}}>
             <span style={{fontSize:'15px',fontWeight:900,color:'var(--gray-900)',fontFamily:"'Plus Jakarta Sans',sans-serif"}}>{fmtM(c.montoRecaudado)}</span>
@@ -421,12 +359,11 @@ const MiCampanaCard = ({ campana:c, onEditar, onActualizar, onVerDetalle }) => {
           <div style={{fontSize:'11px',color:'var(--gray-400)',fontFamily:"'DM Sans',sans-serif",marginTop:'3px'}}>de {fmtM(c.metaRecaudacion)} meta</div>
         </div>
 
-        {/* Stats */}
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:'8px',borderTop:'1px solid var(--gray-100)',paddingTop:'10px'}}>
           {[
-            {icon:Users,v:c._count?.inversiones??c.inversiones?.length??0,l:'inversores'},
-            {icon:Clock,v:d===null?'—':d===0?'0':d,l:'días',red:d!==null&&d<=7&&d>0},
-            {icon:TipoIcon,v:c.tipoCrowdfunding==='lending'?`${c.interesPct||0}%`:'🎁',l:c.tipoCrowdfunding==='lending'?'interés':'reward'},
+            {icon:Users, v:c._count?.inversiones??c.inversiones?.length??0, l:'inversores'},
+            {icon:Clock, v:d===null?'—':d===0?'0':d, l:'días', red:d!==null&&d<=7&&d>0},
+            {icon:Gift,  v:'🎁', l:'reward'},
           ].map(({icon:Icon,v,l,red})=>(
             <div key={l} style={{textAlign:'center'}}>
               <div style={{fontSize:'14px',fontWeight:800,color:red?'#EF4444':'var(--gray-900)',fontFamily:"'Plus Jakarta Sans',sans-serif"}}>{v}</div>
@@ -435,7 +372,8 @@ const MiCampanaCard = ({ campana:c, onEditar, onActualizar, onVerDetalle }) => {
           ))}
         </div>
 
-        <button onClick={()=>onVerDetalle(c)} style={{width:'100%',padding:'9px',border:'1.5px solid var(--border)',borderRadius:'10px',background:'#fff',fontSize:'12px',fontWeight:700,cursor:'pointer',color:'var(--gray-700)',fontFamily:"'DM Sans',sans-serif",display:'flex',alignItems:'center',justifyContent:'center',gap:'5px',transition:'all 150ms'}}
+        <button onClick={()=>onVerDetalle(c)}
+          style={{width:'100%',padding:'9px',border:'1.5px solid var(--border)',borderRadius:'10px',background:'#fff',fontSize:'12px',fontWeight:700,cursor:'pointer',color:'var(--gray-700)',fontFamily:"'DM Sans',sans-serif",display:'flex',alignItems:'center',justifyContent:'center',gap:'5px',transition:'all 150ms'}}
           onMouseEnter={e=>{e.currentTarget.style.background='var(--gray-50)';}}
           onMouseLeave={e=>{e.currentTarget.style.background='#fff';}}>
           <Eye style={{width:'13px',height:'13px'}}/> Ver detalle & inversores
@@ -445,25 +383,19 @@ const MiCampanaCard = ({ campana:c, onEditar, onActualizar, onVerDetalle }) => {
   );
 };
 
-// ─── Vista detalle de mi campaña ──────────────────────────────────────────────
 const DetalleMiCampana = ({ campana:c, onBack, onActualizar, onEditar }) => {
   const [inversores, setInversores] = useState([]);
-  const [updates,    setUpdates]    = useState([]);
   const [loading,    setLoading]    = useState(true);
   const alc = isMeta(c);
   const [c1,c2] = getClr(c);
   const pct = getPct(c.montoRecaudado, c.metaRecaudacion);
-  const tipoInfo = TIPO_INFO[c.tipoCrowdfunding]||TIPO_INFO.reward;
-  const TipoIcon = tipoInfo.icon;
 
   useEffect(()=>{
-    Promise.all([
-      fetch(`/api/inversiones?campanaId=${c.id}`,{headers:{Authorization:`Bearer ${JSON.parse(localStorage.getItem('auth-storage')||'{}')?.state?.token}`}}).then(r=>r.json()),
-      // actualizaciones si el endpoint existe
-    ]).then(([invRes])=>{
-      setInversores((invRes.data||[]).filter(i=>i.estadoPago==='confirmado'&&i.activo));
-    }).catch(()=>{})
-    .finally(()=>setLoading(false));
+    fetch(`/api/inversiones?campanaId=${c.id}`,{headers:{Authorization:`Bearer ${JSON.parse(localStorage.getItem('auth-storage')||'{}')?.state?.token}`}})
+      .then(r=>r.json())
+      .then(res=>setInversores((res.data||[]).filter(i=>i.estadoPago==='confirmado'&&i.activo)))
+      .catch(()=>{})
+      .finally(()=>setLoading(false));
   },[c.id]);
 
   const totalConfirmado = inversores.reduce((a,i)=>a+parseFloat(i.monto||0),0);
@@ -474,14 +406,13 @@ const DetalleMiCampana = ({ campana:c, onBack, onActualizar, onEditar }) => {
         ← Volver a mis campañas
       </button>
 
-      {/* Hero */}
       <div style={{borderRadius:'20px',marginBottom:'24px',overflow:'hidden'}}>
         {c.imagenUrl ? (
           <div style={{position:'relative',height:'240px'}}>
             <img src={c.imagenUrl} alt={c.titulo} style={{width:'100%',height:'100%',objectFit:'cover'}}/>
             <div style={{position:'absolute',inset:0,background:'linear-gradient(to top,rgba(0,0,0,.7),transparent)'}}/>
             <div style={{position:'absolute',bottom:'24px',left:'24px',right:'24px'}}>
-              <div style={{display:'flex',gap:'8px',marginBottom:'8px'}}><EstadoBadge estado={c.estado}/><TipoBadge tipo={c.tipoCrowdfunding}/></div>
+              <div style={{display:'flex',gap:'8px',marginBottom:'8px'}}><EstadoBadge estado={c.estado}/><RewardBadge/></div>
               <h1 style={{fontSize:'24px',fontWeight:900,color:'#fff',fontFamily:"'Plus Jakarta Sans',sans-serif",margin:0,textShadow:'0 2px 8px rgba(0,0,0,.3)'}}>{c.titulo}</h1>
             </div>
           </div>
@@ -489,7 +420,7 @@ const DetalleMiCampana = ({ campana:c, onBack, onActualizar, onEditar }) => {
           <div style={{height:'200px',background:alc?'linear-gradient(135deg,#7C3AED,#A855F7)':`linear-gradient(135deg,${c1},${c2})`,position:'relative',display:'flex',alignItems:'flex-end',padding:'24px'}}>
             <div style={{position:'absolute',inset:0,background:'linear-gradient(to top,rgba(0,0,0,.4),transparent)'}}/>
             <div style={{position:'relative'}}>
-              <div style={{display:'flex',gap:'8px',marginBottom:'8px'}}><EstadoBadge estado={c.estado}/><TipoBadge tipo={c.tipoCrowdfunding}/></div>
+              <div style={{display:'flex',gap:'8px',marginBottom:'8px'}}><EstadoBadge estado={c.estado}/><RewardBadge/></div>
               <h1 style={{fontSize:'24px',fontWeight:900,color:'#fff',fontFamily:"'Plus Jakarta Sans',sans-serif",margin:0,textShadow:'0 2px 8px rgba(0,0,0,.2)'}}>{c.titulo}</h1>
             </div>
           </div>
@@ -497,22 +428,19 @@ const DetalleMiCampana = ({ campana:c, onBack, onActualizar, onEditar }) => {
       </div>
 
       <div style={{display:'grid',gridTemplateColumns:'1fr 280px',gap:'24px',alignItems:'start'}}>
-        {/* Col izq */}
         <div>
-          {/* Video */}
           {c.videoUrl&&c.videoUrl.includes('youtube')&&(
             <div style={{marginBottom:'24px',borderRadius:'14px',overflow:'hidden',aspectRatio:'16/9'}}>
               <iframe width="100%" height="100%" src={`https://www.youtube.com/embed/${c.videoUrl.match(/(?:v=|youtu\.be\/)([^&?/]+)/)?.[1]||''}`} frameBorder="0" allowFullScreen style={{display:'block'}}/>
             </div>
           )}
 
-          {/* Stats de la campaña */}
           <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:'10px',marginBottom:'24px'}}>
             {[
-              {icon:DollarSign,label:'Recaudado',value:fmtM(totalConfirmado),color:'#10B981'},
-              {icon:Users,label:'Inversores',value:inversores.length,color:'var(--capyme-blue-mid)'},
-              {icon:Target,label:'Meta',value:fmtM(c.metaRecaudacion),color:'#8B5CF6'},
-              {icon:TipoIcon,label:c.tipoCrowdfunding==='lending'?'Interés':'Tipo',value:c.tipoCrowdfunding==='lending'?`${c.interesPct||0}% anual`:'Reward',color:tipoInfo.color},
+              {icon:DollarSign, label:'Recaudado', value:fmtM(totalConfirmado), color:'#10B981'},
+              {icon:Users,      label:'Inversores', value:inversores.length,     color:'var(--capyme-blue-mid)'},
+              {icon:Target,     label:'Meta',       value:fmtM(c.metaRecaudacion), color:'#8B5CF6'},
+              {icon:Gift,       label:'Tipo',       value:'Reward',              color:'#F59E0B'},
             ].map(({icon:Icon,label,value,color})=>(
               <div key={label} style={{padding:'12px',borderRadius:'12px',background:'#fff',border:'1px solid var(--border)',textAlign:'center',boxShadow:'var(--shadow-sm)'}}>
                 <Icon style={{width:'16px',height:'16px',color,margin:'0 auto 5px',display:'block'}}/>
@@ -522,7 +450,6 @@ const DetalleMiCampana = ({ campana:c, onBack, onActualizar, onEditar }) => {
             ))}
           </div>
 
-          {/* Descripción y retorno */}
           {c.descripcion&&(
             <div style={{marginBottom:'20px'}}>
               <h3 style={{fontSize:'15px',fontWeight:800,color:'var(--gray-900)',fontFamily:"'Plus Jakarta Sans',sans-serif",margin:'0 0 8px'}}>Sobre el proyecto</h3>
@@ -530,23 +457,16 @@ const DetalleMiCampana = ({ campana:c, onBack, onActualizar, onEditar }) => {
             </div>
           )}
 
-          {/* Retorno/recompensa */}
-          <div style={{padding:'16px',borderRadius:'14px',background:tipoInfo.bg,border:`1px solid ${tipoInfo.color}30`,marginBottom:'24px'}}>
-            <div style={{display:'flex',alignItems:'center',gap:'8px',marginBottom:'8px'}}>
-              <TipoIcon style={{width:'16px',height:'16px',color:tipoInfo.color}}/>
-              <h3 style={{fontSize:'14px',fontWeight:800,color:tipoInfo.color,fontFamily:"'Plus Jakarta Sans',sans-serif",margin:0}}>{tipoInfo.label}</h3>
-            </div>
-            {c.tipoCrowdfunding==='reward'&&c.recompensaDesc&&(
+          {c.recompensaDesc&&(
+            <div style={{padding:'16px',borderRadius:'14px',background:'#FEF9C3',border:'1px solid #FDE68A30',marginBottom:'24px'}}>
+              <div style={{display:'flex',alignItems:'center',gap:'8px',marginBottom:'8px'}}>
+                <Gift style={{width:'16px',height:'16px',color:'#F59E0B'}}/>
+                <h3 style={{fontSize:'14px',fontWeight:800,color:'#F59E0B',fontFamily:"'Plus Jakarta Sans',sans-serif",margin:0}}>Recompensa</h3>
+              </div>
               <p style={{fontSize:'13px',color:'var(--gray-700)',fontFamily:"'DM Sans',sans-serif",margin:0,lineHeight:1.6}}>{c.recompensaDesc}</p>
-            )}
-            {c.tipoCrowdfunding==='lending'&&(
-              <p style={{fontSize:'13px',color:'var(--gray-700)',fontFamily:"'DM Sans',sans-serif",margin:0}}>
-                Tasa: <strong>{c.interesPct}%</strong> anual · Plazo: <strong>{c.plazoRetornoDias} días</strong>
-              </p>
-            )}
-          </div>
+            </div>
+          )}
 
-          {/* Lista de inversores */}
           <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'14px'}}>
             <h3 style={{fontSize:'15px',fontWeight:800,color:'var(--gray-900)',fontFamily:"'Plus Jakarta Sans',sans-serif",margin:0}}>
               Inversores ({inversores.length})
@@ -579,11 +499,6 @@ const DetalleMiCampana = ({ campana:c, onBack, onActualizar, onEditar }) => {
                     </div>
                     <div style={{textAlign:'right'}}>
                       <div style={{fontSize:'14px',fontWeight:800,color:'var(--gray-900)',fontFamily:"'Plus Jakarta Sans',sans-serif"}}>{fmtM(inv.monto)}</div>
-                      {c.tipoCrowdfunding==='lending'&&c.interesPct&&(
-                        <div style={{fontSize:'10px',color:'#8B5CF6',fontFamily:"'DM Sans',sans-serif",fontWeight:600}}>
-                          Retorno: {fmtM(parseFloat(inv.monto)*(1+parseFloat(c.interesPct)/100))}
-                        </div>
-                      )}
                     </div>
                   </div>
                 );
@@ -592,7 +507,6 @@ const DetalleMiCampana = ({ campana:c, onBack, onActualizar, onEditar }) => {
           )}
         </div>
 
-        {/* Panel lateral */}
         <div style={{position:'sticky',top:'20px'}}>
           <div style={{borderRadius:'16px',border:`1.5px solid ${alc?'#A855F750':'var(--border)'}`,background:'#fff',padding:'20px',boxShadow:'0 4px 20px rgba(0,0,0,.08)'}}>
             <div style={{marginBottom:'14px'}}>
@@ -626,7 +540,6 @@ const DetalleMiCampana = ({ campana:c, onBack, onActualizar, onEditar }) => {
   );
 };
 
-// ─── PÁGINA PRINCIPAL ─────────────────────────────────────────────────────────
 const MisCampanas = () => {
   const authStorage = JSON.parse(localStorage.getItem('auth-storage')||'{}');
   const currentUser = authStorage?.state?.user || {};
@@ -638,7 +551,7 @@ const MisCampanas = () => {
   const [showModal, setShowModal] = useState(false);
   const [modalMode, setModalMode] = useState('create');
   const [selected,  setSelected]  = useState(null);
-  const [actUpdate, setActUpdate] = useState(null); // campana para actualización
+  const [actUpdate, setActUpdate] = useState(null);
 
   useEffect(()=>{ cargarDatos(); },[]);
 
@@ -668,16 +581,16 @@ const MisCampanas = () => {
   };
 
   const negociosPropios = negocios.filter(n => n.usuarioId === currentUser.id && n.activo);
-
-  // Métricas
-  const totalRecaudado = campanas.reduce((a,c)=>a+parseFloat(c.montoRecaudado||0),0);
-  const activas = campanas.filter(c=>c.estado==='activa'||c.estado==='aprobada').length;
-  const completadas = campanas.filter(isMeta).length;
+  const totalRecaudado  = campanas.reduce((a,c)=>a+parseFloat(c.montoRecaudado||0),0);
+  const activas         = campanas.filter(c=>c.estado==='activa'||c.estado==='aprobada').length;
+  const completadas     = campanas.filter(isMeta).length;
 
   if(loading) return(
-    <Layout><div style={{display:'flex',justifyContent:'center',alignItems:'center',height:'60vh'}}>
-      <div style={{width:'40px',height:'40px',border:'3px solid var(--gray-200)',borderTopColor:'var(--capyme-blue-mid)',borderRadius:'50%',animation:'spin .8s linear infinite'}}/>
-    </div></Layout>
+    <Layout>
+      <div style={{display:'flex',justifyContent:'center',alignItems:'center',height:'60vh'}}>
+        <div style={{width:'40px',height:'40px',border:'3px solid var(--gray-200)',borderTopColor:'var(--capyme-blue-mid)',borderRadius:'50%',animation:'spin .8s linear infinite'}}/>
+      </div>
+    </Layout>
   );
 
   if(detalle) return(
@@ -696,7 +609,6 @@ const MisCampanas = () => {
       <style>{`@keyframes spin{to{transform:rotate(360deg)}} @keyframes shimmer{to{background-position:200% 0}}`}</style>
       <div style={{padding:'32px 24px',maxWidth:'1280px',margin:'0 auto'}}>
 
-        {/* Header */}
         <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',marginBottom:'28px',gap:'16px',flexWrap:'wrap'}}>
           <div>
             <h1 style={{fontSize:'28px',fontWeight:900,color:'var(--gray-900)',fontFamily:"'Plus Jakarta Sans',sans-serif",margin:'0 0 6px'}}>Mis campañas</h1>
@@ -707,13 +619,12 @@ const MisCampanas = () => {
           </button>
         </div>
 
-        {/* Stats */}
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(160px,1fr))',gap:'12px',marginBottom:'28px'}}>
           {[
-            {icon:Megaphone,  label:'Mis campañas',     value:campanas.length,         color:'var(--capyme-blue-mid)'},
-            {icon:TrendingUp, label:'Activas',           value:activas,                 color:'#10B981'},
-            {icon:Trophy,     label:'Completadas',       value:completadas,             color:'#7C3AED'},
-            {icon:DollarSign, label:'Total recaudado',   value:fmtM(totalRecaudado),    color:'#059669'},
+            {icon:Megaphone,  label:'Mis campañas',   value:campanas.length,      color:'var(--capyme-blue-mid)'},
+            {icon:TrendingUp, label:'Activas',         value:activas,              color:'#10B981'},
+            {icon:Trophy,     label:'Completadas',     value:completadas,          color:'#7C3AED'},
+            {icon:DollarSign, label:'Total recaudado', value:fmtM(totalRecaudado), color:'#059669'},
           ].map(({icon:Icon,label,value,color})=>(
             <div key={label} style={{padding:'16px',borderRadius:'14px',background:'#fff',border:'1px solid var(--border)',boxShadow:'var(--shadow-sm)'}}>
               <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'8px'}}>
@@ -727,7 +638,6 @@ const MisCampanas = () => {
           ))}
         </div>
 
-        {/* Aviso estado revisión */}
         {campanas.some(c=>c.estado==='en_revision')&&(
           <div style={{padding:'12px 16px',borderRadius:'12px',marginBottom:'20px',background:'#FEF9C3',border:'1px solid #FDE68A',display:'flex',alignItems:'center',gap:'10px'}}>
             <AlertCircle style={{width:'16px',height:'16px',color:'#D97706',flexShrink:0}}/>
@@ -737,7 +647,6 @@ const MisCampanas = () => {
           </div>
         )}
 
-        {/* Campañas grid */}
         {campanas.length===0 ? (
           <div style={{textAlign:'center',padding:'80px 20px'}}>
             <Megaphone style={{width:'56px',height:'56px',color:'var(--gray-200)',margin:'0 auto 16px',display:'block'}}/>
