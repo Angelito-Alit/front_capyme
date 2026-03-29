@@ -28,7 +28,7 @@ const COLORES = [
 ];
 
 const fmtM  = v => new Intl.NumberFormat('es-MX',{style:'currency',currency:'MXN',maximumFractionDigits:0}).format(v||0);
-const fmtD  = d => d ? new Date(d).toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'}) : '—';
+const fmtD  = d => d ? new Date(d).toLocaleDateString('es-MX',{timeZone:'UTC',day:'2-digit',month:'short',year:'numeric'}) : '—';
 const getDias = c => { if(!c) return null; const d=Math.ceil((new Date(c)-new Date())/86400000); return d>0?d:0; };
 const getPct  = (r,m) => (!m||!parseFloat(m)) ? 0 : Math.min(100,Math.round((parseFloat(r)/parseFloat(m))*100));
 const isMeta  = c => parseFloat(c.metaRecaudacion||0)>0 && parseFloat(c.montoRecaudado||0)>=parseFloat(c.metaRecaudacion||1);
@@ -399,6 +399,16 @@ const DetalleMiCampana = ({ campana:c, onBack, onActualizar, onEditar }) => {
       .finally(()=>setLoading(false));
   },[c.id]);
 
+  const handleMarcarEnviado = async (invId) => {
+    try {
+      await inversionesService.marcarRecompensaEnviada(invId);
+      setInversores(prev => prev.map(i => i.id === invId ? { ...i, recompensaEnviada: true } : i));
+      toast.success('Recompensa marcada como enviada');
+    } catch (error) {
+      toast.error('Error al actualizar el estado de la recompensa');
+    }
+  };
+
   const totalConfirmado = inversores.reduce((a,i)=>a+parseFloat(i.monto||0),0);
 
   return (
@@ -498,8 +508,21 @@ const DetalleMiCampana = ({ campana:c, onBack, onActualizar, onEditar }) => {
                       </div>
                       <div style={{fontSize:'11px',color:'var(--gray-400)',fontFamily:"'DM Sans',sans-serif"}}>{fmtD(inv.fechaCreacion)}</div>
                     </div>
-                    <div style={{textAlign:'right'}}>
+                    <div style={{textAlign:'right', display:'flex', flexDirection:'column', alignItems:'flex-end', gap:'4px'}}>
                       <div style={{fontSize:'14px',fontWeight:800,color:'var(--gray-900)',fontFamily:"'Plus Jakarta Sans',sans-serif"}}>{fmtM(inv.monto)}</div>
+                      {c.tipoCrowdfunding !== 'lending' && c.recompensaDesc && (
+                        <>
+                          {inv.recompensaRecibida ? (
+                            <div style={{fontSize:'10px',color:'#10B981',fontWeight:700,fontFamily:"'DM Sans',sans-serif"}}>✓ Entregada y confirmada</div>
+                          ) : inv.recompensaEnviada ? (
+                            <div style={{fontSize:'10px',color:'var(--capyme-blue-mid)',fontWeight:700,fontFamily:"'DM Sans',sans-serif"}}>Enviada (esperando)</div>
+                          ) : (
+                            <button onClick={() => handleMarcarEnviado(inv.id)} style={{background:'#F59E0B',color:'#fff',border:'none',padding:'4px 8px',borderRadius:'6px',fontSize:'10px',fontWeight:700,cursor:'pointer',fontFamily:"'DM Sans',sans-serif",transition:'all 150ms'}}>
+                              Marcar como enviada
+                            </button>
+                          )}
+                        </>
+                      )}
                     </div>
                   </div>
                 );
@@ -623,7 +646,7 @@ const MisCampanas = () => {
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(160px,1fr))',gap:'12px',marginBottom:'28px'}}>
           {[
             {icon:Megaphone,  label:'Mis campañas',   value:campanas.length,      color:'var(--capyme-blue-mid)'},
-            {icon:TrendingUp, label:'Activas',         value:activas,              color:'#10B981'},
+            {icon:TrendingUp, label:'Activas',        value:activas,              color:'#10B981'},
             {icon:Trophy,     label:'Completadas',     value:completadas,          color:'#7C3AED'},
             {icon:DollarSign, label:'Total recaudado', value:fmtM(totalRecaudado), color:'#059669'},
           ].map(({icon:Icon,label,value,color})=>(
