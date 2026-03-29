@@ -58,36 +58,32 @@ const MiniDonut = ({ pct, color1, color2, size=64 }) => {
 
 const InvCard = ({ inv, onVerCampana }) => {
   const [hov, setHov] = useState(false);
-  const [loadingBtn, setLoadingBtn] = useState(false);
-  
+  const campana=inv.campana;
+  const [c1,c2]=getClr(campana?.id);
+  const estadoInfo=ESTADO_PAGO[inv.estadoPago]||ESTADO_PAGO.pendiente;
+  const tipoInfo=TIPO_INFO[campana?.tipoCrowdfunding]||TIPO_INFO.reward;
+  const TipoIcon=tipoInfo.icon;
+  const pctCampana=getPct(campana?.montoRecaudado,campana?.metaRecaudacion);
+  const alc=isMeta(campana);
+
   const recEnviada = inv.recompensaEnviada || false;
   const [recRecibida, setRecRecibida] = useState(inv.recompensaRecibida || false);
+  const esLending = campana?.tipoCrowdfunding==='lending';
 
-  const campana = inv.campana;
-  const [c1, c2] = getClr(campana?.id);
-  const estadoInfo = ESTADO_PAGO[inv.estadoPago]||ESTADO_PAGO.pendiente;
-  const tipoInfo = TIPO_INFO[campana?.tipoCrowdfunding]||TIPO_INFO.reward;
-  const TipoIcon = tipoInfo.icon;
-  const pctCampana = getPct(campana?.montoRecaudado, campana?.metaRecaudacion);
-  const alc = isMeta(campana);
-
-  const retorno = campana?.tipoCrowdfunding==='lending' && campana?.interesPct
+  const retorno=esLending&&campana?.interesPct
     ? parseFloat(inv.monto)*(1+parseFloat(campana.interesPct)/100)
     : null;
-  const diasRetorno = campana?.plazoRetornoDias && inv.fechaCreacion
+  const diasRetorno=campana?.plazoRetornoDias&&inv.fechaCreacion
     ? Math.max(0,campana.plazoRetornoDias-Math.floor((new Date()-new Date(inv.fechaCreacion))/86400000))
     : null;
 
-  const confirmarRecepcion = async () => {
+  const handleConfirmarRecepcion = async () => {
     try {
-      setLoadingBtn(true);
       await inversionesService.marcarRecompensaRecibida(inv.id);
       setRecRecibida(true);
       toast.success('¡Recompensa confirmada exitosamente!');
     } catch (error) {
-      toast.error('Ocurrió un error al confirmar');
-    } finally {
-      setLoadingBtn(false);
+      toast.error('Error al confirmar recepción');
     }
   };
 
@@ -135,45 +131,29 @@ const InvCard = ({ inv, onVerCampana }) => {
         </div>
 
         {inv.estadoPago==='confirmado'&&(
-          <div style={{padding:'10px 12px',borderRadius:'12px',background: recRecibida ? '#ECFDF5' : tipoInfo.bg,border:`1px solid ${recRecibida ? '#10B981' : tipoInfo.color}30`,display:'flex',alignItems:'flex-start',gap:'10px'}}>
-            <TipoIcon style={{width:'16px',height:'16px',color:recRecibida ? '#10B981' : tipoInfo.color,flexShrink:0, marginTop: '2px'}}/>
+          <div style={{padding:'10px 12px',borderRadius:'12px',background:recRecibida?'#DCFCE7':tipoInfo.bg,border:`1px solid ${recRecibida?'#10B981':tipoInfo.color}30`,display:'flex',alignItems:'flex-start',gap:'10px'}}>
+            <TipoIcon style={{width:'16px',height:'16px',color:recRecibida?'#10B981':tipoInfo.color,flexShrink:0,marginTop:'2px'}}/>
             <div style={{flex:1}}>
-              {campana?.tipoCrowdfunding==='lending'&&retorno?(
+              {esLending&&retorno?(
                 <>
                   <div style={{fontSize:'12px',fontWeight:700,color:tipoInfo.color,fontFamily:"'DM Sans',sans-serif"}}>Retorno esperado: {fmtM(retorno)}</div>
                   {diasRetorno!==null&&<div style={{fontSize:'11px',color:'var(--gray-500)',fontFamily:"'DM Sans',sans-serif"}}>En ~{diasRetorno} días · {campana?.interesPct}% anual</div>}
                 </>
               ):(
                 <>
-                  <div style={{display: 'flex', flexDirection: 'column', gap: '4px'}}>
+                  <div style={{display:'flex',flexDirection:'column',gap:'4px'}}>
                     {recRecibida ? (
-                      <div style={{fontSize:'12px',fontWeight:700,color:'#10B981',fontFamily:"'DM Sans',sans-serif"}}>
-                        Recompensa entregada ✓
-                      </div>
+                      <div style={{fontSize:'12px',fontWeight:700,color:'#10B981',fontFamily:"'DM Sans',sans-serif"}}>Recompensa entregada ✓</div>
                     ) : recEnviada ? (
-                      <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
-                        <div style={{fontSize:'11px',fontWeight:700,color:tipoInfo.color,fontFamily:"'DM Sans',sans-serif", maxWidth: '120px'}}>
-                          El creador indicó el envío
-                        </div>
-                        <button
-                          onClick={confirmarRecepcion}
-                          disabled={loadingBtn}
-                          style={{
-                            background: tipoInfo.color, color: '#fff', border: 'none', padding: '4px 8px',
-                            borderRadius: '6px', fontSize: '10px', cursor: loadingBtn ? 'not-allowed' : 'pointer',
-                            fontWeight: 'bold', transition: 'all 0.2s', opacity: loadingBtn ? 0.7 : 1
-                          }}
-                        >
-                          {loadingBtn ? 'Cargando...' : 'Ya la recibí'}
-                        </button>
+                      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                        <div style={{fontSize:'11px',fontWeight:700,color:tipoInfo.color,fontFamily:"'DM Sans',sans-serif"}}>El creador indicó el envío</div>
+                        <button onClick={handleConfirmarRecepcion} style={{background:tipoInfo.color,color:'#fff',border:'none',padding:'4px 8px',borderRadius:'6px',fontSize:'10px',cursor:'pointer',fontWeight:'bold'}}>Ya la recibí</button>
                       </div>
                     ) : (
-                      <div style={{fontSize:'12px',fontWeight:700,color:tipoInfo.color,fontFamily:"'DM Sans',sans-serif"}}>
-                        Recompensa pendiente
-                      </div>
+                      <div style={{fontSize:'12px',fontWeight:700,color:tipoInfo.color,fontFamily:"'DM Sans',sans-serif"}}>Recompensa pendiente</div>
                     )}
                   </div>
-                  {campana?.recompensaDesc && !recRecibida && <div style={{fontSize:'11px',color:'var(--gray-500)',fontFamily:"'DM Sans',sans-serif",marginTop:'6px',lineHeight:1.4,display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical',overflow:'hidden'}}>{campana.recompensaDesc}</div>}
+                  {campana?.recompensaDesc && !recRecibida && <div style={{fontSize:'11px',color:'var(--gray-500)',fontFamily:"'DM Sans',sans-serif",marginTop:'4px',lineHeight:1.4,display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical',overflow:'hidden'}}>{campana.recompensaDesc}</div>}
                 </>
               )}
             </div>
