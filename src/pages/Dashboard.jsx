@@ -140,32 +140,6 @@ const DonutChart = ({ data, labelKey, valueKey }) => {
   );
 };
 
-const BarrasVerticales = ({ data, labelKey, valueKey, color2Key }) => {
-  if (!data?.length) return <EmptyState />;
-  const max = Math.max(...data.map(d => d[valueKey]));
-  const H = 120;
-  return (
-    <div style={{ overflowX: 'auto' }}>
-      <div style={{ display: 'flex', alignItems: 'flex-end', gap: '8px', minWidth: `${data.length * 52}px`, height: `${H + 32}px`, paddingBottom: '32px', position: 'relative' }}>
-        {data.map((item, i) => {
-          const barH = max > 0 ? Math.max((item[valueKey] / max) * H, 4) : 4;
-          return (
-            <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', flex: 1 }}>
-              <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--gray-700)', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{item[valueKey]}</span>
-              <div
-                style={{ width: '100%', maxWidth: '40px', height: `${barH}px`, borderRadius: '6px 6px 0 0', background: color2Key ? `linear-gradient(180deg, ${PALETA[i % PALETA.length]}, ${PALETA[(i + 1) % PALETA.length]})` : 'linear-gradient(180deg, var(--capyme-blue-mid), var(--capyme-blue))', transition: 'height 700ms ease', cursor: 'default' }}
-                onMouseEnter={e => { e.currentTarget.style.opacity = '0.8'; }}
-                onMouseLeave={e => { e.currentTarget.style.opacity = '1'; }}
-              />
-              <span style={{ fontSize: '10px', color: 'var(--gray-400)', fontFamily: "'DM Sans', sans-serif", textAlign: 'center', maxWidth: '44px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item[labelKey]}</span>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-};
-
 const LineaChart = ({ data }) => {
   if (!data?.length) return <EmptyState />;
   const W = 420, H = 110, PAD = { t: 10, b: 30, l: 30, r: 10 };
@@ -177,7 +151,7 @@ const LineaChart = ({ data }) => {
   const yOf = (v) => PAD.t + innerH - (v / maxVal) * innerH;
 
   const makePolyline = (key) => data.map((d, i) => `${xOf(i)},${yOf(d[key])}`).join(' ');
-  const makePath = (key, fill) => {
+  const makePath = (key) => {
     const pts = data.map((d, i) => `${xOf(i)},${yOf(d[key])}`);
     return `M ${pts[0]} L ${pts.join(' L ')} L ${xOf(data.length - 1)},${PAD.t + innerH} L ${PAD.l},${PAD.t + innerH} Z`;
   };
@@ -189,24 +163,19 @@ const LineaChart = ({ data }) => {
           <line key={i} x1={PAD.l} y1={PAD.t + innerH * (1 - t)} x2={W - PAD.r} y2={PAD.t + innerH * (1 - t)}
             stroke="var(--gray-100)" strokeWidth="1" />
         ))}
-
         <path d={makePath('total')} fill="rgba(31,78,158,0.07)" />
         <polyline points={makePolyline('total')} fill="none" stroke="var(--capyme-blue-mid)" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
-
         <path d={makePath('aprobadas')} fill="rgba(5,150,105,0.07)" />
         <polyline points={makePolyline('aprobadas')} fill="none" stroke="#059669" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" strokeDasharray="5 3" />
-
         {data.map((d, i) => (
           <circle key={i} cx={xOf(i)} cy={yOf(d.total)} r="3.5" fill="var(--capyme-blue-mid)" />
         ))}
-
         {data.map((d, i) => (
           <text key={i} x={xOf(i)} y={H - 6} textAnchor="middle" style={{ fontSize: '9px', fill: 'var(--gray-400)', fontFamily: "'DM Sans', sans-serif" }}>
             {d.mes?.slice(5)}
           </text>
         ))}
       </svg>
-
       <div style={{ display: 'flex', gap: '16px', marginTop: '8px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <div style={{ width: '12px', height: '3px', background: 'var(--capyme-blue-mid)', borderRadius: '2px' }} />
@@ -286,7 +255,6 @@ const Dashboard = () => {
   const [negociosPorEstado, setNegociosPorEstado] = useState([]);
   const [inscripcionesPorCurso, setInscripcionesPorCurso] = useState([]);
   const [usuariosPorRol, setUsuariosPorRol] = useState([]);
-  const [financiamientoPorEstado, setFinanciamientoPorEstado] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -297,7 +265,7 @@ const Dashboard = () => {
       isRefresh ? setRefreshing(true) : setLoading(true);
       const [
         stats, categorias, estados, negocios, postulaciones,
-        porMes, negEstado, inscCursos, usrRol, finEstado,
+        porMes, negEstado, inscCursos, usrRol,
       ] = await Promise.all([
         dashboardService.getEstadisticas(),
         dashboardService.getNegociosPorCategoria(),
@@ -308,7 +276,6 @@ const Dashboard = () => {
         dashboardService.getNegociosPorEstado(),
         dashboardService.getInscripcionesPorCurso(),
         dashboardService.getUsuariosPorRol(),
-        dashboardService.getFinanciamientoPorEstado(),
       ]);
 
       setEstadisticas(stats.data);
@@ -320,7 +287,6 @@ const Dashboard = () => {
       setNegociosPorEstado(negEstado.data);
       setInscripcionesPorCurso(inscCursos.data);
       setUsuariosPorRol(usrRol.data);
-      setFinanciamientoPorEstado(finEstado.data);
     } catch {
       toast.error('Error al cargar el dashboard');
     } finally {
@@ -369,7 +335,6 @@ const Dashboard = () => {
           <CardShell icon={Activity} iconBg='#EEF4FF' iconColor='var(--capyme-blue-mid)' titulo='Postulaciones por Mes'>
             <LineaChart data={postulacionesPorMes} />
           </CardShell>
-
           <CardShell icon={PieChart} iconBg='#F5F3FF' iconColor='#7C3AED' titulo='Postulaciones por Estado'>
             <DonutChart data={postulacionesPorEstado} labelKey='estado' valueKey='total' />
           </CardShell>
@@ -379,7 +344,6 @@ const Dashboard = () => {
           <CardShell icon={TrendingUp} iconBg='#EEF4FF' iconColor='var(--capyme-blue-mid)' titulo='Negocios por Categoría'>
             <BarrasHorizontales data={negociosPorCategoria} labelKey='categoria' valueKey='total' />
           </CardShell>
-
           <CardShell icon={Users} iconBg='#ECFDF5' iconColor='#059669' titulo='Usuarios por Rol'>
             <DonutChart data={usuariosPorRol} labelKey='rol' valueKey='total' />
           </CardShell>
@@ -389,17 +353,12 @@ const Dashboard = () => {
           <CardShell icon={GraduationCap} iconBg='#EFF6FF' iconColor='#2563EB' titulo='Cursos: Inscritos vs Cupo'>
             <BarrasDobles data={inscripcionesPorCurso} />
           </CardShell>
-
           <CardShell icon={Building2} iconBg='var(--capyme-blue-pale)' iconColor='var(--capyme-blue-mid)' titulo='Estado de Negocios'>
             <DonutChart data={negociosPorEstado} labelKey='estado' valueKey='total' />
           </CardShell>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-          <CardShell icon={FileText} iconBg='#ECFDF5' iconColor='#059669' titulo='Financiamiento por Estado'>
-            <BarrasVerticales data={financiamientoPorEstado} labelKey='estado' valueKey='total' color2Key />
-          </CardShell>
-
           <CardShell icon={Calendar} iconBg='#EEF4FF' iconColor='var(--capyme-blue-mid)' titulo='Últimos Negocios Registrados'>
             <div style={{ display: 'flex', flexDirection: 'column' }}>
               {ultimosNegocios.length > 0 ? ultimosNegocios.map(negocio => (
@@ -419,9 +378,7 @@ const Dashboard = () => {
               )) : <EmptyState />}
             </div>
           </CardShell>
-        </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
           <CardShell icon={Calendar} iconBg='#F5F3FF' iconColor='#7C3AED' titulo='Últimas Postulaciones'>
             <div style={{ display: 'flex', flexDirection: 'column' }}>
               {ultimasPostulaciones.length > 0 ? ultimasPostulaciones.map(p => {
@@ -445,8 +402,6 @@ const Dashboard = () => {
               }) : <EmptyState />}
             </div>
           </CardShell>
-
-          <div />
         </div>
 
       </div>

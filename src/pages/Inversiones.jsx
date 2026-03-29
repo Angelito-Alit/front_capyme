@@ -1,10 +1,10 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
 import {
   TrendingUp, Heart, CheckCircle, XCircle, Clock,
   Trophy, Users, DollarSign, BarChart2, PieChart,
   ArrowUpRight, ChevronRight, Megaphone, Calendar,
-  Ban, RotateCcw, AlertCircle, Search,
+  AlertCircle, Search,
 } from 'lucide-react';
 import Layout from '../components/common/Layout';
 import { inversionesService } from '../services/inversionesService';
@@ -12,7 +12,6 @@ import { inversionesService } from '../services/inversionesService';
 // ─── Utils ────────────────────────────────────────────────────────────────────
 const fmtM  = v => new Intl.NumberFormat('es-MX',{style:'currency',currency:'MXN',maximumFractionDigits:0}).format(v||0);
 const fmtD  = d => d ? new Date(d).toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'}) : '—';
-const fmtMes= d => d ? new Date(d).toLocaleDateString('es-MX',{month:'short',year:'2-digit'}) : '';
 
 const ESTADO_INFO = {
   pendiente:  { label:'Pendiente',  bg:'#FEF9C3', color:'#854D0E', dot:'#F59E0B' },
@@ -99,12 +98,12 @@ const StatCard = ({ icon:Icon, label, value, sub, color, gradient }) => (
     </div>
     <div style={{fontSize:'24px',fontWeight:900,color:'var(--gray-900)',fontFamily:"'Plus Jakarta Sans',sans-serif",lineHeight:1}}>{value}</div>
     <div style={{fontSize:'12px',fontWeight:600,color:'var(--gray-500)',fontFamily:"'DM Sans',sans-serif"}}>{label}</div>
-    {sub&&<div style={{fontSize:'11px',color:color,fontFamily:"'DM Sans',sans-serif",fontWeight:600}}>{sub}</div>}
+    {sub&&<div style={{fontSize:'11px',color,fontFamily:"'DM Sans',sans-serif",fontWeight:600}}>{sub}</div>}
   </div>
 );
 
-// ─── Fila de inversión en la tabla del dashboard ──────────────────────────────
-const InvRow = ({ inv, esAdmin, esColab, onConfirmar, onRechazar, onToggle, hov, setHov }) => {
+// ─── Fila de inversión en la tabla ────────────────────────────────────────────
+const InvRow = ({ inv, hov, setHov }) => {
   const campana = inv.campana;
   const [c1,c2] = getClr(campana?.id);
   const ini = `${inv.inversor?.nombre?.[0]||''}${inv.inversor?.apellido?.[0]||''}`.toUpperCase();
@@ -120,7 +119,7 @@ const InvRow = ({ inv, esAdmin, esColab, onConfirmar, onRechazar, onToggle, hov,
           <div style={{width:'34px',height:'34px',borderRadius:'10px',flexShrink:0,background:`linear-gradient(135deg,${c1},${c2})`,display:'flex',alignItems:'center',justifyContent:'center',color:'#fff',fontSize:'12px',fontWeight:700,fontFamily:"'Plus Jakarta Sans',sans-serif"}}>{ini}</div>
           <div>
             <div style={{fontSize:'13px',fontWeight:700,color:'var(--gray-900)',fontFamily:"'DM Sans',sans-serif"}}>{inv.inversor?.nombre} {inv.inversor?.apellido}</div>
-            <div style={{fontSize:'11px',color:'var(--gray-400)',fontFamily:"'DM Sans',sans-serif",fontFamily:"'JetBrains Mono',monospace",fontSize:'10px'}}>{inv.referencia}</div>
+            <div style={{fontSize:'10px',color:'var(--gray-400)',fontFamily:"'JetBrains Mono',monospace"}}>{inv.referencia}</div>
           </div>
         </div>
       </td>
@@ -148,53 +147,17 @@ const InvRow = ({ inv, esAdmin, esColab, onConfirmar, onRechazar, onToggle, hov,
         <div style={{fontSize:'12px',color:'var(--gray-500)',fontFamily:"'DM Sans',sans-serif"}}>{fmtD(inv.fechaCreacion)}</div>
         {inv.fechaConfirmacion&&<div style={{fontSize:'11px',color:'#10B981',fontFamily:"'DM Sans',sans-serif"}}>✓ {fmtD(inv.fechaConfirmacion)}</div>}
       </td>
-
-      {/* Acciones — solo admin */}
-      {(esAdmin||esColab)&&(
-        <td style={{padding:'12px 16px',textAlign:'right'}}>
-          <div style={{display:'flex',gap:'4px',justifyContent:'flex-end'}}>
-            {esAdmin&&inv.estadoPago==='pendiente'&&inv.activo&&<>
-              <button onClick={()=>onConfirmar(inv)} style={{padding:'5px 10px',border:'none',borderRadius:'7px',background:'#ECFDF5',color:'#065F46',fontSize:'11px',fontWeight:600,cursor:'pointer',fontFamily:"'DM Sans',sans-serif",display:'flex',alignItems:'center',gap:'3px'}}>
-                <CheckCircle style={{width:'12px',height:'12px'}}/> Confirmar
-              </button>
-              <button onClick={()=>onRechazar(inv)} style={{padding:'5px 10px',border:'none',borderRadius:'7px',background:'#FEF2F2',color:'#DC2626',fontSize:'11px',fontWeight:600,cursor:'pointer',fontFamily:"'DM Sans',sans-serif",display:'flex',alignItems:'center',gap:'3px'}}>
-                <XCircle style={{width:'12px',height:'12px'}}/> Rechazar
-              </button>
-            </>}
-            {esAdmin&&inv.activo&&inv.estadoPago!=='pendiente'&&(
-              <button onClick={()=>onToggle(inv)} style={{padding:'5px 10px',border:'1.5px solid var(--border)',borderRadius:'7px',background:'transparent',color:'var(--gray-500)',fontSize:'11px',fontWeight:600,cursor:'pointer',fontFamily:"'DM Sans',sans-serif",display:'flex',alignItems:'center',gap:'3px'}}>
-                <Ban style={{width:'12px',height:'12px'}}/> Anular
-              </button>
-            )}
-            {esAdmin&&!inv.activo&&(
-              <button onClick={()=>onToggle(inv)} style={{padding:'5px 10px',border:'none',borderRadius:'7px',background:'#ECFDF5',color:'#065F46',fontSize:'11px',fontWeight:600,cursor:'pointer',fontFamily:"'DM Sans',sans-serif",display:'flex',alignItems:'center',gap:'3px'}}>
-                <RotateCcw style={{width:'12px',height:'12px'}}/> Reactivar
-              </button>
-            )}
-            {esColab&&!esAdmin&&(
-              <span title="Solo admins" style={{padding:'5px 10px',border:'1.5px solid var(--border)',borderRadius:'7px',color:'var(--gray-300)',fontSize:'11px',cursor:'not-allowed',fontFamily:"'DM Sans',sans-serif"}}>—</span>
-            )}
-          </div>
-        </td>
-      )}
     </tr>
   );
 };
 
 // ─── PÁGINA PRINCIPAL ─────────────────────────────────────────────────────────
 const Inversiones = () => {
-  const authStorage = JSON.parse(localStorage.getItem('auth-storage')||'{}');
-  const currentUser = authStorage?.state?.user || {};
-
   const [inversiones, setInversiones] = useState([]);
   const [loading,     setLoading]     = useState(true);
   const [search,      setSearch]      = useState('');
   const [filtroEstado,setFiltroEst]   = useState('');
   const [hovRow,      setHovRow]      = useState(null);
-
-  const esAdmin  = currentUser.rol==='admin';
-  const esColab  = currentUser.rol==='colaborador';
-  const esCliente= currentUser.rol==='cliente';
 
   useEffect(()=>{ cargarDatos(); },[]);
 
@@ -207,22 +170,6 @@ const Inversiones = () => {
     finally { setLoading(false); }
   };
 
-  const handleConfirmar = async inv=>{
-    if(!window.confirm(`¿Confirmar inversión de ${fmtM(inv.monto)}?`)) return;
-    try { await inversionesService.confirmar(inv.id); toast.success('Inversión confirmada ✓'); cargarDatos(); }
-    catch(e){ toast.error(e?.response?.data?.message||'Error'); }
-  };
-  const handleRechazar = async inv=>{
-    if(!window.confirm('¿Rechazar esta inversión?')) return;
-    try { await inversionesService.rechazar(inv.id); toast.success('Inversión rechazada'); cargarDatos(); }
-    catch{ toast.error('Error'); }
-  };
-  const handleToggle = async inv=>{
-    if(!window.confirm(`¿${inv.activo?'Anular':'Reactivar'} esta inversión?`)) return;
-    try { await inversionesService.toggleActivo(inv.id); toast.success(`Inversión ${inv.activo?'anulada':'reactivada'}`); cargarDatos(); }
-    catch{ toast.error('Error'); }
-  };
-
   // ── Métricas ──
   const confirmadas = inversiones.filter(i=>i.estadoPago==='confirmado'&&i.activo);
   const pendientes  = inversiones.filter(i=>i.estadoPago==='pendiente'&&i.activo);
@@ -230,7 +177,7 @@ const Inversiones = () => {
   const promedioInv     = confirmadas.length ? totalInvertido/confirmadas.length : 0;
   const campanasUnicas  = new Set(confirmadas.map(i=>i.campanaId)).size;
 
-  // Distribución por campaña (top 5) para donut
+  // Distribución por campaña (top 6) para donut
   const porCampana = Object.values(
     confirmadas.reduce((acc,i)=>{
       const k = i.campanaId;
@@ -241,7 +188,7 @@ const Inversiones = () => {
     },{})
   ).sort((a,b)=>b.monto-a.monto).slice(0,6);
 
-  const donutSlices = porCampana.map((c,i)=>({
+  const donutSlices = porCampana.map((c)=>({
     color: getClr(c.id)[0],
     value: c.monto,
     label: c.titulo,
@@ -293,7 +240,7 @@ const Inversiones = () => {
         </div>
 
         {/* Alerta de pendientes */}
-        {pendientes.length>0&&(esAdmin||esColab)&&(
+        {pendientes.length>0&&(
           <div style={{padding:'12px 16px',borderRadius:'12px',marginBottom:'20px',background:'#FFFBEB',border:'1px solid #FDE68A',display:'flex',alignItems:'center',gap:'10px'}}>
             <AlertCircle style={{width:'16px',height:'16px',color:'#D97706',flexShrink:0}}/>
             <span style={{fontSize:'13px',fontFamily:"'DM Sans',sans-serif",color:'#92400E',fontWeight:600}}>
@@ -333,7 +280,6 @@ const Inversiones = () => {
             ) : (
               <BarChart data={mesesData} color="var(--capyme-blue-mid)" height={80}/>
             )}
-            {/* Leyenda de valores */}
             <div style={{display:'flex',gap:'6px',marginTop:'12px',flexWrap:'wrap'}}>
               {mesesData.map((m,i)=>m.value>0&&(
                 <div key={i} style={{fontSize:'10px',color:'var(--gray-500)',fontFamily:"'DM Sans',sans-serif",background:'var(--gray-50)',padding:'2px 8px',borderRadius:'6px'}}>
@@ -360,7 +306,7 @@ const Inversiones = () => {
               <div style={{display:'flex',gap:'20px',alignItems:'center'}}>
                 <DonutChart slices={donutSlices} size={110}/>
                 <div style={{flex:1,display:'flex',flexDirection:'column',gap:'7px',overflow:'hidden'}}>
-                  {porCampana.map((c,i)=>(
+                  {porCampana.map((c)=>(
                     <div key={c.id} style={{display:'flex',alignItems:'center',gap:'8px'}}>
                       <span style={{width:'10px',height:'10px',borderRadius:'50%',background:getClr(c.id)[0],flexShrink:0}}/>
                       <span style={{fontSize:'12px',color:'var(--gray-700)',fontFamily:"'DM Sans',sans-serif",flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{c.titulo}</span>
@@ -372,45 +318,6 @@ const Inversiones = () => {
             )}
           </div>
         </div>
-
-        {/* Fila de progreso de campañas que apoyo el usuario (cliente) */}
-        {esCliente && confirmadas.length>0 && (
-          <div style={{background:'#fff',border:'1px solid var(--border)',borderRadius:'16px',padding:'20px',boxShadow:'0 2px 8px rgba(0,0,0,.05)',marginBottom:'28px'}}>
-            <h3 style={{fontSize:'14px',fontWeight:800,color:'var(--gray-900)',fontFamily:"'Plus Jakarta Sans',sans-serif",margin:'0 0 16px'}}>
-              Campañas que estás apoyando
-            </h3>
-            <div style={{display:'flex',flexDirection:'column',gap:'14px'}}>
-              {porCampana.map(c=>{
-                const campanaObj = confirmadas.find(i=>i.campanaId===c.id)?.campana;
-                if(!campanaObj) return null;
-                const pct = campanaObj.metaRecaudacion
-                  ? Math.min(100,Math.round((parseFloat(campanaObj.montoRecaudado||0)/parseFloat(campanaObj.metaRecaudacion))*100))
-                  : 0;
-                const [col1,col2] = getClr(c.id);
-                return (
-                  <div key={c.id} style={{display:'flex',alignItems:'center',gap:'14px'}}>
-                    <div style={{width:'36px',height:'36px',borderRadius:'10px',flexShrink:0,background:`linear-gradient(135deg,${col1},${col2})`,display:'flex',alignItems:'center',justifyContent:'center'}}>
-                      <Megaphone style={{width:'16px',height:'16px',color:'#fff'}}/>
-                    </div>
-                    <div style={{flex:1,minWidth:0}}>
-                      <div style={{fontSize:'13px',fontWeight:700,color:'var(--gray-900)',fontFamily:"'DM Sans',sans-serif",marginBottom:'5px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
-                        {campanaObj.titulo}
-                        {pct>=100&&<span style={{marginLeft:'6px',fontSize:'10px',background:'linear-gradient(135deg,#7C3AED,#A855F7)',color:'#fff',padding:'1px 7px',borderRadius:'4px',fontWeight:700,verticalAlign:'middle'}}>🏆 Meta</span>}
-                      </div>
-                      <div style={{height:'6px',borderRadius:'99px',background:'var(--gray-100)',overflow:'hidden'}}>
-                        <div style={{height:'100%',borderRadius:'99px',background:pct>=100?'linear-gradient(90deg,#7C3AED,#A855F7)':`linear-gradient(90deg,${col1},${col2})`,width:`${pct}%`,transition:'width 1s ease'}}/>
-                      </div>
-                    </div>
-                    <div style={{textAlign:'right',flexShrink:0}}>
-                      <div style={{fontSize:'13px',fontWeight:800,color:'var(--gray-900)',fontFamily:"'Plus Jakarta Sans',sans-serif"}}>{fmtM(c.monto)}</div>
-                      <div style={{fontSize:'10px',color:'var(--gray-400)',fontFamily:"'DM Sans',sans-serif"}}>tu aporte · {pct}%</div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
 
         {/* Tabla de inversiones */}
         <div style={{background:'#fff',border:'1px solid var(--border)',borderRadius:'16px',overflow:'hidden',boxShadow:'0 2px 8px rgba(0,0,0,.05)'}}>
@@ -438,23 +345,20 @@ const Inversiones = () => {
             <div style={{textAlign:'center',padding:'60px 20px',color:'var(--gray-400)'}}>
               <TrendingUp style={{width:'40px',height:'40px',margin:'0 auto 12px',display:'block',color:'var(--gray-200)'}}/>
               <p style={{fontSize:'14px',fontFamily:"'DM Sans',sans-serif",margin:0}}>No hay inversiones{search?' con esa búsqueda':''}</p>
-              {!search&&esCliente&&<p style={{fontSize:'12px',color:'var(--gray-400)',fontFamily:"'DM Sans',sans-serif",margin:'6px 0 0'}}>Ve a <b>Campañas</b> y apoya un proyecto para verlo aquí</p>}
             </div>
           ) : (
             <div style={{overflowX:'auto'}}>
               <table style={{width:'100%',borderCollapse:'collapse'}}>
                 <thead>
                   <tr style={{background:'var(--gray-50)',borderBottom:'1px solid var(--border)'}}>
-                    {['Inversor','Campaña','Monto','Estado','Fecha',...((esAdmin||esColab)?['Acciones']:[])].map(h=>(
-                      <th key={h} style={{padding:'10px 16px',textAlign:h==='Acciones'?'right':'left',fontSize:'11px',fontWeight:700,color:'var(--gray-500)',textTransform:'uppercase',letterSpacing:'.05em',fontFamily:"'Plus Jakarta Sans',sans-serif",whiteSpace:'nowrap'}}>{h}</th>
+                    {['Inversor','Campaña','Monto','Estado','Fecha'].map(h=>(
+                      <th key={h} style={{padding:'10px 16px',textAlign:'left',fontSize:'11px',fontWeight:700,color:'var(--gray-500)',textTransform:'uppercase',letterSpacing:'.05em',fontFamily:"'Plus Jakarta Sans',sans-serif",whiteSpace:'nowrap'}}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {invFiltradas.map(inv=>(
-                    <InvRow key={inv.id} inv={inv} esAdmin={esAdmin} esColab={esColab}
-                      onConfirmar={handleConfirmar} onRechazar={handleRechazar} onToggle={handleToggle}
-                      hov={hovRow} setHov={setHovRow}/>
+                    <InvRow key={inv.id} inv={inv} hov={hovRow} setHov={setHovRow}/>
                   ))}
                 </tbody>
               </table>
