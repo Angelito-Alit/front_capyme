@@ -388,17 +388,24 @@ const DetalleMiCampana = ({ campana:c, onBack, onActualizar, onEditar }) => {
   const [loading,    setLoading]    = useState(true);
   const alc = isMeta(c);
   const [c1,c2] = getClr(c);
-  const pct = getPct(c.montoRecaudado, c.metaRecaudacion);
 
   useEffect(()=>{
-    fetch(`/api/inversiones?campanaId=${c.id}`,{headers:{Authorization:`Bearer ${JSON.parse(localStorage.getItem('auth-storage')||'{}')?.state?.token}`}})
+    const token = JSON.parse(localStorage.getItem('auth-storage')||'{}')?.state?.token;
+    fetch(`/api/inversiones?campanaId=${c.id}`,{headers:{Authorization:`Bearer ${token}`}})
       .then(r=>r.json())
-      .then(res=>setInversores((res.data||[]).filter(i=>i.estadoPago==='confirmado'&&i.activo)))
+      .then(res => {
+        const todas = (res.data || res || []);
+        setInversores(todas.filter(i => i.activo !== false));
+      })
       .catch(()=>{})
       .finally(()=>setLoading(false));
   },[c.id]);
 
-  const totalConfirmado = inversores.reduce((a,i)=>a+parseFloat(i.monto||0),0);
+  const inversoresConfirmados = inversores.filter(i => i.estadoPago === 'confirmado');
+  const totalConfirmado = inversoresConfirmados.reduce((a,i)=>a+parseFloat(i.monto||0),0);
+  const totalInversores = inversoresConfirmados.length;
+  const pct = getPct(totalConfirmado || c.montoRecaudado, c.metaRecaudacion);
+  const montoMostrar = totalConfirmado > 0 ? totalConfirmado : parseFloat(c.montoRecaudado || 0);
 
   return (
     <div style={{maxWidth:'900px',margin:'0 auto',paddingBottom:'48px'}}>
@@ -437,10 +444,10 @@ const DetalleMiCampana = ({ campana:c, onBack, onActualizar, onEditar }) => {
 
           <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:'10px',marginBottom:'24px'}}>
             {[
-              {icon:DollarSign, label:'Recaudado', value:fmtM(totalConfirmado), color:'#10B981'},
-              {icon:Users,      label:'Inversores', value:inversores.length,     color:'var(--capyme-blue-mid)'},
-              {icon:Target,     label:'Meta',       value:fmtM(c.metaRecaudacion), color:'#8B5CF6'},
-              {icon:Gift,       label:'Tipo',       value:'Reward',              color:'#F59E0B'},
+              {icon:DollarSign, label:'Recaudado',  value:fmtM(montoMostrar),        color:'#10B981'},
+              {icon:Users,      label:'Inversores',  value:totalInversores,            color:'var(--capyme-blue-mid)'},
+              {icon:Target,     label:'Meta',        value:fmtM(c.metaRecaudacion),   color:'#8B5CF6'},
+              {icon:Gift,       label:'Tipo',        value:'Reward',                  color:'#F59E0B'},
             ].map(({icon:Icon,label,value,color})=>(
               <div key={label} style={{padding:'12px',borderRadius:'12px',background:'#fff',border:'1px solid var(--border)',textAlign:'center',boxShadow:'var(--shadow-sm)'}}>
                 <Icon style={{width:'16px',height:'16px',color,margin:'0 auto 5px',display:'block'}}/>
@@ -469,7 +476,7 @@ const DetalleMiCampana = ({ campana:c, onBack, onActualizar, onEditar }) => {
 
           <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'14px'}}>
             <h3 style={{fontSize:'15px',fontWeight:800,color:'var(--gray-900)',fontFamily:"'Plus Jakarta Sans',sans-serif",margin:0}}>
-              Inversores ({inversores.length})
+              Inversores ({totalInversores})
             </h3>
             <button onClick={()=>onActualizar(c)} style={{padding:'7px 14px',background:`linear-gradient(135deg,${c1},${c2})`,border:'none',borderRadius:'8px',color:'#fff',fontSize:'12px',fontWeight:700,cursor:'pointer',fontFamily:"'DM Sans',sans-serif",display:'flex',alignItems:'center',gap:'5px',boxShadow:'0 2px 8px rgba(0,0,0,.15)'}}>
               <Bell style={{width:'13px',height:'13px'}}/> Publicar actualización
@@ -478,14 +485,14 @@ const DetalleMiCampana = ({ campana:c, onBack, onActualizar, onEditar }) => {
 
           {loading ? (
             <div style={{textAlign:'center',padding:'32px',color:'var(--gray-400)',fontSize:'13px',fontFamily:"'DM Sans',sans-serif"}}>Cargando...</div>
-          ) : inversores.length===0 ? (
+          ) : inversoresConfirmados.length===0 ? (
             <div style={{padding:'32px',borderRadius:'14px',border:'2px dashed var(--border)',textAlign:'center'}}>
               <Users style={{width:'32px',height:'32px',color:'var(--gray-300)',margin:'0 auto 10px',display:'block'}}/>
               <p style={{fontSize:'13px',color:'var(--gray-400)',fontFamily:"'DM Sans',sans-serif",margin:0}}>Aún no hay inversores confirmados</p>
             </div>
           ) : (
             <div style={{display:'flex',flexDirection:'column',gap:'8px'}}>
-              {inversores.map((inv,i)=>{
+              {inversoresConfirmados.map((inv,i)=>{
                 const ini=`${inv.inversor?.nombre?.[0]||''}${inv.inversor?.apellido?.[0]||''}`.toUpperCase();
                 return (
                   <div key={inv.id} style={{display:'flex',alignItems:'center',gap:'12px',padding:'12px 14px',borderRadius:'12px',background:i===0?'linear-gradient(135deg,var(--capyme-blue-pale),#F0FDF4)':'var(--gray-50)',border:`1px solid ${i===0?'var(--capyme-blue-mid)':'var(--border)'}`}}>
@@ -511,7 +518,7 @@ const DetalleMiCampana = ({ campana:c, onBack, onActualizar, onEditar }) => {
           <div style={{borderRadius:'16px',border:`1.5px solid ${alc?'#A855F750':'var(--border)'}`,background:'#fff',padding:'20px',boxShadow:'0 4px 20px rgba(0,0,0,.08)'}}>
             <div style={{marginBottom:'14px'}}>
               <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:'3px'}}>
-                <span style={{fontSize:'22px',fontWeight:900,color:'var(--gray-900)',fontFamily:"'Plus Jakarta Sans',sans-serif"}}>{fmtM(c.montoRecaudado)}</span>
+                <span style={{fontSize:'22px',fontWeight:900,color:'var(--gray-900)',fontFamily:"'Plus Jakarta Sans',sans-serif"}}>{fmtM(montoMostrar)}</span>
                 <span style={{fontSize:'13px',fontWeight:700,color:alc?'#7C3AED':'var(--capyme-blue-mid)',fontFamily:"'Plus Jakarta Sans',sans-serif"}}>{pct}%</span>
               </div>
               <div style={{fontSize:'12px',color:'var(--gray-400)',fontFamily:"'DM Sans',sans-serif",marginBottom:'8px'}}>de {fmtM(c.metaRecaudacion)} meta</div>
