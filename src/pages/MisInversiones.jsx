@@ -58,7 +58,11 @@ const MiniDonut = ({ pct, color1, color2, size=64 }) => {
 
 const InvCard = ({ inv, onVerCampana }) => {
   const [hov, setHov] = useState(false);
-  const [recEntregada, setRecEntregada] = useState(inv.recompensaEntregada || false);
+  const [loadingBtn, setLoadingBtn] = useState(false);
+  
+  const recEnviada = inv.recompensaEnviada || false;
+  const [recRecibida, setRecRecibida] = useState(inv.recompensaRecibida || false);
+
   const campana = inv.campana;
   const [c1, c2] = getClr(campana?.id);
   const estadoInfo = ESTADO_PAGO[inv.estadoPago]||ESTADO_PAGO.pendiente;
@@ -74,9 +78,17 @@ const InvCard = ({ inv, onVerCampana }) => {
     ? Math.max(0,campana.plazoRetornoDias-Math.floor((new Date()-new Date(inv.fechaCreacion))/86400000))
     : null;
 
-  const toggleRecompensa = async () => {
-    setRecEntregada(!recEntregada);
-    toast.success(!recEntregada ? 'Recompensa marcada como recibida' : 'Recompensa marcada como pendiente');
+  const confirmarRecepcion = async () => {
+    try {
+      setLoadingBtn(true);
+      await inversionesService.marcarRecompensaRecibida(inv.id);
+      setRecRecibida(true);
+      toast.success('¡Recompensa confirmada exitosamente!');
+    } catch (error) {
+      toast.error('Ocurrió un error al confirmar');
+    } finally {
+      setLoadingBtn(false);
+    }
   };
 
   return (
@@ -123,8 +135,8 @@ const InvCard = ({ inv, onVerCampana }) => {
         </div>
 
         {inv.estadoPago==='confirmado'&&(
-          <div style={{padding:'10px 12px',borderRadius:'12px',background: recEntregada ? '#ECFDF5' : tipoInfo.bg,border:`1px solid ${recEntregada ? '#10B981' : tipoInfo.color}30`,display:'flex',alignItems:'flex-start',gap:'10px'}}>
-            <TipoIcon style={{width:'16px',height:'16px',color:recEntregada ? '#10B981' : tipoInfo.color,flexShrink:0, marginTop: '2px'}}/>
+          <div style={{padding:'10px 12px',borderRadius:'12px',background: recRecibida ? '#ECFDF5' : tipoInfo.bg,border:`1px solid ${recRecibida ? '#10B981' : tipoInfo.color}30`,display:'flex',alignItems:'flex-start',gap:'10px'}}>
+            <TipoIcon style={{width:'16px',height:'16px',color:recRecibida ? '#10B981' : tipoInfo.color,flexShrink:0, marginTop: '2px'}}/>
             <div style={{flex:1}}>
               {campana?.tipoCrowdfunding==='lending'&&retorno?(
                 <>
@@ -133,28 +145,35 @@ const InvCard = ({ inv, onVerCampana }) => {
                 </>
               ):(
                 <>
-                  <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
-                    <div style={{fontSize:'12px',fontWeight:700,color:recEntregada ? '#10B981' : tipoInfo.color,fontFamily:"'DM Sans',sans-serif"}}>
-                      {recEntregada ? 'Recompensa entregada ✓' : 'Recompensa pendiente'}
-                    </div>
-                    <button
-                      onClick={toggleRecompensa}
-                      style={{
-                        background: recEntregada ? 'transparent' : tipoInfo.color,
-                        color: recEntregada ? 'var(--gray-500)' : '#fff',
-                        border: recEntregada ? '1px solid var(--border)' : 'none',
-                        padding: '4px 8px',
-                        borderRadius: '6px',
-                        fontSize: '10px',
-                        cursor: 'pointer',
-                        fontWeight: 'bold',
-                        transition: 'all 0.2s'
-                      }}
-                    >
-                      {recEntregada ? 'Deshacer' : 'Ya la recibí'}
-                    </button>
+                  <div style={{display: 'flex', flexDirection: 'column', gap: '4px'}}>
+                    {recRecibida ? (
+                      <div style={{fontSize:'12px',fontWeight:700,color:'#10B981',fontFamily:"'DM Sans',sans-serif"}}>
+                        Recompensa entregada ✓
+                      </div>
+                    ) : recEnviada ? (
+                      <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                        <div style={{fontSize:'11px',fontWeight:700,color:tipoInfo.color,fontFamily:"'DM Sans',sans-serif", maxWidth: '120px'}}>
+                          El creador indicó el envío
+                        </div>
+                        <button
+                          onClick={confirmarRecepcion}
+                          disabled={loadingBtn}
+                          style={{
+                            background: tipoInfo.color, color: '#fff', border: 'none', padding: '4px 8px',
+                            borderRadius: '6px', fontSize: '10px', cursor: loadingBtn ? 'not-allowed' : 'pointer',
+                            fontWeight: 'bold', transition: 'all 0.2s', opacity: loadingBtn ? 0.7 : 1
+                          }}
+                        >
+                          {loadingBtn ? 'Cargando...' : 'Ya la recibí'}
+                        </button>
+                      </div>
+                    ) : (
+                      <div style={{fontSize:'12px',fontWeight:700,color:tipoInfo.color,fontFamily:"'DM Sans',sans-serif"}}>
+                        Recompensa pendiente
+                      </div>
+                    )}
                   </div>
-                  {campana?.recompensaDesc && !recEntregada && <div style={{fontSize:'11px',color:'var(--gray-500)',fontFamily:"'DM Sans',sans-serif",marginTop:'4px',lineHeight:1.4,display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical',overflow:'hidden'}}>{campana.recompensaDesc}</div>}
+                  {campana?.recompensaDesc && !recRecibida && <div style={{fontSize:'11px',color:'var(--gray-500)',fontFamily:"'DM Sans',sans-serif",marginTop:'6px',lineHeight:1.4,display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical',overflow:'hidden'}}>{campana.recompensaDesc}</div>}
                 </>
               )}
             </div>

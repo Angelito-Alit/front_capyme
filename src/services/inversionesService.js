@@ -1,16 +1,17 @@
 import api from './axios';
 
 export const inversionesService = {
-  getAll: async (params = {}) => (await api.get('/inversiones', { params })).data,
-  getMias: async (params = {}) => (await api.get('/inversiones/mias', { params })).data,
-  getPendientes: async () => (await api.get('/inversiones/pendientes')).data,
-  getByCampana: async (campanaId) => (await api.get(`/inversiones/campana/${campanaId}`)).data,
-  getById: async (id) => (await api.get(`/inversiones/${id}`)).data,
-  create: async (data) => (await api.post('/inversiones', data)).data,
-  update: async (id, data) => (await api.put(`/inversiones/${id}`, data)).data,
-  confirmar: async (id) => (await api.patch(`/inversiones/${id}/confirmar`)).data,
-  rechazar: async (id) => (await api.patch(`/inversiones/${id}/rechazar`)).data,
-  toggleActivo: async (id) => (await api.patch(`/inversiones/${id}/toggle-activo`)).data,
-  confirmarPorReferencia: async (referencia) =>
-    (await api.post('/inversiones/confirmar-por-referencia', { referencia })).data,
+  getAll: (params) => api.get('/inversiones', { params }),
+  getPendientes: () => api.get('/inversiones/pendientes'),
+  getMias: (params) => api.get('/inversiones/mis-inversiones', { params }),
+  getByCampana: (campanaId) => api.get(`/inversiones/campana/${campanaId}`),
+  getById: (id) => api.get(`/inversiones/${id}`),
+  create: (data) => api.post('/inversiones', data),
+  confirmarPorReferencia: (referencia) => api.post('/inversiones/confirmar-backurl', { referencia }),
+  update: (id, data) => api.put(`/inversiones/${id}`, data),
+  confirmar: (id) => api.put(`/inversiones/${id}/confirmar`),
+  rechazar: (id) => api.put(`/inversiones/${id}/rechazar`),
+  toggleActivo: (id) => api.put(`/inversiones/${id}/toggle-activo`),
+  marcarRecompensaEnviada: (id) => api.put(`/inversiones/${id}/recompensa-enviada`),
+  marcarRecompensaRecibida: (id) => api.put(`/inversiones/${id}/recompensa-recibida`),
 };
