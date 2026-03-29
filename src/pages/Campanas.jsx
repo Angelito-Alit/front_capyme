@@ -1,3 +1,4 @@
+// src/pages/Campanas.jsx
 import { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
 import {
@@ -496,7 +497,12 @@ const CampanaModal = ({ mode, campana, negocios, currentUser, onClose, onSave })
           <div style={{gridColumn:'1 / -1'}}><label style={lbl}>Negocio *</label><select value={form.negocioId} onChange={e=>setForm(p=>({...p,negocioId:e.target.value}))} disabled={mode==='edit'&&esCliente} style={{...inp,appearance:'none',cursor:mode==='edit'&&esCliente?'not-allowed':'pointer',...(errors.negocioId?{borderColor:'#EF4444'}:{})}}><option value="">Seleccionar...</option>{negocios.map(n=><option key={n.id} value={n.id}>{n.nombreNegocio}</option>)}</select><Err k="negocioId"/></div>
           <div style={{gridColumn:'1 / -1'}}><label style={lbl}>Descripción breve</label><textarea value={form.descripcion} onChange={e=>setForm(p=>({...p,descripcion:e.target.value}))} rows={2} placeholder="Resumen de tu proyecto..." style={{...inp,resize:'vertical'}}/></div>
           <div style={{gridColumn:'1 / -1'}}><label style={lbl}>Historia del proyecto</label><textarea value={form.historia} onChange={e=>setForm(p=>({...p,historia:e.target.value}))} rows={3} placeholder="Cuenta la historia de tu negocio..." style={{...inp,resize:'vertical'}}/></div>
-          <div><label style={lbl}>Meta de recaudación (MXN) *</label><input type="number" value={form.metaRecaudacion} disabled={metaBloq} onChange={e=>setForm(p=>({...p,metaRecaudacion:e.target.value}))} placeholder="0" style={{...inp,...(metaBloq?{background:'var(--gray-50)',cursor:'not-allowed'}:{}),...(errors.metaRecaudacion?{borderColor:'#EF4444'}:{})}}/>{metaBloq&&<p style={{margin:'3px 0 0',fontSize:'11px',color:'var(--gray-400)',fontFamily:"'DM Sans',sans-serif"}}>No editable: campaña con fondos</p><Err k="metaRecaudacion"/></div>
+          <div>
+            <label style={lbl}>Meta de recaudación (MXN) *</label>
+            <input type="number" value={form.metaRecaudacion} disabled={metaBloq} onChange={e=>setForm(p=>({...p,metaRecaudacion:e.target.value}))} placeholder="0" style={{...inp,...(metaBloq?{background:'var(--gray-50)',cursor:'not-allowed'}:{}),...(errors.metaRecaudacion?{borderColor:'#EF4444'}:{})}}/>
+            {metaBloq&&<p style={{margin:'3px 0 0',fontSize:'11px',color:'var(--gray-400)',fontFamily:"'DM Sans',sans-serif"}}>No editable: campaña con fondos</p>}
+            <Err k="metaRecaudacion"/>
+          </div>
           <div/>
           <div><label style={lbl}>Fecha de inicio</label><input type="date" value={form.fechaInicio} onChange={e=>setForm(p=>({...p,fechaInicio:e.target.value}))} style={inp}/></div>
           <div><label style={lbl}>Fecha de cierre</label><input type="date" value={form.fechaCierre} onChange={e=>setForm(p=>({...p,fechaCierre:e.target.value}))} style={inp}/></div>
