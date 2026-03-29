@@ -12,7 +12,6 @@ import { negociosService }   from '../services/negociosService';
 import { inversionesService } from '../services/inversionesService';
 import { pagosService }      from '../services/pagosService';
 
-// ─── Config ───────────────────────────────────────────────────────────────────
 const ESTADO_INFO = {
   en_revision: { label: 'En revisión', bg: '#FEF9C3', color: '#854D0E', dot: '#F59E0B' },
   aprobada:    { label: 'Aprobada',    bg: '#DCFCE7', color: '#14532D', dot: '#22C55E' },
@@ -32,15 +31,13 @@ const COLORES = [
 
 const initForm = { titulo:'', descripcion:'', historia:'', negocioId:'', metaRecaudacion:'', fechaInicio:'', fechaCierre:'' };
 
-// ─── Utils ────────────────────────────────────────────────────────────────────
 const fmtM  = v => new Intl.NumberFormat('es-MX',{style:'currency',currency:'MXN',maximumFractionDigits:0}).format(v||0);
-const fmtD  = d => d ? new Date(d).toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'}) : '—';
+const fmtD  = d => d ? new Date(d).toLocaleDateString('es-MX',{timeZone:'UTC',day:'2-digit',month:'short',year:'numeric'}) : '—';
 const getDias = c => { if(!c) return null; const d=Math.ceil((new Date(c)-new Date())/86400000); return d>0?d:0; };
 const getPct  = (r,m) => (!m||!parseFloat(m)) ? 0 : Math.min(100,Math.round((parseFloat(r)/parseFloat(m))*100));
 const isMeta  = c => parseFloat(c.metaRecaudacion||0)>0 && parseFloat(c.montoRecaudado||0)>=parseFloat(c.metaRecaudacion||1);
 const getClrs = c => COLORES[(c.id||0)%COLORES.length];
 
-// ─── EstadoBadge ──────────────────────────────────────────────────────────────
 const EstadoBadge = ({ campana, size='sm' }) => {
   const alc  = isMeta(campana);
   const info = ESTADO_INFO[campana.estado] || ESTADO_INFO.en_revision;
@@ -60,7 +57,6 @@ const EstadoBadge = ({ campana, size='sm' }) => {
   );
 };
 
-// ─── BarraProgreso ────────────────────────────────────────────────────────────
 const BarraProgreso = ({ campana, h=6 }) => {
   const p = getPct(campana.montoRecaudado, campana.metaRecaudacion);
   const alc = isMeta(campana);
@@ -83,9 +79,6 @@ const BarraProgreso = ({ campana, h=6 }) => {
   );
 };
 
-// ─── ApoyarModal ──────────────────────────────────────────────────────────────
-// Guarda la URL actual en localStorage antes de redirigir a MP
-// PagoExitoso.jsx lee 'capyme_return_url' y devuelve al usuario ahí
 const ApoyarModal = ({ campana, onClose }) => {
   const [monto,   setMonto]   = useState('');
   const [notas,   setNotas]   = useState('');
@@ -114,7 +107,6 @@ const ApoyarModal = ({ campana, onClose }) => {
       });
 
       if (mpRes.success && mpRes.init_point) {
-        // Guardar URL actual para regresar después del pago
         localStorage.setItem('capyme_return_url', window.location.pathname + window.location.search);
         window.location.href = mpRes.init_point;
       } else {
@@ -132,7 +124,6 @@ const ApoyarModal = ({ campana, onClose }) => {
       <div onClick={e=>e.stopPropagation()}
         style={{background:'#fff',borderRadius:'24px',width:'100%',maxWidth:'420px',overflow:'hidden',boxShadow:'0 32px 80px rgba(0,0,0,.25)'}}>
 
-        {/* Header */}
         <div style={{padding:'20px 24px',background:`linear-gradient(135deg,${c1},${c2})`,display:'flex',alignItems:'center',gap:'12px'}}>
           <div style={{width:'38px',height:'38px',borderRadius:'10px',background:'rgba(255,255,255,.2)',backdropFilter:'blur(8px)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
             <Heart style={{width:'20px',height:'20px',color:'#fff'}}/>
@@ -148,7 +139,6 @@ const ApoyarModal = ({ campana, onClose }) => {
           )}
         </div>
 
-        {/* Body */}
         <div style={{padding:'24px'}}>
           <div style={{marginBottom:'8px',fontSize:'13px',fontWeight:600,color:'var(--gray-500)',fontFamily:"'DM Sans',sans-serif"}}>¿Cuánto deseas aportar?</div>
 
@@ -169,7 +159,6 @@ const ApoyarModal = ({ campana, onClose }) => {
             </p>
           )}
 
-          {/* Pills de monto rápido */}
           <div style={{display:'flex',gap:'8px',marginBottom:'20px',flexWrap:'wrap'}}>
             {[500,1000,2500,5000].map(amt=>{
               const sel=String(monto)===String(amt);
@@ -186,7 +175,6 @@ const ApoyarModal = ({ campana, onClose }) => {
             })}
           </div>
 
-          {/* Nota opcional */}
           <div style={{marginBottom:'20px'}}>
             <label style={{display:'block',fontSize:'12px',fontWeight:600,color:'var(--gray-500)',marginBottom:'6px',fontFamily:"'DM Sans',sans-serif"}}>Mensaje para el emprendedor (opcional)</label>
             <textarea value={notas} onChange={e=>setNotas(e.target.value)} rows={2} disabled={loading}
@@ -194,7 +182,6 @@ const ApoyarModal = ({ campana, onClose }) => {
               style={{width:'100%',padding:'10px 12px',border:'1.5px solid var(--border)',borderRadius:'10px',fontSize:'13px',fontFamily:"'DM Sans',sans-serif",color:'var(--gray-900)',outline:'none',resize:'none',boxSizing:'border-box'}}/>
           </div>
 
-          {/* Resumen */}
           {monto && parseFloat(monto) > 0 && (
             <div style={{padding:'12px 16px',borderRadius:'12px',background:'var(--gray-50)',border:'1px solid var(--border)',marginBottom:'20px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
               <div>
@@ -233,7 +220,6 @@ const ApoyarModal = ({ campana, onClose }) => {
   );
 };
 
-// ─── CampanaCard ──────────────────────────────────────────────────────────────
 const CampanaCard = ({ campana:c, onClick, onEdit, onToggleEstado, onToggleActivo, onApoyar, esAdmin, esColab, currentUser }) => {
   const [hov, setHov] = useState(false);
   const d = getDias(c.fechaCierre);
@@ -320,7 +306,6 @@ const CampanaCard = ({ campana:c, onClick, onEdit, onToggleEstado, onToggleActiv
   );
 };
 
-// ─── CampanaDetalle ───────────────────────────────────────────────────────────
 const CampanaDetalle = ({ campana:c, currentUser, onBack, onApoyar }) => {
   const [inversores, setInversores] = useState([]);
   const [loading,    setLoading]    = useState(true);
@@ -465,7 +450,6 @@ const CampanaDetalle = ({ campana:c, currentUser, onBack, onApoyar }) => {
   );
 };
 
-// ─── EstadoDropdown ───────────────────────────────────────────────────────────
 const EstadoDropdown = ({ campana, pos, onSelect, onClose }) => {
   useEffect(()=>{ const fn=()=>onClose(); document.addEventListener('mousedown',fn); return ()=>document.removeEventListener('mousedown',fn); },[]);
   return (
@@ -484,7 +468,6 @@ const EstadoDropdown = ({ campana, pos, onSelect, onClose }) => {
   );
 };
 
-// ─── CampanaModal ─────────────────────────────────────────────────────────────
 const CampanaModal = ({ mode, campana, negocios, currentUser, onClose, onSave }) => {
   const esCliente=currentUser.rol==='cliente';
   const metaBloq=mode==='edit'&&esCliente&&parseFloat(campana?.montoRecaudado||0)>0;
@@ -513,7 +496,7 @@ const CampanaModal = ({ mode, campana, negocios, currentUser, onClose, onSave })
           <div style={{gridColumn:'1 / -1'}}><label style={lbl}>Negocio *</label><select value={form.negocioId} onChange={e=>setForm(p=>({...p,negocioId:e.target.value}))} disabled={mode==='edit'&&esCliente} style={{...inp,appearance:'none',cursor:mode==='edit'&&esCliente?'not-allowed':'pointer',...(errors.negocioId?{borderColor:'#EF4444'}:{})}}><option value="">Seleccionar...</option>{negocios.map(n=><option key={n.id} value={n.id}>{n.nombreNegocio}</option>)}</select><Err k="negocioId"/></div>
           <div style={{gridColumn:'1 / -1'}}><label style={lbl}>Descripción breve</label><textarea value={form.descripcion} onChange={e=>setForm(p=>({...p,descripcion:e.target.value}))} rows={2} placeholder="Resumen de tu proyecto..." style={{...inp,resize:'vertical'}}/></div>
           <div style={{gridColumn:'1 / -1'}}><label style={lbl}>Historia del proyecto</label><textarea value={form.historia} onChange={e=>setForm(p=>({...p,historia:e.target.value}))} rows={3} placeholder="Cuenta la historia de tu negocio..." style={{...inp,resize:'vertical'}}/></div>
-          <div><label style={lbl}>Meta de recaudación (MXN) *</label><input type="number" value={form.metaRecaudacion} disabled={metaBloq} onChange={e=>setForm(p=>({...p,metaRecaudacion:e.target.value}))} placeholder="0" style={{...inp,...(metaBloq?{background:'var(--gray-50)',cursor:'not-allowed'}:{}),...(errors.metaRecaudacion?{borderColor:'#EF4444'}:{})}}/>{metaBloq&&<p style={{margin:'3px 0 0',fontSize:'11px',color:'var(--gray-400)',fontFamily:"'DM Sans',sans-serif"}}>No editable: campaña con fondos</p>}<Err k="metaRecaudacion"/></div>
+          <div><label style={lbl}>Meta de recaudación (MXN) *</label><input type="number" value={form.metaRecaudacion} disabled={metaBloq} onChange={e=>setForm(p=>({...p,metaRecaudacion:e.target.value}))} placeholder="0" style={{...inp,...(metaBloq?{background:'var(--gray-50)',cursor:'not-allowed'}:{}),...(errors.metaRecaudacion?{borderColor:'#EF4444'}:{})}}/>{metaBloq&&<p style={{margin:'3px 0 0',fontSize:'11px',color:'var(--gray-400)',fontFamily:"'DM Sans',sans-serif"}}>No editable: campaña con fondos</p><Err k="metaRecaudacion"/></div>
           <div/>
           <div><label style={lbl}>Fecha de inicio</label><input type="date" value={form.fechaInicio} onChange={e=>setForm(p=>({...p,fechaInicio:e.target.value}))} style={inp}/></div>
           <div><label style={lbl}>Fecha de cierre</label><input type="date" value={form.fechaCierre} onChange={e=>setForm(p=>({...p,fechaCierre:e.target.value}))} style={inp}/></div>
@@ -529,7 +512,6 @@ const CampanaModal = ({ mode, campana, negocios, currentUser, onClose, onSave })
   );
 };
 
-// ─── TablaAdmin ───────────────────────────────────────────────────────────────
 const TablaAdmin = ({ campanas, onEdit, onToggleEstado, onToggleActivo, esAdmin }) => {
   const [hovRow,setHovRow]=useState(null);
   if(!campanas.length) return <div style={{textAlign:'center',padding:'60px',color:'var(--gray-400)',fontSize:'14px',fontFamily:"'DM Sans',sans-serif"}}>No hay campañas</div>;
@@ -586,7 +568,6 @@ const TablaAdmin = ({ campanas, onEdit, onToggleEstado, onToggleActivo, esAdmin 
   );
 };
 
-// ─── PÁGINA PRINCIPAL ─────────────────────────────────────────────────────────
 const Campanas = () => {
   const authStorage = JSON.parse(localStorage.getItem('auth-storage')||'{}');
   const currentUser = authStorage?.state?.user || {};

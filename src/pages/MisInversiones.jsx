@@ -9,7 +9,7 @@ import Layout from '../components/common/Layout';
 import { inversionesService } from '../services/inversionesService';
 
 const fmtM = v => new Intl.NumberFormat('es-MX',{style:'currency',currency:'MXN',maximumFractionDigits:0}).format(v||0);
-const fmtD = d => d ? new Date(d).toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'}) : '—';
+const fmtD = d => d ? new Date(d).toLocaleDateString('es-MX',{timeZone:'UTC',day:'2-digit',month:'short',year:'numeric'}) : '—';
 const getPct = (r, m) => {
   const numR = parseFloat(r) || 0;
   const numM = parseFloat(m) || 0;
@@ -143,14 +143,14 @@ const InvCard = ({ inv, onVerCampana }) => {
                 <>
                   <div style={{display:'flex',flexDirection:'column',gap:'4px'}}>
                     {recRecibida ? (
-                      <div style={{fontSize:'12px',fontWeight:700,color:'#10B981',fontFamily:"'DM Sans',sans-serif"}}>Recompensa entregada ✓</div>
-                    ) : recEnviada ? (
+                      <div style={{fontSize:'12px',fontWeight:700,color:'#10B981',fontFamily:"'DM Sans',sans-serif"}}>Recompensa recibida ✓</div>
+                    ) : (
                       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                        <div style={{fontSize:'11px',fontWeight:700,color:tipoInfo.color,fontFamily:"'DM Sans',sans-serif"}}>El creador indicó el envío</div>
+                        <div style={{fontSize:'11px',fontWeight:700,color:tipoInfo.color,fontFamily:"'DM Sans',sans-serif", maxWidth:'120px'}}>
+                          {recEnviada ? 'El creador indicó el envío' : 'Recompensa pendiente'}
+                        </div>
                         <button onClick={handleConfirmarRecepcion} style={{background:tipoInfo.color,color:'#fff',border:'none',padding:'4px 8px',borderRadius:'6px',fontSize:'10px',cursor:'pointer',fontWeight:'bold'}}>Ya la recibí</button>
                       </div>
-                    ) : (
-                      <div style={{fontSize:'12px',fontWeight:700,color:tipoInfo.color,fontFamily:"'DM Sans',sans-serif"}}>Recompensa pendiente</div>
                     )}
                   </div>
                   {campana?.recompensaDesc && !recRecibida && <div style={{fontSize:'11px',color:'var(--gray-500)',fontFamily:"'DM Sans',sans-serif",marginTop:'4px',lineHeight:1.4,display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical',overflow:'hidden'}}>{campana.recompensaDesc}</div>}
