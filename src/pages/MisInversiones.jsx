@@ -8,11 +8,14 @@ import {
 import Layout from '../components/common/Layout';
 import { inversionesService } from '../services/inversionesService';
 
-// ─── Utils ────────────────────────────────────────────────────────────────────
-const fmtM  = v => new Intl.NumberFormat('es-MX',{style:'currency',currency:'MXN',maximumFractionDigits:0}).format(v||0);
-const fmtD  = d => d ? new Date(d).toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'}) : '—';
-const getPct= (r,m) => (!m||!parseFloat(m)) ? 0 : Math.min(100,Math.round((parseFloat(r)/parseFloat(m))*100));
-const isMeta= c => parseFloat(c?.metaRecaudacion||0)>0 && parseFloat(c?.montoRecaudado||0)>=parseFloat(c?.metaRecaudacion||1);
+const fmtM = v => new Intl.NumberFormat('es-MX',{style:'currency',currency:'MXN',maximumFractionDigits:0}).format(v||0);
+const fmtD = d => d ? new Date(d).toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'}) : '—';
+const getPct = (r, m) => {
+  const numR = parseFloat(r) || 0;
+  const numM = parseFloat(m) || 0;
+  return numM <= 0 ? 0 : Math.min(100, Math.round((numR / numM) * 100));
+};
+const isMeta = c => parseFloat(c?.metaRecaudacion||0)>0 && parseFloat(c?.montoRecaudado||0)>=parseFloat(c?.metaRecaudacion||1);
 
 const COLORES = [
   ['#667EEA','#764BA2'], ['#11998E','#38EF7D'], ['#F093FB','#F5576C'],
@@ -32,7 +35,6 @@ const TIPO_INFO = {
   lending: { label:'Préstamo',   icon:Percent, color:'#8B5CF6', bg:'#F5F3FF' },
 };
 
-// ─── Mini donut ───────────────────────────────────────────────────────────────
 const MiniDonut = ({ pct, color1, color2, size=64 }) => {
   const r=24, cx=32, cy=32, stroke=6;
   const circ=2*Math.PI*r;
@@ -54,23 +56,28 @@ const MiniDonut = ({ pct, color1, color2, size=64 }) => {
   );
 };
 
-// ─── Card de inversión ────────────────────────────────────────────────────────
 const InvCard = ({ inv, onVerCampana }) => {
   const [hov, setHov] = useState(false);
-  const campana=inv.campana;
-  const [c1,c2]=getClr(campana?.id);
-  const estadoInfo=ESTADO_PAGO[inv.estadoPago]||ESTADO_PAGO.pendiente;
-  const tipoInfo=TIPO_INFO[campana?.tipoCrowdfunding]||TIPO_INFO.reward;
-  const TipoIcon=tipoInfo.icon;
-  const pctCampana=getPct(campana?.montoRecaudado,campana?.metaRecaudacion);
-  const alc=isMeta(campana);
+  const [recEntregada, setRecEntregada] = useState(inv.recompensaEntregada || false);
+  const campana = inv.campana;
+  const [c1, c2] = getClr(campana?.id);
+  const estadoInfo = ESTADO_PAGO[inv.estadoPago]||ESTADO_PAGO.pendiente;
+  const tipoInfo = TIPO_INFO[campana?.tipoCrowdfunding]||TIPO_INFO.reward;
+  const TipoIcon = tipoInfo.icon;
+  const pctCampana = getPct(campana?.montoRecaudado, campana?.metaRecaudacion);
+  const alc = isMeta(campana);
 
-  const retorno=campana?.tipoCrowdfunding==='lending'&&campana?.interesPct
+  const retorno = campana?.tipoCrowdfunding==='lending' && campana?.interesPct
     ? parseFloat(inv.monto)*(1+parseFloat(campana.interesPct)/100)
     : null;
-  const diasRetorno=campana?.plazoRetornoDias&&inv.fechaCreacion
+  const diasRetorno = campana?.plazoRetornoDias && inv.fechaCreacion
     ? Math.max(0,campana.plazoRetornoDias-Math.floor((new Date()-new Date(inv.fechaCreacion))/86400000))
     : null;
+
+  const toggleRecompensa = async () => {
+    setRecEntregada(!recEntregada);
+    toast.success(!recEntregada ? 'Recompensa marcada como recibida' : 'Recompensa marcada como pendiente');
+  };
 
   return (
     <div onMouseEnter={()=>setHov(true)} onMouseLeave={()=>setHov(false)} style={{
@@ -116,8 +123,8 @@ const InvCard = ({ inv, onVerCampana }) => {
         </div>
 
         {inv.estadoPago==='confirmado'&&(
-          <div style={{padding:'10px 12px',borderRadius:'12px',background:tipoInfo.bg,border:`1px solid ${tipoInfo.color}30`,display:'flex',alignItems:'center',gap:'10px'}}>
-            <TipoIcon style={{width:'16px',height:'16px',color:tipoInfo.color,flexShrink:0}}/>
+          <div style={{padding:'10px 12px',borderRadius:'12px',background: recEntregada ? '#ECFDF5' : tipoInfo.bg,border:`1px solid ${recEntregada ? '#10B981' : tipoInfo.color}30`,display:'flex',alignItems:'flex-start',gap:'10px'}}>
+            <TipoIcon style={{width:'16px',height:'16px',color:recEntregada ? '#10B981' : tipoInfo.color,flexShrink:0, marginTop: '2px'}}/>
             <div style={{flex:1}}>
               {campana?.tipoCrowdfunding==='lending'&&retorno?(
                 <>
@@ -126,8 +133,28 @@ const InvCard = ({ inv, onVerCampana }) => {
                 </>
               ):(
                 <>
-                  <div style={{fontSize:'12px',fontWeight:700,color:tipoInfo.color,fontFamily:"'DM Sans',sans-serif"}}>Recompensa pendiente</div>
-                  {campana?.recompensaDesc&&<div style={{fontSize:'11px',color:'var(--gray-500)',fontFamily:"'DM Sans',sans-serif",marginTop:'2px',lineHeight:1.4,display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical',overflow:'hidden'}}>{campana.recompensaDesc}</div>}
+                  <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                    <div style={{fontSize:'12px',fontWeight:700,color:recEntregada ? '#10B981' : tipoInfo.color,fontFamily:"'DM Sans',sans-serif"}}>
+                      {recEntregada ? 'Recompensa entregada ✓' : 'Recompensa pendiente'}
+                    </div>
+                    <button
+                      onClick={toggleRecompensa}
+                      style={{
+                        background: recEntregada ? 'transparent' : tipoInfo.color,
+                        color: recEntregada ? 'var(--gray-500)' : '#fff',
+                        border: recEntregada ? '1px solid var(--border)' : 'none',
+                        padding: '4px 8px',
+                        borderRadius: '6px',
+                        fontSize: '10px',
+                        cursor: 'pointer',
+                        fontWeight: 'bold',
+                        transition: 'all 0.2s'
+                      }}
+                    >
+                      {recEntregada ? 'Deshacer' : 'Ya la recibí'}
+                    </button>
+                  </div>
+                  {campana?.recompensaDesc && !recEntregada && <div style={{fontSize:'11px',color:'var(--gray-500)',fontFamily:"'DM Sans',sans-serif",marginTop:'4px',lineHeight:1.4,display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical',overflow:'hidden'}}>{campana.recompensaDesc}</div>}
                 </>
               )}
             </div>
@@ -145,7 +172,6 @@ const InvCard = ({ inv, onVerCampana }) => {
   );
 };
 
-// ─── Card de campaña seguida ──────────────────────────────────────────────────
 const CampanaSeguida = ({ campana:c, miInversion, onClick }) => {
   const [c1,c2]=getClr(c.id);
   const alc=isMeta(c);
@@ -179,7 +205,6 @@ const CampanaSeguida = ({ campana:c, miInversion, onClick }) => {
   );
 };
 
-// ─── PÁGINA PRINCIPAL ─────────────────────────────────────────────────────────
 const MisInversiones = () => {
   const [inversiones, setInversiones] = useState([]);
   const [loading,     setLoading]     = useState(true);
@@ -243,8 +268,8 @@ const MisInversiones = () => {
 
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(180px,1fr))',gap:'14px',marginBottom:'28px'}}>
           {[
-            {icon:Heart,      label:'Total invertido',   value:fmtM(totalInvertido),   color:'#EF4444', sub:`${confirmadas.length} confirmadas`},
-            {icon:TrendingUp, label:'Retorno esperado',  value:fmtM(retornoEsperado),  color:'#8B5CF6', sub:'de préstamos activos'},
+            {icon:Heart,      label:'Total invertido',   value:fmtM(totalInvertido),  color:'#EF4444', sub:`${confirmadas.length} confirmadas`},
+            {icon:TrendingUp, label:'Retorno esperado',  value:fmtM(retornoEsperado), color:'#8B5CF6', sub:'de préstamos activos'},
             {icon:Megaphone,  label:'Campañas apoyadas', value:campanasUnicas.size,     color:'var(--capyme-blue-mid)', sub:'proyectos únicos'},
             {icon:Clock,      label:'Pendientes',        value:pendientes.length,        color:'#F59E0B', sub:'por confirmar'},
             {icon:Trophy,     label:'Metas alcanzadas',  value:porCampana.filter(p=>isMeta(p.campana)).length, color:'#7C3AED', sub:'campañas completadas'},
@@ -264,15 +289,12 @@ const MisInversiones = () => {
         </div>
 
         <div style={{display:'grid',gridTemplateColumns:'1fr 340px',gap:'24px',alignItems:'start'}}>
-
-          {/* Columna principal */}
           <div>
             <div style={{display:'flex',gap:'8px',marginBottom:'20px',flexWrap:'wrap'}}>
               {[
-                {v:'resumen',     l:'🏠 Resumen'},
-                {v:'todas',       l:'📋 Todas'},
+                {v:'resumen',   l:'🏠 Resumen'},
+                {v:'todas',     l:'📋 Todas'},
                 {v:'pendientes',  l:'⏳ Pendientes'},
-                {v:'lending',     l:'💜 Préstamos'},
                 {v:'reward',      l:'🎁 Recompensas'},
                 {v:'completadas', l:'🏆 Completadas'},
               ].map(({v,l})=>(
@@ -327,9 +349,7 @@ const MisInversiones = () => {
             )}
           </div>
 
-          {/* Columna derecha */}
           <div style={{position:'sticky',top:'20px',display:'flex',flexDirection:'column',gap:'16px'}}>
-
             <div style={{borderRadius:'16px',border:'1px solid var(--border)',background:'#fff',padding:'20px',boxShadow:'0 4px 20px rgba(0,0,0,.06)'}}>
               <h3 style={{fontSize:'14px',fontWeight:800,color:'var(--gray-900)',fontFamily:"'Plus Jakarta Sans',sans-serif",margin:'0 0 16px',display:'flex',alignItems:'center',gap:'8px'}}>
                 <BarChart2 style={{width:'15px',height:'15px',color:'var(--capyme-blue-mid)'}}/> Mi cartera
