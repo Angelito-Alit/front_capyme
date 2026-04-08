@@ -1,4 +1,3 @@
-// src/pages/Campanas.jsx
 import { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
 import {
@@ -184,14 +183,29 @@ const ApoyarModal = ({ campana, onClose }) => {
           </div>
 
           {monto && parseFloat(monto) > 0 && (
-            <div style={{padding:'12px 16px',borderRadius:'12px',background:'var(--gray-50)',border:'1px solid var(--border)',marginBottom:'20px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-              <div>
-                <div style={{fontSize:'11px',color:'var(--gray-400)',fontFamily:"'DM Sans',sans-serif",textTransform:'uppercase',letterSpacing:'.05em'}}>Total a pagar</div>
-                <div style={{fontSize:'22px',fontWeight:900,color:'var(--gray-900)',fontFamily:"'Plus Jakarta Sans',sans-serif"}}>{fmtM(monto)}</div>
+            <div style={{padding:'12px 16px',borderRadius:'12px',background:'var(--gray-50)',border:'1px solid var(--border)',marginBottom:'20px',display:'flex',flexDirection:'column',gap:'8px'}}>
+              <div style={{display:'flex',justifyContent:'space-between',fontSize:'13px',color:'var(--gray-600)',fontFamily:"'DM Sans',sans-serif"}}>
+                <span>Aportación bruta</span>
+                <span>{fmtM(monto)}</span>
               </div>
-              <div style={{display:'flex',alignItems:'center',gap:'6px',fontSize:'12px',color:'var(--gray-500)',fontFamily:"'DM Sans',sans-serif",fontWeight:600}}>
-                <CreditCard style={{width:'15px',height:'15px',color:'var(--capyme-blue-mid)'}}/>
-                Mercado Pago
+              <div style={{display:'flex',justifyContent:'space-between',fontSize:'13px',color:'#EF4444',fontFamily:"'DM Sans',sans-serif"}}>
+                <span>Comisión de plataforma (5%)</span>
+                <span>-{fmtM(parseFloat(monto) * 0.05)}</span>
+              </div>
+              <div style={{display:'flex',justifyContent:'space-between',fontSize:'13px',color:'var(--capyme-blue-mid)',fontWeight:700,fontFamily:"'DM Sans',sans-serif"}}>
+                <span>Neto para la campaña</span>
+                <span>{fmtM(parseFloat(monto) * 0.95)}</span>
+              </div>
+              <div style={{height:'1px',background:'var(--border)',margin:'4px 0'}}/>
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                <div>
+                  <div style={{fontSize:'11px',color:'var(--gray-400)',fontFamily:"'DM Sans',sans-serif",textTransform:'uppercase',letterSpacing:'.05em'}}>Total a pagar</div>
+                  <div style={{fontSize:'22px',fontWeight:900,color:'var(--gray-900)',fontFamily:"'Plus Jakarta Sans',sans-serif"}}>{fmtM(monto)}</div>
+                </div>
+                <div style={{display:'flex',alignItems:'center',gap:'6px',fontSize:'12px',color:'var(--gray-500)',fontFamily:"'DM Sans',sans-serif",fontWeight:600}}>
+                  <CreditCard style={{width:'15px',height:'15px',color:'var(--capyme-blue-mid)'}}/>
+                  Mercado Pago
+                </div>
               </div>
             </div>
           )}
@@ -500,6 +514,19 @@ const CampanaModal = ({ mode, campana, negocios, currentUser, onClose, onSave })
           <div>
             <label style={lbl}>Meta de recaudación (MXN) *</label>
             <input type="number" value={form.metaRecaudacion} disabled={metaBloq} onChange={e=>setForm(p=>({...p,metaRecaudacion:e.target.value}))} placeholder="0" style={{...inp,...(metaBloq?{background:'var(--gray-50)',cursor:'not-allowed'}:{}),...(errors.metaRecaudacion?{borderColor:'#EF4444'}:{})}}/>
+            {form.metaRecaudacion && parseFloat(form.metaRecaudacion) > 0 && (
+              <div style={{marginTop:'8px',padding:'10px',background:'var(--capyme-blue-pale)',borderRadius:'8px',border:'1px solid var(--capyme-blue-mid)'}}>
+                <div style={{fontSize:'12px',display:'flex',justifyContent:'space-between',color:'var(--gray-700)',marginBottom:'4px'}}>
+                  <span>Meta bruta:</span> <span>{fmtM(form.metaRecaudacion)}</span>
+                </div>
+                <div style={{fontSize:'12px',display:'flex',justifyContent:'space-between',color:'#EF4444',marginBottom:'4px'}}>
+                  <span>Comisión plataforma (5%):</span> <span>-{fmtM(parseFloat(form.metaRecaudacion) * 0.05)}</span>
+                </div>
+                <div style={{fontSize:'12px',display:'flex',justifyContent:'space-between',color:'var(--gray-900)',fontWeight:700}}>
+                  <span>Monto neto a recibir:</span> <span>{fmtM(parseFloat(form.metaRecaudacion) * 0.95)}</span>
+                </div>
+              </div>
+            )}
             {metaBloq&&<p style={{margin:'3px 0 0',fontSize:'11px',color:'var(--gray-400)',fontFamily:"'DM Sans',sans-serif"}}>No editable: campaña con fondos</p>}
             <Err k="metaRecaudacion"/>
           </div>
