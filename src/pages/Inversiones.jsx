@@ -9,7 +9,6 @@ import {
 import Layout from '../components/common/Layout';
 import { inversionesService } from '../services/inversionesService';
 
-// ─── Utils ────────────────────────────────────────────────────────────────────
 const fmtM  = v => new Intl.NumberFormat('es-MX',{style:'currency',currency:'MXN',maximumFractionDigits:0}).format(v||0);
 const fmtD  = d => d ? new Date(d).toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'}) : '—';
 
@@ -26,7 +25,6 @@ const COLORES_CAMPANA = [
 ];
 const getClr = id => COLORES_CAMPANA[(id||0)%COLORES_CAMPANA.length];
 
-// ─── Mini gráfica de barras (SVG nativo) ─────────────────────────────────────
 const BarChart = ({ data, color='#3B82F6', height=80 }) => {
   if (!data.length) return null;
   const max = Math.max(...data.map(d=>d.value), 1);
@@ -52,7 +50,6 @@ const BarChart = ({ data, color='#3B82F6', height=80 }) => {
   );
 };
 
-// ─── Donut SVG nativo ─────────────────────────────────────────────────────────
 const DonutChart = ({ slices, size=120 }) => {
   const r   = 40, cx=60, cy=60, stroke=14;
   const circ = 2*Math.PI*r;
@@ -87,7 +84,6 @@ const DonutChart = ({ slices, size=120 }) => {
   );
 };
 
-// ─── Stat card ────────────────────────────────────────────────────────────────
 const StatCard = ({ icon:Icon, label, value, sub, color, gradient }) => (
   <div style={{padding:'18px 20px',borderRadius:'16px',background:gradient||'#fff',border:'1px solid var(--border)',boxShadow:'0 2px 8px rgba(0,0,0,.05)',display:'flex',flexDirection:'column',gap:'6px'}}>
     <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
@@ -102,7 +98,6 @@ const StatCard = ({ icon:Icon, label, value, sub, color, gradient }) => (
   </div>
 );
 
-// ─── Fila de inversión en la tabla ────────────────────────────────────────────
 const InvRow = ({ inv, hov, setHov }) => {
   const campana = inv.campana;
   const [c1,c2] = getClr(campana?.id);
@@ -151,7 +146,6 @@ const InvRow = ({ inv, hov, setHov }) => {
   );
 };
 
-// ─── PÁGINA PRINCIPAL ─────────────────────────────────────────────────────────
 const Inversiones = () => {
   const [inversiones, setInversiones] = useState([]);
   const [loading,     setLoading]     = useState(true);
@@ -170,14 +164,12 @@ const Inversiones = () => {
     finally { setLoading(false); }
   };
 
-  // ── Métricas ──
   const confirmadas = inversiones.filter(i=>i.estadoPago==='confirmado'&&i.activo);
   const pendientes  = inversiones.filter(i=>i.estadoPago==='pendiente'&&i.activo);
   const totalInvertido  = confirmadas.reduce((a,i)=>a+parseFloat(i.monto||0),0);
   const promedioInv     = confirmadas.length ? totalInvertido/confirmadas.length : 0;
   const campanasUnicas  = new Set(confirmadas.map(i=>i.campanaId)).size;
 
-  // Distribución por campaña (top 6) para donut
   const porCampana = Object.values(
     confirmadas.reduce((acc,i)=>{
       const k = i.campanaId;
@@ -194,7 +186,6 @@ const Inversiones = () => {
     label: c.titulo,
   }));
 
-  // Evolución mensual (últimos 6 meses)
   const mesesData = (() => {
     const meses = [];
     for(let i=5;i>=0;i--){
@@ -209,7 +200,6 @@ const Inversiones = () => {
     return meses;
   })();
 
-  // Filtro tabla
   const invFiltradas = inversiones.filter(i=>{
     const ms = !search || i.referencia?.toLowerCase().includes(search.toLowerCase()) ||
       i.inversor?.nombre?.toLowerCase().includes(search.toLowerCase()) ||

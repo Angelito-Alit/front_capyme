@@ -13,9 +13,8 @@ export default function Login() {
   const [contacto, setContacto] = useState(null);
 
   useEffect(() => {
-    // Endpoint público — no requiere token
     axios
-      .get(`${import.meta.env.VITE_API_URL || "http://localhost:3000/api"}/contacto`)
+      .get(`${import.meta.env.VITE_API_URL }/contacto`)
       .then((res) => {
         if (res.data?.success && res.data?.data) {
           setContacto(res.data.data);

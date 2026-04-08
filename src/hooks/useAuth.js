@@ -22,7 +22,6 @@ export const useAuth = () => {
         setAuth(response.data.usuario, response.data.token);
         toast.success('¡Bienvenido!');
         
-        // Redirigir según rol
         if (response.data.usuario.rol === 'admin' || response.data.usuario.rol === 'colaborador') {
           navigate('/dashboard');
         } else {

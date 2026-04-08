@@ -21,7 +21,6 @@ export const usuariosService = {
     return response.data;
   },
 
-  // ← PATCH, no PUT
   toggleActivo: async (id) => {
     const response = await api.patch(`/usuarios/${id}/toggle-activo`);
     return response.data;

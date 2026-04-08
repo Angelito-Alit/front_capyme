@@ -58,11 +58,9 @@ const PagoExitoso = () => {
   }, []);
 
   const handleContinuar = () => {
-    // Leer URL guardada antes de ir a MP
     const returnUrl = localStorage.getItem('capyme_return_url') || '/campanas';
     localStorage.removeItem('capyme_return_url');
 
-    // Verificar si hay sesión activa en localStorage
     const authRaw = localStorage.getItem('auth-storage');
     const authData = authRaw ? JSON.parse(authRaw) : null;
     const isLoggedIn = !!authData?.state?.user?.id;
@@ -70,7 +68,6 @@ const PagoExitoso = () => {
     if (isLoggedIn) {
       navigate(returnUrl, { replace: true });
     } else {
-      // Guardar a dónde ir después del login
       localStorage.setItem('capyme_post_login_url', returnUrl);
       navigate('/login', { replace: true });
     }

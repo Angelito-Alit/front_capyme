@@ -2,18 +2,13 @@ import { useEffect, useState } from 'react';
 import { useAuthStore } from '../store/authStore';
 import { ShieldOff, Mail, MessageCircle, X } from 'lucide-react';
 
-/**
- * InactivoModal
- * Se muestra automáticamente cuando el backend responde que el usuario está inactivo.
- * Lee los datos de contacto del primer administrador guardados en el store.
- */
+
 const InactivoModal = () => {
   const { inactivoModal, inactivoContacto, cerrarInactivoModal, logout } = useAuthStore();
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
     if (inactivoModal) {
-      // pequeño delay para la animación de entrada
       requestAnimationFrame(() => setVisible(true));
     } else {
       setVisible(false);

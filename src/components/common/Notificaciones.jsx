@@ -18,7 +18,7 @@ const Notificaciones = () => {
 
   useEffect(() => {
     cargar();
-    const interval = setInterval(cargar, 30000); // polling cada 30s
+    const interval = setInterval(cargar, 30000);
     return () => clearInterval(interval);
   }, []);
 
