@@ -240,7 +240,7 @@ const CampanaCard = ({ campana:c, onClick, onEdit, onToggleEstado, onToggleActiv
   const d = getDias(c.fechaCierre);
   const [c1,c2] = getClrs(c);
   const alc = isMeta(c);
-  const esDueno = c.negocio?.usuarioId === currentUser.id;
+  const esDueno = c.negocio?.usuarioId === currentUser?.id;
   const puedeApoyar = !alc && c.activo && !esDueno && (c.estado==='aprobada'||c.estado==='activa');
   const puedeEditar = esAdmin || esDueno;
 
@@ -329,7 +329,8 @@ const CampanaDetalle = ({ campana:c, currentUser, onBack, onApoyar }) => {
   const d = getDias(c.fechaCierre);
   const [c1,c2] = getClrs(c);
   const porcentaje = getPct(c.montoRecaudado, c.metaRecaudacion);
-  const esDueno = c.negocio?.usuarioId === currentUser.id;
+  const esDueno = c.negocio?.usuarioId === currentUser?.id;
+  const puedeVerInversores = esDueno || currentUser?.rol === 'admin';
   const puedeApoyar = !alc && c.activo && !esDueno && (c.estado==='aprobada'||c.estado==='activa');
 
   useEffect(()=>{
@@ -377,35 +378,40 @@ const CampanaDetalle = ({ campana:c, currentUser, onBack, onApoyar }) => {
               <p style={{fontSize:'14px',color:'var(--gray-600)',lineHeight:1.7,fontFamily:"'DM Sans',sans-serif",margin:0,whiteSpace:'pre-line'}}>{c.historia}</p>
             </div>
           )}
-          <h2 style={{fontSize:'16px',fontWeight:800,color:'var(--gray-900)',fontFamily:"'Plus Jakarta Sans',sans-serif",margin:'0 0 14px',display:'flex',alignItems:'center',gap:'8px'}}>
-            <Users style={{width:'16px',height:'16px',color:'var(--gray-400)'}}/> Inversores ({confirmed.length})
-          </h2>
-          {loading?(
-            <div style={{textAlign:'center',padding:'24px',color:'var(--gray-400)',fontSize:'13px'}}>Cargando...</div>
-          ):confirmed.length===0?(
-            <div style={{padding:'24px',borderRadius:'12px',border:'1.5px dashed var(--border)',textAlign:'center',color:'var(--gray-400)',fontSize:'13px',fontFamily:"'DM Sans',sans-serif"}}>
-              {puedeApoyar?'Sé el primero en apoyar esta campaña 🚀':'Aún no hay inversores registrados'}
-            </div>
-          ):(
-            <div style={{display:'flex',flexDirection:'column',gap:'8px'}}>
-              {confirmed.map(inv=>{
-                const ini=`${inv.inversor?.nombre?.[0]||''}${inv.inversor?.apellido?.[0]||''}`.toUpperCase();
-                const esMio=inv.inversorId===currentUser.id;
-                return (
-                  <div key={inv.id} style={{display:'flex',alignItems:'center',gap:'12px',padding:'10px 14px',borderRadius:'10px',background:esMio?'linear-gradient(135deg,var(--capyme-blue-pale),#F0FDF4)':'var(--gray-50)',border:`1px solid ${esMio?'var(--capyme-blue-mid)':'transparent'}`}}>
-                    <div style={{width:'34px',height:'34px',borderRadius:'10px',flexShrink:0,background:`linear-gradient(135deg,${c1},${c2})`,display:'flex',alignItems:'center',justifyContent:'center',color:'#fff',fontSize:'12px',fontWeight:700,fontFamily:"'Plus Jakarta Sans',sans-serif"}}>{ini}</div>
-                    <div style={{flex:1}}>
-                      <div style={{fontSize:'13px',fontWeight:600,color:'var(--gray-900)',fontFamily:"'DM Sans',sans-serif"}}>
-                        {esMio&&!esDueno?'Tú':`${inv.inversor?.nombre} ${inv.inversor?.apellido?.[0]}.`}
-                        {esMio&&<span style={{marginLeft:'6px',fontSize:'10px',background:'var(--capyme-blue-mid)',color:'#fff',padding:'1px 6px',borderRadius:'4px',fontWeight:700}}>TÚ</span>}
+
+          {puedeVerInversores && (
+            <>
+              <h2 style={{fontSize:'16px',fontWeight:800,color:'var(--gray-900)',fontFamily:"'Plus Jakarta Sans',sans-serif",margin:'0 0 14px',display:'flex',alignItems:'center',gap:'8px'}}>
+                <Users style={{width:'16px',height:'16px',color:'var(--gray-400)'}}/> Inversores ({confirmed.length})
+              </h2>
+              {loading?(
+                <div style={{textAlign:'center',padding:'24px',color:'var(--gray-400)',fontSize:'13px'}}>Cargando...</div>
+              ):confirmed.length===0?(
+                <div style={{padding:'24px',borderRadius:'12px',border:'1.5px dashed var(--border)',textAlign:'center',color:'var(--gray-400)',fontSize:'13px',fontFamily:"'DM Sans',sans-serif"}}>
+                  Aún no hay inversores registrados
+                </div>
+              ):(
+                <div style={{display:'flex',flexDirection:'column',gap:'8px'}}>
+                  {confirmed.map(inv=>{
+                    const ini=`${inv.inversor?.nombre?.[0]||''}${inv.inversor?.apellido?.[0]||''}`.toUpperCase();
+                    const esMio=inv.inversorId===currentUser?.id;
+                    return (
+                      <div key={inv.id} style={{display:'flex',alignItems:'center',gap:'12px',padding:'10px 14px',borderRadius:'10px',background:esMio?'linear-gradient(135deg,var(--capyme-blue-pale),#F0FDF4)':'var(--gray-50)',border:`1px solid ${esMio?'var(--capyme-blue-mid)':'transparent'}`}}>
+                        <div style={{width:'34px',height:'34px',borderRadius:'10px',flexShrink:0,background:`linear-gradient(135deg,${c1},${c2})`,display:'flex',alignItems:'center',justifyContent:'center',color:'#fff',fontSize:'12px',fontWeight:700,fontFamily:"'Plus Jakarta Sans',sans-serif"}}>{ini}</div>
+                        <div style={{flex:1}}>
+                          <div style={{fontSize:'13px',fontWeight:600,color:'var(--gray-900)',fontFamily:"'DM Sans',sans-serif"}}>
+                            {esMio&&!esDueno?'Tú':`${inv.inversor?.nombre} ${inv.inversor?.apellido?.[0]}.`}
+                            {esMio&&<span style={{marginLeft:'6px',fontSize:'10px',background:'var(--capyme-blue-mid)',color:'#fff',padding:'1px 6px',borderRadius:'4px',fontWeight:700}}>TÚ</span>}
+                          </div>
+                          <div style={{fontSize:'11px',color:'var(--gray-400)',fontFamily:"'DM Sans',sans-serif"}}>{fmtD(inv.fechaCreacion)}</div>
+                        </div>
+                        <div style={{fontSize:'14px',fontWeight:800,color:'var(--gray-900)',fontFamily:"'Plus Jakarta Sans',sans-serif"}}>{fmtM(inv.monto)}</div>
                       </div>
-                      <div style={{fontSize:'11px',color:'var(--gray-400)',fontFamily:"'DM Sans',sans-serif"}}>{fmtD(inv.fechaCreacion)}</div>
-                    </div>
-                    <div style={{fontSize:'14px',fontWeight:800,color:'var(--gray-900)',fontFamily:"'Plus Jakarta Sans',sans-serif"}}>{fmtM(inv.monto)}</div>
-                  </div>
-                );
-              })}
-            </div>
+                    );
+                  })}
+                </div>
+              )}
+            </>
           )}
         </div>
 
