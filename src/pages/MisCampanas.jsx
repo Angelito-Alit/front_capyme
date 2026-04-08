@@ -1,25 +1,27 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
 import {
-  Megaphone, Plus, TrendingUp, Users, Clock, Trophy, Edit2,
-  X, AlertCircle,
-  Bell, Send, Eye, Target, DollarSign,
-  Gift, Sparkles, Info,
+  Search, Plus, Users, Clock, ArrowLeft, Heart, Share2,
+  CheckCircle, Edit2, ToggleLeft, ToggleRight, ChevronDown,
+  X, Star, Megaphone, LayoutGrid, Table2, Trophy,
+  Target, Calendar, Ban, RotateCcw, CreditCard, AlertCircle,
 } from 'lucide-react';
 import Layout from '../components/common/Layout';
 import { campanasService } from '../services/campanasService';
 import { negociosService } from '../services/negociosService';
 import { inversionesService } from '../services/inversionesService';
+import { pagosService } from '../services/pagosService';
 
 const ESTADO_INFO = {
-  en_revision: { label: 'En revisión',  bg: '#FEF9C3', color: '#854D0E', dot: '#F59E0B' },
-  aprobada:    { label: 'Aprobada',     bg: '#DCFCE7', color: '#14532D', dot: '#22C55E' },
-  rechazada:   { label: 'Rechazada',    bg: '#FEE2E2', color: '#991B1B', dot: '#EF4444' },
-  activa:      { label: 'Activa',       bg: '#DBEAFE', color: '#1E3A8A', dot: '#3B82F6' },
-  pausada:     { label: 'Pausada',      bg: '#F3F4F6', color: '#374151', dot: '#9CA3AF' },
-  completada:  { label: 'Completada',   bg: '#FDF4FF', color: '#581C87', dot: '#A855F7' },
-  cancelada:   { label: 'Cancelada',    bg: '#FEF2F2', color: '#991B1B', dot: '#EF4444' },
+  en_revision: { label: 'En revisión', bg: '#FEF9C3', color: '#854D0E', dot: '#F59E0B' },
+  aprobada:    { label: 'Aprobada',    bg: '#DCFCE7', color: '#14532D', dot: '#22C55E' },
+  rechazada:   { label: 'Rechazada',  bg: '#FEE2E2', color: '#991B1B', dot: '#EF4444' },
+  activa:      { label: 'Activa',     bg: '#DBEAFE', color: '#1E3A8A', dot: '#3B82F6' },
+  pausada:     { label: 'Pausada',    bg: '#F3F4F6', color: '#374151', dot: '#9CA3AF' },
+  completada:  { label: 'Completada', bg: '#FDF4FF', color: '#581C87', dot: '#A855F7' },
+  cancelada:   { label: 'Cancelada',  bg: '#FEF2F2', color: '#991B1B', dot: '#EF4444' },
 };
+const ESTADOS_LISTA = Object.keys(ESTADO_INFO);
 
 const COLORES = [
   ['#667EEA','#764BA2'], ['#11998E','#38EF7D'], ['#F093FB','#F5576C'],
@@ -27,503 +29,379 @@ const COLORES = [
   ['#A18CD1','#FBC2EB'], ['#0BA360','#3CBA92'],
 ];
 
-const fmtM  = v => new Intl.NumberFormat('es-MX',{style:'currency',currency:'MXN',maximumFractionDigits:0}).format(v||0);
-const fmtD  = d => d ? new Date(d).toLocaleDateString('es-MX',{timeZone:'UTC',day:'2-digit',month:'short',year:'numeric'}) : '—';
-const getDias = c => { if(!c) return null; const d=Math.ceil((new Date(c)-new Date())/86400000); return d>0?d:0; };
-const getPct  = (r,m) => (!m||!parseFloat(m)) ? 0 : Math.min(100,Math.round((parseFloat(r)/parseFloat(m))*100));
-const isMeta  = c => parseFloat(c.metaRecaudacion||0)>0 && parseFloat(c.montoRecaudado||0)>=parseFloat(c.metaRecaudacion||1);
-const getClr  = c => COLORES[(c.id||0)%COLORES.length];
+const initForm = { titulo:'', descripcion:'', historia:'', negocioId:'', metaRecaudacion:'', fechaInicio:'', fechaCierre:'' };
 
-const EstadoBadge = ({ estado }) => {
-  const info = ESTADO_INFO[estado] || ESTADO_INFO.en_revision;
+const fmtM = v => new Intl.NumberFormat('es-MX',{style:'currency',currency:'MXN',maximumFractionDigits:0}).format(v||0);
+const fmtD = d => d ? new Date(d).toLocaleDateString('es-MX',{timeZone:'UTC',day:'2-digit',month:'short',year:'numeric'}) : '—';
+const getDias = c => { if(!c) return null; const d=Math.ceil((new Date(c)-new Date())/86400000); return d>0?d:0; };
+const getPct = (r,m) => (!m||!parseFloat(m)) ? 0 : Math.min(100,Math.round((parseFloat(r)/parseFloat(m))*100));
+const isMeta = c => parseFloat(c.metaRecaudacion||0)>0 && parseFloat(c.montoRecaudado||0)>=parseFloat(c.metaRecaudacion||1);
+const getClrs = c => COLORES[(c.id||0)%COLORES.length];
+
+const EstadoBadge = ({ campana, size='sm' }) => {
+  const alc = isMeta(campana);
+  const info = ESTADO_INFO[campana.estado] || ESTADO_INFO.en_revision;
   return (
-    <span style={{padding:'3px 10px',borderRadius:'99px',fontSize:'11px',fontWeight:700,background:info.bg,color:info.color,display:'inline-flex',alignItems:'center',gap:'5px',fontFamily:"'DM Sans',sans-serif"}}>
-      <span style={{width:'6px',height:'6px',borderRadius:'50%',background:info.dot,flexShrink:0}}/>
-      {info.label}
+    <span style={{
+      padding: size==='sm'?'3px 10px':'5px 14px', borderRadius:'99px',
+      fontSize: size==='sm'?'11px':'13px', fontWeight:700,
+      background: alc ? 'linear-gradient(135deg,#7C3AED,#A855F7)' : info.bg,
+      color: alc ? '#fff' : info.color,
+      display:'inline-flex', alignItems:'center', gap:'5px', fontFamily:"'DM Sans',sans-serif",
+      boxShadow: alc ? '0 2px 8px rgba(168,85,247,.35)' : 'none',
+    }}>
+      {alc
+        ? <><Trophy style={{width:'11px',height:'11px'}}/> ¡Meta alcanzada!</>
+        : <><span style={{width:'6px',height:'6px',borderRadius:'50%',background:info.dot,flexShrink:0}}/>{info.label}</>}
     </span>
   );
 };
 
-const RewardBadge = () => (
-  <span style={{padding:'3px 10px',borderRadius:'99px',fontSize:'11px',fontWeight:700,background:'#FEF9C3',color:'#F59E0B',display:'inline-flex',alignItems:'center',gap:'4px',fontFamily:"'DM Sans',sans-serif"}}>
-    <Gift style={{width:'10px',height:'10px'}}/> Recompensa
-  </span>
-);
-
-const CampanaModal = ({ mode, campana, negocios, onClose, onSave }) => {
-  const [form, setForm] = useState(mode === 'edit' && campana ? {
-    titulo:           campana.titulo || '',
-    descripcion:      campana.descripcion || '',
-    historia:         campana.historia || '',
-    negocioId:        campana.negocioId || '',
-    metaRecaudacion:  campana.metaRecaudacion || '',
-    fechaInicio:      campana.fechaInicio ? campana.fechaInicio.slice(0,10) : '',
-    fechaCierre:      campana.fechaCierre ? campana.fechaCierre.slice(0,10) : '',
-    tipoCrowdfunding: 'reward',
-    recompensaDesc:   campana.recompensaDesc || '',
-    imagenUrl:        campana.imagenUrl || '',
-    videoUrl:         campana.videoUrl || '',
-  } : {
-    titulo:'', descripcion:'', historia:'', negocioId:'',
-    metaRecaudacion:'', fechaInicio:'', fechaCierre:'',
-    tipoCrowdfunding:'reward', recompensaDesc:'', imagenUrl:'', videoUrl:'',
-  });
-  const [tab,    setTab]    = useState('basico');
-  const [errors, setErrors] = useState({});
-  const [saving, setSaving] = useState(false);
-
-  const metaBloq = mode==='edit' && parseFloat(campana?.montoRecaudado||0)>0;
-
-  const validate = () => {
-    const e = {};
-    if(!form.titulo||form.titulo.length<3) e.titulo='Mínimo 3 caracteres';
-    if(!form.negocioId) e.negocioId='Selecciona un negocio';
-    if(!form.metaRecaudacion||parseFloat(form.metaRecaudacion)<=0) e.metaRecaudacion='Meta inválida';
-    if(!form.recompensaDesc) e.recompensaDesc='Describe la recompensa';
-    setErrors(e);
-    return !Object.keys(e).length;
-  };
-
-  const handleSubmit = async () => {
-    if(!validate()) {
-      if(errors.recompensaDesc) { setTab('retorno'); return; }
-      setTab('basico');
-      return;
-    }
-    setSaving(true);
-    try { await onSave(form); } finally { setSaving(false); }
-  };
-
-  const inp  = (err) => ({width:'100%',padding:'10px 12px',border:`1px solid ${err?'#EF4444':'var(--border)'}`,borderRadius:'10px',fontSize:'14px',fontFamily:"'DM Sans',sans-serif",color:'var(--gray-900)',background:'#fff',outline:'none',boxSizing:'border-box'});
-  const lbl  = {display:'block',fontSize:'12px',fontWeight:700,color:'var(--gray-600)',marginBottom:'5px',fontFamily:"'DM Sans',sans-serif"};
-  const Err  = ({k}) => errors[k] ? <p style={{margin:'4px 0 0',fontSize:'11px',color:'#EF4444',fontFamily:"'DM Sans',sans-serif"}}>{errors[k]}</p> : null;
-
-  const TABS = [
-    {k:'basico',  label:'📋 Básico'},
-    {k:'retorno', label:'🎁 Recompensa'},
-    {k:'media',   label:'🖼 Media'},
-  ];
-
+const BarraProgreso = ({ campana, h=6 }) => {
+  const p = getPct(campana.montoRecaudado, campana.metaRecaudacion);
+  const alc = isMeta(campana);
+  const [c1,c2] = getClrs(campana);
   return (
-    <div onClick={onClose} style={{position:'fixed',inset:0,background:'rgba(0,0,0,.5)',backdropFilter:'blur(6px)',zIndex:1100,display:'flex',alignItems:'center',justifyContent:'center',padding:'20px'}}>
-      <div onClick={e=>e.stopPropagation()} style={{background:'#fff',borderRadius:'24px',width:'100%',maxWidth:'660px',maxHeight:'90vh',display:'flex',flexDirection:'column',boxShadow:'0 32px 80px rgba(0,0,0,.25)'}}>
-        <div style={{padding:'20px 24px',borderBottom:'1px solid var(--border)',display:'flex',alignItems:'center',gap:'12px'}}>
-          <div style={{width:'40px',height:'40px',borderRadius:'12px',background:'linear-gradient(135deg,var(--capyme-blue-mid),#4F46E5)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
-            <Megaphone style={{width:'20px',height:'20px',color:'#fff'}}/>
-          </div>
-          <div style={{flex:1}}>
-            <h2 style={{fontSize:'17px',fontWeight:800,color:'var(--gray-900)',fontFamily:"'Plus Jakarta Sans',sans-serif",margin:0}}>{mode==='create'?'🚀 Nueva campaña':'✏️ Editar campaña'}</h2>
-            <p style={{fontSize:'12px',color:'var(--gray-400)',fontFamily:"'DM Sans',sans-serif",margin:0}}>Completa los 3 pasos para publicar tu proyecto</p>
-          </div>
-          <button onClick={onClose} style={{width:'32px',height:'32px',border:'none',background:'var(--gray-100)',borderRadius:'8px',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>
-            <X style={{width:'15px',height:'15px',color:'var(--gray-500)'}}/>
-          </button>
-        </div>
-
-        <div style={{display:'flex',padding:'0 24px',borderBottom:'1px solid var(--border)',gap:'4px'}}>
-          {TABS.map(t=>(
-            <button key={t.k} onClick={()=>setTab(t.k)} style={{
-              padding:'12px 16px',border:'none',background:'transparent',fontSize:'13px',fontWeight:700,
-              color:tab===t.k?'var(--capyme-blue-mid)':'var(--gray-500)',
-              cursor:'pointer',fontFamily:"'DM Sans',sans-serif",
-              borderBottom:tab===t.k?'2px solid var(--capyme-blue-mid)':'2px solid transparent',
-              transition:'all 150ms',
-            }}>
-              {t.label}
-              {((t.k==='basico'&&(errors.titulo||errors.negocioId||errors.metaRecaudacion))||(t.k==='retorno'&&errors.recompensaDesc))&&(
-                <span style={{marginLeft:'5px',width:'7px',height:'7px',borderRadius:'50%',background:'#EF4444',display:'inline-block',verticalAlign:'middle'}}/>
-              )}
-            </button>
-          ))}
-        </div>
-
-        <div style={{overflowY:'auto',flex:1,padding:'24px'}}>
-          {tab==='basico'&&(
-            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'16px'}}>
-              <div style={{gridColumn:'1 / -1'}}>
-                <label style={lbl}>Título de la campaña *</label>
-                <input value={form.titulo} onChange={e=>setForm(p=>({...p,titulo:e.target.value}))} placeholder="Ej. Expansión de mi panadería artesanal" style={inp(errors.titulo)}/>
-                <Err k="titulo"/>
-              </div>
-              <div style={{gridColumn:'1 / -1'}}>
-                <label style={lbl}>Negocio *</label>
-                <select value={form.negocioId} onChange={e=>setForm(p=>({...p,negocioId:e.target.value}))} style={{...inp(errors.negocioId),appearance:'none',cursor:'pointer'}}>
-                  <option value="">Seleccionar negocio...</option>
-                  {negocios.map(n=><option key={n.id} value={n.id}>{n.nombreNegocio}</option>)}
-                </select>
-                <Err k="negocioId"/>
-              </div>
-              <div>
-                <label style={lbl}>Meta de recaudación (MXN) *</label>
-                <input type="number" value={form.metaRecaudacion} disabled={metaBloq} onChange={e=>setForm(p=>({...p,metaRecaudacion:e.target.value}))} placeholder="50000" style={{...inp(errors.metaRecaudacion),...(metaBloq?{background:'var(--gray-50)',cursor:'not-allowed'}:{})}}/>
-                {metaBloq&&<p style={{margin:'3px 0 0',fontSize:'11px',color:'var(--gray-400)',fontFamily:"'DM Sans',sans-serif"}}>No editable: hay fondos recibidos</p>}
-                <Err k="metaRecaudacion"/>
-              </div>
-              <div/>
-              <div>
-                <label style={lbl}>Fecha de inicio</label>
-                <input type="date" value={form.fechaInicio} onChange={e=>setForm(p=>({...p,fechaInicio:e.target.value}))} style={inp()}/>
-              </div>
-              <div>
-                <label style={lbl}>Fecha de cierre</label>
-                <input type="date" value={form.fechaCierre} onChange={e=>setForm(p=>({...p,fechaCierre:e.target.value}))} style={inp()}/>
-              </div>
-              <div style={{gridColumn:'1 / -1'}}>
-                <label style={lbl}>Descripción breve (aparece en la card)</label>
-                <textarea value={form.descripcion} onChange={e=>setForm(p=>({...p,descripcion:e.target.value}))} rows={2} placeholder="Resumen de tu proyecto..." style={{...inp(),resize:'vertical'}}/>
-              </div>
-              <div style={{gridColumn:'1 / -1'}}>
-                <label style={lbl}>Historia completa del proyecto</label>
-                <textarea value={form.historia} onChange={e=>setForm(p=>({...p,historia:e.target.value}))} rows={4} placeholder="Cuéntanos tu historia, tu visión, por qué necesitas este financiamiento..." style={{...inp(),resize:'vertical'}}/>
-              </div>
-            </div>
-          )}
-
-          {tab==='retorno'&&(
-            <div style={{display:'flex',flexDirection:'column',gap:'20px'}}>
-              <div style={{padding:'12px 16px',borderRadius:'12px',background:'#FEF9C3',border:'1px solid #FDE68A',display:'flex',alignItems:'center',gap:'10px'}}>
-                <Gift style={{width:'16px',height:'16px',color:'#F59E0B',flexShrink:0}}/>
-                <div>
-                  <p style={{fontSize:'13px',fontWeight:700,color:'#92400E',fontFamily:"'DM Sans',sans-serif",margin:'0 0 2px'}}>Campaña de Recompensa</p>
-                  <p style={{fontSize:'12px',color:'#A16207',fontFamily:"'DM Sans',sans-serif",margin:0}}>Los inversores recibirán tu producto o servicio como recompensa por su apoyo.</p>
-                </div>
-              </div>
-              <div>
-                <label style={lbl}>¿Qué recibirá el inversor? *</label>
-                <textarea value={form.recompensaDesc} onChange={e=>setForm(p=>({...p,recompensaDesc:e.target.value}))} rows={4} placeholder="Ej. Una bolsa de café artesanal de 500g + acceso anticipado a nuestra tienda en línea, enviado dentro de los 60 días de cierre de campaña." style={{...inp(errors.recompensaDesc),resize:'vertical'}}/>
-                <p style={{margin:'5px 0 0',fontSize:'11px',color:'var(--gray-400)',fontFamily:"'DM Sans',sans-serif"}}>💡 Sé específico: producto, cantidad, fecha estimada de entrega</p>
-                <Err k="recompensaDesc"/>
-              </div>
-            </div>
-          )}
-
-          {tab==='media'&&(
-            <div style={{display:'flex',flexDirection:'column',gap:'20px'}}>
-              <div>
-                <label style={lbl}>URL de imagen de portada</label>
-                <input value={form.imagenUrl} onChange={e=>setForm(p=>({...p,imagenUrl:e.target.value}))} placeholder="https://..." style={inp()}/>
-                <p style={{margin:'5px 0 0',fontSize:'11px',color:'var(--gray-400)',fontFamily:"'DM Sans',sans-serif"}}>Sube tu imagen a un servicio como Imgur, Cloudinary o Google Drive compartido</p>
-                {form.imagenUrl&&(
-                  <div style={{marginTop:'12px',borderRadius:'12px',overflow:'hidden',height:'160px',background:'var(--gray-100)'}}>
-                    <img src={form.imagenUrl} alt="Portada" style={{width:'100%',height:'100%',objectFit:'cover'}} onError={e=>{e.target.style.display='none';}}/>
-                  </div>
-                )}
-              </div>
-              <div>
-                <label style={lbl}>URL de video (YouTube)</label>
-                <input value={form.videoUrl} onChange={e=>setForm(p=>({...p,videoUrl:e.target.value}))} placeholder="https://youtube.com/watch?v=..." style={inp()}/>
-                <p style={{margin:'5px 0 0',fontSize:'11px',color:'var(--gray-400)',fontFamily:"'DM Sans',sans-serif"}}>Un video de presentación aumenta significativamente las conversiones 🎥</p>
-                {form.videoUrl&&form.videoUrl.includes('youtube')&&(
-                  <div style={{marginTop:'12px',borderRadius:'12px',overflow:'hidden',aspectRatio:'16/9',background:'#000'}}>
-                    <iframe
-                      width="100%" height="100%"
-                      src={`https://www.youtube.com/embed/${form.videoUrl.match(/(?:v=|youtu\.be\/)([^&?/]+)/)?.[1]||''}`}
-                      frameBorder="0" allowFullScreen
-                      style={{display:'block'}}
-                    />
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div style={{padding:'16px 24px',borderTop:'1px solid var(--border)',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-          <div style={{display:'flex',gap:'6px'}}>
-            {TABS.map(t=>(
-              <div key={t.k} style={{width:'8px',height:'8px',borderRadius:'50%',background:tab===t.k?'var(--capyme-blue-mid)':'var(--gray-200)',transition:'all 150ms'}}/>
-            ))}
-          </div>
-          <div style={{display:'flex',gap:'10px'}}>
-            <button onClick={onClose} style={{padding:'10px 20px',border:'1.5px solid var(--border)',borderRadius:'10px',background:'#fff',color:'var(--gray-700)',fontSize:'13px',fontWeight:600,cursor:'pointer',fontFamily:"'DM Sans',sans-serif"}}>Cancelar</button>
-            {tab!=='basico'&&<button onClick={()=>setTab(tab==='retorno'?'basico':'retorno')} style={{padding:'10px 16px',border:'1.5px solid var(--border)',borderRadius:'10px',background:'#fff',color:'var(--gray-600)',fontSize:'13px',fontWeight:600,cursor:'pointer',fontFamily:"'DM Sans',sans-serif"}}>← Atrás</button>}
-            {tab!=='media'
-              ? <button onClick={()=>setTab(tab==='basico'?'retorno':'media')} style={{padding:'10px 20px',background:'linear-gradient(135deg,var(--capyme-blue-mid),#4F46E5)',border:'none',borderRadius:'10px',color:'#fff',fontSize:'13px',fontWeight:700,cursor:'pointer',fontFamily:"'DM Sans',sans-serif",boxShadow:'0 2px 10px rgba(79,70,229,.3)'}}>Siguiente →</button>
-              : <button onClick={handleSubmit} disabled={saving} style={{padding:'10px 24px',background:saving?'var(--gray-300)':'linear-gradient(135deg,var(--capyme-blue-mid),#4F46E5)',border:'none',borderRadius:'10px',color:'#fff',fontSize:'13px',fontWeight:700,cursor:saving?'not-allowed':'pointer',fontFamily:"'DM Sans',sans-serif",boxShadow:saving?'none':'0 2px 10px rgba(79,70,229,.3)'}}>
-                  {saving?'Guardando...':mode==='create'?'🚀 Publicar campaña':'Guardar cambios'}
-                </button>
-            }
-          </div>
-        </div>
+    <div>
+      <div style={{height:`${h}px`,borderRadius:'99px',background:'var(--gray-100)',overflow:'hidden'}}>
+        <div style={{height:'100%',borderRadius:'99px',
+          background: alc ? 'linear-gradient(90deg,#7C3AED,#A855F7)' : `linear-gradient(90deg,${c1},${c2})`,
+          width:`${p}%`, transition:'width 900ms cubic-bezier(.34,1,.64,1)',
+          boxShadow: alc ? '0 0 8px rgba(168,85,247,.5)' : 'none',
+        }}/>
       </div>
+      <div style={{display:'flex',justifyContent:'space-between',marginTop:'5px'}}>
+        <span style={{fontSize:'13px',fontWeight:800,color:'var(--gray-900)',fontFamily:"'Plus Jakarta Sans',sans-serif"}}>{fmtM(campana.montoRecaudado)}</span>
+        <span style={{fontSize:'12px',fontWeight:700,color:alc?'#7C3AED':'var(--capyme-blue-mid)',fontFamily:"'Plus Jakarta Sans',sans-serif"}}>{p}%</span>
+      </div>
+      <div style={{fontSize:'11px',color:'var(--gray-400)',fontFamily:"'DM Sans',sans-serif"}}>meta: {fmtM(campana.metaRecaudacion)}</div>
     </div>
   );
 };
 
-const ActualizacionModal = ({ campana, onClose, onSave }) => {
-  const [titulo,    setTitulo]    = useState('');
-  const [contenido, setContenido] = useState('');
-  const [saving,    setSaving]    = useState(false);
+const ApoyarModal = ({ campana, onClose }) => {
+  const [monto, setMonto] = useState('');
+  const [notas, setNotas] = useState('');
+  const [err, setErr] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [c1,c2] = getClrs(campana);
 
-  const handleSave = async () => {
-    if(!titulo.trim()) { toast.error('Ingresa un título'); return; }
-    if(!contenido.trim()) { toast.error('Escribe el contenido'); return; }
-    setSaving(true);
-    try { await onSave({ titulo, contenido }); }
-    finally { setSaving(false); }
+  const handlePagar = async () => {
+    const m = parseFloat(monto);
+    if (!monto || isNaN(m) || m <= 0) { setErr('Ingresa un monto válido'); return; }
+    const restante = parseFloat(campana.metaRecaudacion||0) - parseFloat(campana.montoRecaudado||0);
+    if (m > restante) { setErr(`El máximo disponible es ${fmtM(restante)}`); return; }
+
+    setErr('');
+    setLoading(true);
+    try {
+      const invRes = await inversionesService.create({ campanaId: campana.id, monto: m, notas: notas || undefined });
+      const referencia = invRes.referencia || invRes.data?.referencia;
+
+      const mpRes = await pagosService.crearPreferencia({
+        titulo: `Inversión en campaña: ${campana.titulo}`,
+        precio: m,
+        cantidad: 1,
+        idReferencia: referencia,
+        tipo: 'campana',
+      });
+
+      if (mpRes.success && mpRes.init_point) {
+        localStorage.setItem('capyme_return_url', window.location.pathname + window.location.search);
+        window.location.href = mpRes.init_point;
+      } else {
+        throw new Error('No se pudo iniciar el pago');
+      }
+    } catch (e) {
+      toast.error(e?.response?.data?.message || e?.message || 'Error al procesar el pago');
+      setLoading(false);
+    }
   };
 
-  const [c1,c2] = getClr(campana);
-
   return (
-    <div onClick={onClose} style={{position:'fixed',inset:0,background:'rgba(0,0,0,.5)',backdropFilter:'blur(6px)',zIndex:1100,display:'flex',alignItems:'center',justifyContent:'center',padding:'20px'}}>
-      <div onClick={e=>e.stopPropagation()} style={{background:'#fff',borderRadius:'24px',width:'100%',maxWidth:'520px',overflow:'hidden',boxShadow:'0 32px 80px rgba(0,0,0,.25)'}}>
+    <div onClick={!loading ? onClose : undefined}
+      style={{position:'fixed',inset:0,background:'rgba(0,0,0,.5)',backdropFilter:'blur(6px)',zIndex:1100,display:'flex',alignItems:'center',justifyContent:'center',padding:'20px'}}>
+      <div onClick={e=>e.stopPropagation()}
+        style={{background:'#fff',borderRadius:'24px',width:'100%',maxWidth:'420px',overflow:'hidden',boxShadow:'0 32px 80px rgba(0,0,0,.25)'}}>
+
         <div style={{padding:'20px 24px',background:`linear-gradient(135deg,${c1},${c2})`,display:'flex',alignItems:'center',gap:'12px'}}>
-          <div style={{width:'38px',height:'38px',borderRadius:'10px',background:'rgba(255,255,255,.2)',display:'flex',alignItems:'center',justifyContent:'center'}}>
-            <Bell style={{width:'20px',height:'20px',color:'#fff'}}/>
+          <div style={{width:'38px',height:'38px',borderRadius:'10px',background:'rgba(255,255,255,.2)',backdropFilter:'blur(8px)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+            <Heart style={{width:'20px',height:'20px',color:'#fff'}}/>
           </div>
           <div style={{flex:1}}>
-            <div style={{fontSize:'16px',fontWeight:800,color:'#fff',fontFamily:"'Plus Jakarta Sans',sans-serif"}}>Publicar actualización</div>
+            <div style={{fontSize:'16px',fontWeight:800,color:'#fff',fontFamily:"'Plus Jakarta Sans',sans-serif"}}>Apoyar campaña</div>
             <div style={{fontSize:'11px',color:'rgba(255,255,255,.75)',fontFamily:"'DM Sans',sans-serif",marginTop:'2px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{campana.titulo}</div>
           </div>
-          <button onClick={onClose} style={{width:'30px',height:'30px',border:'none',background:'rgba(255,255,255,.2)',borderRadius:'8px',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>
-            <X style={{width:'14px',height:'14px',color:'#fff'}}/>
-          </button>
-        </div>
-        <div style={{padding:'24px',display:'flex',flexDirection:'column',gap:'16px'}}>
-          <div>
-            <label style={{display:'block',fontSize:'12px',fontWeight:700,color:'var(--gray-600)',marginBottom:'6px',fontFamily:"'DM Sans',sans-serif"}}>Título</label>
-            <input value={titulo} onChange={e=>setTitulo(e.target.value)} placeholder="Ej. ¡Alcanzamos el 50%! Gracias a todos" style={{width:'100%',padding:'10px 12px',border:'1.5px solid var(--border)',borderRadius:'10px',fontSize:'14px',fontFamily:"'DM Sans',sans-serif",outline:'none',boxSizing:'border-box'}}/>
-          </div>
-          <div>
-            <label style={{display:'block',fontSize:'12px',fontWeight:700,color:'var(--gray-600)',marginBottom:'6px',fontFamily:"'DM Sans',sans-serif"}}>Mensaje para tus inversores</label>
-            <textarea value={contenido} onChange={e=>setContenido(e.target.value)} rows={5} placeholder="Comparte avances, fotos del progreso, agradecimientos o información relevante para quienes te apoyan..." style={{width:'100%',padding:'10px 12px',border:'1.5px solid var(--border)',borderRadius:'10px',fontSize:'14px',fontFamily:"'DM Sans',sans-serif",outline:'none',resize:'vertical',boxSizing:'border-box'}}/>
-          </div>
-          <div style={{padding:'10px 14px',borderRadius:'10px',background:'var(--capyme-blue-pale)',border:'1px solid var(--capyme-blue-mid)',display:'flex',alignItems:'center',gap:'8px'}}>
-            <Info style={{width:'14px',height:'14px',color:'var(--capyme-blue-mid)',flexShrink:0}}/>
-            <p style={{fontSize:'12px',color:'var(--capyme-blue-mid)',fontFamily:"'DM Sans',sans-serif",margin:0}}>Esta actualización será visible para todos los inversores de esta campaña.</p>
-          </div>
-          <div style={{display:'flex',gap:'10px',justifyContent:'flex-end'}}>
-            <button onClick={onClose} style={{padding:'10px 20px',border:'1.5px solid var(--border)',borderRadius:'10px',background:'#fff',color:'var(--gray-700)',fontSize:'13px',fontWeight:600,cursor:'pointer',fontFamily:"'DM Sans',sans-serif"}}>Cancelar</button>
-            <button onClick={handleSave} disabled={saving} style={{padding:'10px 20px',background:saving?'var(--gray-300)':`linear-gradient(135deg,${c1},${c2})`,border:'none',borderRadius:'10px',color:'#fff',fontSize:'13px',fontWeight:700,cursor:saving?'not-allowed':'pointer',fontFamily:"'DM Sans',sans-serif",display:'flex',alignItems:'center',gap:'6px',boxShadow:saving?'none':'0 2px 10px rgba(0,0,0,.15)'}}>
-              <Send style={{width:'13px',height:'13px'}}/> {saving?'Enviando...':'Publicar'}
+          {!loading && (
+            <button onClick={onClose} style={{width:'30px',height:'30px',border:'none',background:'rgba(255,255,255,.2)',borderRadius:'8px',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+              <X style={{width:'14px',height:'14px',color:'#fff'}}/>
             </button>
+          )}
+        </div>
+
+        <div style={{padding:'24px'}}>
+          <div style={{marginBottom:'8px',fontSize:'13px',fontWeight:600,color:'var(--gray-500)',fontFamily:"'DM Sans',sans-serif"}}>¿Cuánto deseas aportar?</div>
+
+          <div style={{position:'relative',marginBottom:'12px'}}>
+            <span style={{position:'absolute',left:'14px',top:'50%',transform:'translateY(-50%)',fontSize:'20px',fontWeight:900,color:'var(--gray-400)',fontFamily:"'Plus Jakarta Sans',sans-serif",pointerEvents:'none'}}>$</span>
+            <input
+              type="number" min="1" value={monto} onChange={e=>{setMonto(e.target.value);setErr('');}}
+              placeholder="0" autoFocus disabled={loading}
+              style={{width:'100%',padding:'14px 14px 14px 36px',border:err?'2px solid #EF4444':'2px solid var(--border)',borderRadius:'14px',fontSize:'28px',fontWeight:900,fontFamily:"'Plus Jakarta Sans',sans-serif",color:'var(--gray-900)',outline:'none',boxSizing:'border-box',textAlign:'center',transition:'border-color 150ms',background:loading?'var(--gray-50)':'#fff'}}
+              onFocus={e=>{if(!err)e.currentTarget.style.borderColor=c1;}}
+              onBlur={e=>{if(!err)e.currentTarget.style.borderColor='var(--border)';}}
+            />
           </div>
+
+          {err && (
+            <p style={{margin:'0 0 12px',fontSize:'12px',color:'#EF4444',fontFamily:"'DM Sans',sans-serif",display:'flex',alignItems:'center',gap:'4px'}}>
+              <AlertCircle style={{width:'12px',height:'12px'}}/>{err}
+            </p>
+          )}
+
+          <div style={{display:'flex',gap:'8px',marginBottom:'20px',flexWrap:'wrap'}}>
+            {[500,1000,2500,5000].map(amt=>{
+              const sel=String(monto)===String(amt);
+              return (
+                <button key={amt} onClick={()=>{setMonto(String(amt));setErr('');}} disabled={loading} style={{
+                  padding:'6px 14px',borderRadius:'99px',
+                  border:sel?'none':'1.5px solid var(--border)',
+                  background:sel?`linear-gradient(135deg,${c1},${c2})`:'#fff',
+                  color:sel?'#fff':'var(--gray-700)',fontSize:'13px',fontWeight:700,cursor:'pointer',
+                  fontFamily:"'DM Sans',sans-serif",transition:'all 150ms',
+                  boxShadow:sel?'0 2px 8px rgba(0,0,0,.15)':'none',
+                }}>{fmtM(amt)}</button>
+              );
+            })}
+          </div>
+
+          <div style={{marginBottom:'20px'}}>
+            <label style={{display:'block',fontSize:'12px',fontWeight:600,color:'var(--gray-500)',marginBottom:'6px',fontFamily:"'DM Sans',sans-serif"}}>Mensaje para el emprendedor (opcional)</label>
+            <textarea value={notas} onChange={e=>setNotas(e.target.value)} rows={2} disabled={loading}
+              placeholder="¡Mucho éxito con tu proyecto! 🚀"
+              style={{width:'100%',padding:'10px 12px',border:'1.5px solid var(--border)',borderRadius:'10px',fontSize:'13px',fontFamily:"'DM Sans',sans-serif",color:'var(--gray-900)',outline:'none',resize:'none',boxSizing:'border-box'}}/>
+          </div>
+
+          {monto && parseFloat(monto) > 0 && (
+            <div style={{padding:'12px 16px',borderRadius:'12px',background:'var(--gray-50)',border:'1px solid var(--border)',marginBottom:'20px',display:'flex',flexDirection:'column',gap:'8px'}}>
+              <div style={{display:'flex',justifyContent:'space-between',fontSize:'13px',color:'var(--gray-600)',fontFamily:"'DM Sans',sans-serif"}}>
+                <span>Aportación bruta</span>
+                <span>{fmtM(monto)}</span>
+              </div>
+              <div style={{display:'flex',justifyContent:'space-between',fontSize:'13px',color:'#EF4444',fontFamily:"'DM Sans',sans-serif"}}>
+                <span>Comisión de plataforma (7%)</span>
+                <span>-{fmtM(parseFloat(monto) * 0.07)}</span>
+              </div>
+              <div style={{display:'flex',justifyContent:'space-between',fontSize:'13px',color:'var(--capyme-blue-mid)',fontWeight:700,fontFamily:"'DM Sans',sans-serif"}}>
+                <span>Neto para la campaña</span>
+                <span>{fmtM(parseFloat(monto) * 0.93)}</span>
+              </div>
+              <div style={{height:'1px',background:'var(--border)',margin:'4px 0'}}/>
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                <div>
+                  <div style={{fontSize:'11px',color:'var(--gray-400)',fontFamily:"'DM Sans',sans-serif",textTransform:'uppercase',letterSpacing:'.05em'}}>Total a pagar</div>
+                  <div style={{fontSize:'22px',fontWeight:900,color:'var(--gray-900)',fontFamily:"'Plus Jakarta Sans',sans-serif"}}>{fmtM(monto)}</div>
+                </div>
+                <div style={{display:'flex',alignItems:'center',gap:'6px',fontSize:'12px',color:'var(--gray-500)',fontFamily:"'DM Sans',sans-serif",fontWeight:600}}>
+                  <CreditCard style={{width:'15px',height:'15px',color:'var(--capyme-blue-mid)'}}/>
+                  Mercado Pago
+                </div>
+              </div>
+            </div>
+          )}
+
+          <button onClick={handlePagar} disabled={loading||!monto||parseFloat(monto)<=0} style={{
+            width:'100%',padding:'14px',
+            background:!monto||parseFloat(monto)<=0||loading?'var(--gray-200)':`linear-gradient(135deg,${c1},${c2})`,
+            border:'none',borderRadius:'14px',color:loading?'var(--gray-500)':'#fff',
+            fontSize:'15px',fontWeight:800,
+            cursor:!monto||parseFloat(monto)<=0||loading?'not-allowed':'pointer',
+            fontFamily:"'Plus Jakarta Sans',sans-serif",letterSpacing:'.02em',
+            boxShadow:!monto||parseFloat(monto)<=0||loading?'none':'0 4px 16px rgba(0,0,0,.2)',
+            transition:'all 200ms',display:'flex',alignItems:'center',justifyContent:'center',gap:'9px',
+          }}>
+            {loading
+              ? <><div style={{width:'18px',height:'18px',border:'2px solid rgba(0,0,0,.2)',borderTopColor:'var(--gray-600)',borderRadius:'50%',animation:'spin .8s linear infinite'}}/> Redirigiendo...</>
+              : <><CreditCard style={{width:'18px',height:'18px'}}/> Pagar con Mercado Pago</>
+            }
+          </button>
+
+          <p style={{textAlign:'center',fontSize:'11px',color:'var(--gray-400)',fontFamily:"'DM Sans',sans-serif",marginTop:'12px',marginBottom:0}}>
+            Serás redirigido al sitio seguro de Mercado Pago
+          </p>
         </div>
       </div>
     </div>
   );
 };
 
-const MiCampanaCard = ({ campana:c, onEditar, onActualizar, onVerDetalle }) => {
+const CampanaCard = ({ campana:c, onClick, onEdit, onToggleEstado, onToggleActivo, onApoyar, esAdmin, currentUser }) => {
   const [hov, setHov] = useState(false);
+  const d = getDias(c.fechaCierre);
+  const [c1,c2] = getClrs(c);
   const alc = isMeta(c);
-  const pct = getPct(c.montoRecaudado, c.metaRecaudacion);
-  const d   = getDias(c.fechaCierre);
-  const [c1,c2] = getClr(c);
+  const esDueno = c.negocio?.usuarioId === currentUser.id;
+  const puedeApoyar = !alc && c.activo && !esDueno && (c.estado==='aprobada'||c.estado==='activa');
+  const puedeEditar = esAdmin || esDueno;
 
   return (
     <div onMouseEnter={()=>setHov(true)} onMouseLeave={()=>setHov(false)} style={{
-      borderRadius:'16px',border:`1.5px solid ${alc?'#A855F750':'var(--border)'}`,
-      background:'#fff',overflow:'hidden',
+      borderRadius:'16px', border:`1.5px solid ${alc?'#A855F750':'var(--border)'}`,
+      overflow:'hidden', background:'#fff',
       transition:'all 250ms cubic-bezier(.34,1.2,.64,1)',
-      transform:hov?'translateY(-4px)':'none',
-      boxShadow:hov?(alc?'0 16px 36px rgba(168,85,247,.2)':'0 16px 36px rgba(0,0,0,.1)'):'0 2px 8px rgba(0,0,0,.05)',
-      display:'flex',flexDirection:'column',position:'relative',
+      transform:hov?'translateY(-6px)':'translateY(0)',
+      boxShadow:hov?(alc?'0 20px 40px rgba(168,85,247,.2)':'0 20px 40px rgba(0,0,0,.12)'):'0 2px 8px rgba(0,0,0,.05)',
+      cursor:'pointer', opacity:c.activo?1:.5,
+      display:'flex', flexDirection:'column', position:'relative',
     }}>
-      {alc&&<div style={{position:'absolute',top:0,left:0,right:0,height:'4px',background:'linear-gradient(90deg,#7C3AED,#A855F7,#EC4899,#7C3AED)',backgroundSize:'200% 100%',animation:'shimmer 2s linear infinite',zIndex:2}}/>}
+      {alc&&<div style={{position:'absolute',top:0,left:0,right:0,height:'4px',zIndex:2,background:'linear-gradient(90deg,#7C3AED,#A855F7,#EC4899,#7C3AED)',backgroundSize:'200% 100%',animation:'shimmer 2s linear infinite'}}/>}
 
-      <div style={{height:'100px',background:alc?'linear-gradient(135deg,#7C3AED,#A855F7)':`linear-gradient(135deg,${c1},${c2})`,position:'relative',display:'flex',alignItems:'center',padding:'0 16px',flexShrink:0}}>
-        <div style={{width:'48px',height:'48px',borderRadius:'14px',background:'rgba(255,255,255,.2)',backdropFilter:'blur(8px)',display:'flex',alignItems:'center',justifyContent:'center',border:'1px solid rgba(255,255,255,.3)'}}>
-          {alc?<Trophy style={{width:'24px',height:'24px',color:'#fff'}}/>:<Megaphone style={{width:'22px',height:'22px',color:'#fff'}}/>}
+      <div onClick={onClick} style={{height:'140px',background:alc?'linear-gradient(135deg,#7C3AED,#A855F7)':`linear-gradient(135deg,${c1},${c2})`,position:'relative',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+        <div style={{width:'56px',height:'56px',borderRadius:'16px',background:'rgba(255,255,255,.2)',backdropFilter:'blur(10px)',display:'flex',alignItems:'center',justifyContent:'center',border:'1px solid rgba(255,255,255,.3)'}}>
+          {alc?<Trophy style={{width:'28px',height:'28px',color:'#fff'}}/>:<Megaphone style={{width:'26px',height:'26px',color:'#fff'}}/>}
         </div>
-        <div style={{position:'absolute',top:'10px',right:'10px',display:'flex',gap:'5px'}}>
-          <button onClick={()=>onEditar(c)} style={{padding:'5px 10px',borderRadius:'8px',border:'none',background:'rgba(255,255,255,.9)',fontSize:'11px',fontWeight:600,cursor:'pointer',color:'var(--gray-700)',display:'flex',alignItems:'center',gap:'4px',fontFamily:"'DM Sans',sans-serif"}}>
-            <Edit2 style={{width:'11px',height:'11px'}}/> Editar
-          </button>
-          <button onClick={()=>onActualizar(c)} style={{padding:'5px 10px',borderRadius:'8px',border:'none',background:'rgba(255,255,255,.9)',fontSize:'11px',fontWeight:600,cursor:'pointer',color:'var(--gray-700)',display:'flex',alignItems:'center',gap:'4px',fontFamily:"'DM Sans',sans-serif"}}>
-            <Bell style={{width:'11px',height:'11px'}}/> Update
-          </button>
-        </div>
-        <div style={{position:'absolute',bottom:'10px',left:'16px',display:'flex',gap:'5px'}}>
-          <EstadoBadge estado={c.estado}/>
-          <RewardBadge/>
-        </div>
-      </div>
-
-      <div style={{padding:'14px 16px',flex:1,display:'flex',flexDirection:'column',gap:'12px'}}>
-        <div>
-          <h3 style={{fontSize:'14px',fontWeight:800,color:'var(--gray-900)',fontFamily:"'Plus Jakarta Sans',sans-serif",margin:'0 0 3px',lineHeight:1.3,display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical',overflow:'hidden'}}>{c.titulo}</h3>
-          <p style={{fontSize:'11px',color:'var(--gray-400)',fontFamily:"'DM Sans',sans-serif",margin:0}}>{c.negocio?.nombreNegocio}</p>
-        </div>
-
-        <div>
-          <div style={{display:'flex',justifyContent:'space-between',marginBottom:'5px'}}>
-            <span style={{fontSize:'15px',fontWeight:900,color:'var(--gray-900)',fontFamily:"'Plus Jakarta Sans',sans-serif"}}>{fmtM(c.montoRecaudado)}</span>
-            <span style={{fontSize:'12px',fontWeight:700,color:alc?'#7C3AED':'var(--capyme-blue-mid)',fontFamily:"'Plus Jakarta Sans',sans-serif"}}>{pct}%</span>
-          </div>
-          <div style={{height:'7px',borderRadius:'99px',background:'var(--gray-100)',overflow:'hidden'}}>
-            <div style={{height:'100%',borderRadius:'99px',background:alc?'linear-gradient(90deg,#7C3AED,#A855F7)':`linear-gradient(90deg,${c1},${c2})`,width:`${pct}%`,transition:'width 900ms ease',boxShadow:alc?'0 0 8px rgba(168,85,247,.5)':'none'}}/>
-          </div>
-          <div style={{fontSize:'11px',color:'var(--gray-400)',fontFamily:"'DM Sans',sans-serif",marginTop:'3px'}}>de {fmtM(c.metaRecaudacion)} meta</div>
-        </div>
-
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:'8px',borderTop:'1px solid var(--gray-100)',paddingTop:'10px'}}>
-          {[
-            {icon:Users, v:c._count?.inversiones??c.inversiones?.length??0, l:'inversores'},
-            {icon:Clock, v:d===null?'—':d===0?'0':d, l:'días', red:d!==null&&d<=7&&d>0},
-            {icon:Gift,  v:'🎁', l:'reward'},
-          ].map(({icon:Icon,v,l,red})=>(
-            <div key={l} style={{textAlign:'center'}}>
-              <div style={{fontSize:'14px',fontWeight:800,color:red?'#EF4444':'var(--gray-900)',fontFamily:"'Plus Jakarta Sans',sans-serif"}}>{v}</div>
-              <div style={{fontSize:'10px',color:'var(--gray-400)',fontFamily:"'DM Sans',sans-serif",textTransform:'uppercase',letterSpacing:'.03em'}}>{l}</div>
-            </div>
-          ))}
-        </div>
-
-        <button onClick={()=>onVerDetalle(c)}
-          style={{width:'100%',padding:'9px',border:'1.5px solid var(--border)',borderRadius:'10px',background:'#fff',fontSize:'12px',fontWeight:700,cursor:'pointer',color:'var(--gray-700)',fontFamily:"'DM Sans',sans-serif",display:'flex',alignItems:'center',justifyContent:'center',gap:'5px',transition:'all 150ms'}}
-          onMouseEnter={e=>{e.currentTarget.style.background='var(--gray-50)';}}
-          onMouseLeave={e=>{e.currentTarget.style.background='#fff';}}>
-          <Eye style={{width:'13px',height:'13px'}}/> Ver detalle & inversores
-        </button>
-      </div>
-    </div>
-  );
-};
-
-const DetalleMiCampana = ({ campana:c, onBack, onActualizar, onEditar }) => {
-  const [inversores, setInversores] = useState([]);
-  const [loading,    setLoading]    = useState(true);
-  const alc = isMeta(c);
-  const [c1,c2] = getClr(c);
-  const pct = getPct(c.montoRecaudado, c.metaRecaudacion);
-
-  useEffect(()=>{
-    inversionesService.getByCampana(c.id)
-      .then(r => {
-        const todos = r.data || [];
-        setInversores(todos.filter(i => i.estadoPago === 'confirmado' && i.activo));
-      })
-      .catch(()=>{})
-      .finally(()=>setLoading(false));
-  },[c.id]);
-
-  const handleMarcarEnviado = async (invId) => {
-    try {
-      await inversionesService.marcarRecompensaEnviada(invId);
-      setInversores(prev => prev.map(i => i.id === invId ? { ...i, recompensaEnviada: true } : i));
-      toast.success('Recompensa marcada como enviada');
-    } catch (error) {
-      toast.error('Error al actualizar el estado de la recompensa');
-    }
-  };
-
-  const totalConfirmado = inversores.reduce((a,i)=>a+parseFloat(i.monto||0),0);
-
-  return (
-    <div style={{maxWidth:'900px',margin:'0 auto',paddingBottom:'48px'}}>
-      <button onClick={onBack} style={{display:'inline-flex',alignItems:'center',gap:'6px',padding:'8px 0',background:'none',border:'none',color:'var(--gray-500)',fontSize:'13px',cursor:'pointer',fontFamily:"'DM Sans',sans-serif",marginBottom:'20px'}}>
-        ← Volver a mis campañas
-      </button>
-
-      <div style={{borderRadius:'20px',marginBottom:'24px',overflow:'hidden'}}>
-        {c.imagenUrl ? (
-          <div style={{position:'relative',height:'240px'}}>
-            <img src={c.imagenUrl} alt={c.titulo} style={{width:'100%',height:'100%',objectFit:'cover'}}/>
-            <div style={{position:'absolute',inset:0,background:'linear-gradient(to top,rgba(0,0,0,.7),transparent)'}}/>
-            <div style={{position:'absolute',bottom:'24px',left:'24px',right:'24px'}}>
-              <div style={{display:'flex',gap:'8px',marginBottom:'8px'}}><EstadoBadge estado={c.estado}/><RewardBadge/></div>
-              <h1 style={{fontSize:'24px',fontWeight:900,color:'#fff',fontFamily:"'Plus Jakarta Sans',sans-serif",margin:0,textShadow:'0 2px 8px rgba(0,0,0,.3)'}}>{c.titulo}</h1>
-            </div>
-          </div>
-        ) : (
-          <div style={{height:'200px',background:alc?'linear-gradient(135deg,#7C3AED,#A855F7)':`linear-gradient(135deg,${c1},${c2})`,position:'relative',display:'flex',alignItems:'flex-end',padding:'24px'}}>
-            <div style={{position:'absolute',inset:0,background:'linear-gradient(to top,rgba(0,0,0,.4),transparent)'}}/>
-            <div style={{position:'relative'}}>
-              <div style={{display:'flex',gap:'8px',marginBottom:'8px'}}><EstadoBadge estado={c.estado}/><RewardBadge/></div>
-              <h1 style={{fontSize:'24px',fontWeight:900,color:'#fff',fontFamily:"'Plus Jakarta Sans',sans-serif",margin:0,textShadow:'0 2px 8px rgba(0,0,0,.2)'}}>{c.titulo}</h1>
-            </div>
+        <div style={{position:'absolute',top:'12px',left:'12px'}}><EstadoBadge campana={c}/></div>
+        {puedeEditar&&(
+          <div style={{position:'absolute',top:'10px',right:'10px',display:'flex',gap:'4px'}}>
+            <button onClick={e=>{e.stopPropagation();onEdit();}} style={{width:'30px',height:'30px',borderRadius:'8px',background:'rgba(255,255,255,.9)',border:'none',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}}>
+              <Edit2 style={{width:'13px',height:'13px',color:'var(--gray-600)'}}/>
+            </button>
+            {esAdmin&&(
+              <button onClick={e=>{e.stopPropagation();onToggleActivo();}} style={{width:'30px',height:'30px',borderRadius:'8px',background:'rgba(255,255,255,.9)',border:'none',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}}>
+                {c.activo?<ToggleRight style={{width:'14px',height:'14px',color:'#10B981'}}/>:<ToggleLeft style={{width:'14px',height:'14px',color:'#9CA3AF'}}/>}
+              </button>
+            )}
           </div>
         )}
       </div>
 
-      <div style={{display:'grid',gridTemplateColumns:'1fr 280px',gap:'24px',alignItems:'start'}}>
-        <div>
-          {c.videoUrl&&c.videoUrl.includes('youtube')&&(
-            <div style={{marginBottom:'24px',borderRadius:'14px',overflow:'hidden',aspectRatio:'16/9'}}>
-              <iframe width="100%" height="100%" src={`https://www.youtube.com/embed/${c.videoUrl.match(/(?:v=|youtu\.be\/)([^&?/]+)/)?.[1]||''}`} frameBorder="0" allowFullScreen style={{display:'block'}}/>
-            </div>
-          )}
+      <div style={{padding:'16px',flex:1,display:'flex',flexDirection:'column'}}>
+        <div onClick={onClick} style={{flex:1,display:'flex',flexDirection:'column'}}>
+          <div style={{fontSize:'11px',color:'var(--gray-400)',fontFamily:"'DM Sans',sans-serif",marginBottom:'4px'}}>{c.negocio?.nombreNegocio}</div>
+          <h3 style={{fontSize:'15px',fontWeight:800,color:'var(--gray-900)',fontFamily:"'Plus Jakarta Sans',sans-serif",margin:'0 0 6px',lineHeight:1.3,display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical',overflow:'hidden'}}>{c.titulo}</h3>
+          <p style={{fontSize:'12px',color:'var(--gray-500)',fontFamily:"'DM Sans',sans-serif",margin:'0 0 12px',lineHeight:1.5,flex:1,display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical',overflow:'hidden'}}>{c.descripcion||'Sin descripción'}</p>
+          <BarraProgreso campana={c}/>
+        </div>
 
-          <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:'10px',marginBottom:'24px'}}>
-            {[
-              {icon:DollarSign, label:'Recaudado', value:fmtM(totalConfirmado), color:'#10B981'},
-              {icon:Users,      label:'Inversores', value:inversores.length,     color:'var(--capyme-blue-mid)'},
-              {icon:Target,     label:'Meta',       value:fmtM(c.metaRecaudacion), color:'#8B5CF6'},
-              {icon:Gift,       label:'Tipo',       value:'Reward',              color:'#F59E0B'},
-            ].map(({icon:Icon,label,value,color})=>(
-              <div key={label} style={{padding:'12px',borderRadius:'12px',background:'#fff',border:'1px solid var(--border)',textAlign:'center',boxShadow:'var(--shadow-sm)'}}>
-                <Icon style={{width:'16px',height:'16px',color,margin:'0 auto 5px',display:'block'}}/>
-                <div style={{fontSize:'14px',fontWeight:800,color:'var(--gray-900)',fontFamily:"'Plus Jakarta Sans',sans-serif"}}>{value}</div>
-                <div style={{fontSize:'10px',color:'var(--gray-400)',fontFamily:"'DM Sans',sans-serif",textTransform:'uppercase',letterSpacing:'.04em'}}>{label}</div>
+        <div style={{paddingTop:'12px',marginTop:'12px',borderTop:'1px solid var(--gray-100)',display:'flex',flexDirection:'column',gap:'10px'}}>
+          <div style={{display:'flex',gap:'10px',alignItems:'center'}}>
+            <div style={{display:'flex',alignItems:'center',gap:'4px'}}>
+              <Users style={{width:'12px',height:'12px',color:'var(--gray-400)'}}/>
+              <span style={{fontSize:'11px',color:'var(--gray-500)',fontFamily:"'DM Sans',sans-serif"}}>{c._count?.inversiones??0} inversores</span>
+            </div>
+            {d!==null&&(
+              <div style={{display:'flex',alignItems:'center',gap:'4px'}}>
+                <Clock style={{width:'12px',height:'12px',color:d<=7&&d>0?'#EF4444':'var(--gray-400)'}}/>
+                <span style={{fontSize:'11px',color:d<=7&&d>0?'#EF4444':'var(--gray-500)',fontFamily:"'DM Sans',sans-serif",fontWeight:d<=7?700:400}}>{d===0?'Finalizada':`${d} días`}</span>
               </div>
-            ))}
+            )}
+            {esAdmin&&(
+              <button onClick={e=>{e.stopPropagation();onToggleEstado(e);}} style={{marginLeft:'auto',padding:'3px 10px',border:'1.5px solid var(--border)',borderRadius:'6px',background:'transparent',fontSize:'11px',fontWeight:600,color:'var(--gray-600)',cursor:'pointer',fontFamily:"'DM Sans',sans-serif",display:'flex',alignItems:'center',gap:'4px'}}>
+                Estado <ChevronDown style={{width:'11px',height:'11px'}}/>
+              </button>
+            )}
           </div>
 
-          {c.descripcion&&(
-            <div style={{marginBottom:'20px'}}>
-              <h3 style={{fontSize:'15px',fontWeight:800,color:'var(--gray-900)',fontFamily:"'Plus Jakarta Sans',sans-serif",margin:'0 0 8px'}}>Sobre el proyecto</h3>
-              <p style={{fontSize:'14px',color:'var(--gray-600)',lineHeight:1.7,fontFamily:"'DM Sans',sans-serif",margin:0}}>{c.descripcion}</p>
-            </div>
-          )}
-
-          {c.recompensaDesc&&(
-            <div style={{padding:'16px',borderRadius:'14px',background:'#FEF9C3',border:'1px solid #FDE68A30',marginBottom:'24px'}}>
-              <div style={{display:'flex',alignItems:'center',gap:'8px',marginBottom:'8px'}}>
-                <Gift style={{width:'16px',height:'16px',color:'#F59E0B'}}/>
-                <h3 style={{fontSize:'14px',fontWeight:800,color:'#F59E0B',fontFamily:"'Plus Jakarta Sans',sans-serif",margin:0}}>Recompensa</h3>
-              </div>
-              <p style={{fontSize:'13px',color:'var(--gray-700)',fontFamily:"'DM Sans',sans-serif",margin:0,lineHeight:1.6}}>{c.recompensaDesc}</p>
-            </div>
-          )}
-
-          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'14px'}}>
-            <h3 style={{fontSize:'15px',fontWeight:800,color:'var(--gray-900)',fontFamily:"'Plus Jakarta Sans',sans-serif",margin:0}}>
-              Inversores ({inversores.length})
-            </h3>
-            <button onClick={()=>onActualizar(c)} style={{padding:'7px 14px',background:`linear-gradient(135deg,${c1},${c2})`,border:'none',borderRadius:'8px',color:'#fff',fontSize:'12px',fontWeight:700,cursor:'pointer',fontFamily:"'DM Sans',sans-serif",display:'flex',alignItems:'center',gap:'5px',boxShadow:'0 2px 8px rgba(0,0,0,.15)'}}>
-              <Bell style={{width:'13px',height:'13px'}}/> Publicar actualización
+          {puedeApoyar && (
+            <button onClick={e=>{e.stopPropagation();onApoyar();}} style={{
+              width:'100%',padding:'9px',background:`linear-gradient(135deg,${c1},${c2})`,
+              border:'none',borderRadius:'10px',color:'#fff',fontSize:'13px',fontWeight:700,cursor:'pointer',
+              fontFamily:"'Plus Jakarta Sans',sans-serif",display:'flex',alignItems:'center',justifyContent:'center',gap:'6px',
+              boxShadow:'0 2px 10px rgba(0,0,0,.15)',transition:'all 200ms',
+            }}
+            onMouseEnter={e=>{e.currentTarget.style.transform='scale(1.01)';}}
+            onMouseLeave={e=>{e.currentTarget.style.transform='scale(1)';}}>
+              <Heart style={{width:'14px',height:'14px'}}/> Apoyar
             </button>
-          </div>
+          )}
+          {alc&&<div style={{textAlign:'center',padding:'8px',borderRadius:'10px',background:'linear-gradient(135deg,#7C3AED15,#A855F715)',border:'1px solid #A855F740',fontSize:'12px',fontWeight:700,color:'#581C87',fontFamily:"'DM Sans',sans-serif",display:'flex',alignItems:'center',justifyContent:'center',gap:'5px'}}><Trophy style={{width:'12px',height:'12px'}}/> Meta alcanzada</div>}
+          {esDueno&&!alc&&<div style={{textAlign:'center',padding:'8px',borderRadius:'10px',background:'var(--capyme-blue-pale)',fontSize:'12px',fontWeight:600,color:'var(--capyme-blue-mid)',fontFamily:"'DM Sans',sans-serif"}}>Tu campaña</div>}
+        </div>
+      </div>
+    </div>
+  );
+};
 
-          {loading ? (
-            <div style={{textAlign:'center',padding:'32px',color:'var(--gray-400)',fontSize:'13px',fontFamily:"'DM Sans',sans-serif"}}>Cargando...</div>
-          ) : inversores.length===0 ? (
-            <div style={{padding:'32px',borderRadius:'14px',border:'2px dashed var(--border)',textAlign:'center'}}>
-              <Users style={{width:'32px',height:'32px',color:'var(--gray-300)',margin:'0 auto 10px',display:'block'}}/>
-              <p style={{fontSize:'13px',color:'var(--gray-400)',fontFamily:"'DM Sans',sans-serif",margin:0}}>Aún no hay inversores confirmados</p>
+const CampanaDetalle = ({ campana:c, currentUser, onBack, onApoyar }) => {
+  const [inversores, setInversores] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const alc = isMeta(c);
+  const d = getDias(c.fechaCierre);
+  const [c1,c2] = getClrs(c);
+  const porcentaje = getPct(c.montoRecaudado, c.metaRecaudacion);
+  const esDueno = c.negocio?.usuarioId === currentUser.id;
+  const puedeApoyar = !alc && c.activo && !esDueno && (c.estado==='aprobada'||c.estado==='activa');
+
+  useEffect(()=>{
+    inversionesService.getByCampana(c.id)
+      .then(r => setInversores(r.data || []))
+      .catch(()=>{})
+      .finally(()=>setLoading(false));
+  },[c.id]);
+
+  const confirmed = inversores.filter(i=>i.estadoPago==='confirmado');
+
+  return (
+    <div style={{maxWidth:'900px',margin:'0 auto',paddingBottom:'48px'}}>
+      <button onClick={onBack} style={{display:'inline-flex',alignItems:'center',gap:'6px',padding:'8px 0',background:'none',border:'none',color:'var(--gray-500)',fontSize:'13px',cursor:'pointer',fontFamily:"'DM Sans',sans-serif",marginBottom:'20px'}}>
+        <ArrowLeft style={{width:'15px',height:'15px'}}/> Volver a campañas
+      </button>
+
+      {alc&&(
+        <div style={{padding:'14px 18px',borderRadius:'14px',marginBottom:'24px',background:'linear-gradient(135deg,#7C3AED15,#A855F715)',border:'1.5px solid #A855F750',display:'flex',alignItems:'center',gap:'12px'}}>
+          <div style={{width:'40px',height:'40px',borderRadius:'10px',flexShrink:0,background:'linear-gradient(135deg,#7C3AED,#A855F7)',display:'flex',alignItems:'center',justifyContent:'center',boxShadow:'0 4px 12px rgba(168,85,247,.35)'}}><Trophy style={{width:'20px',height:'20px',color:'#fff'}}/></div>
+          <div>
+            <div style={{fontSize:'14px',fontWeight:800,color:'#581C87',fontFamily:"'Plus Jakarta Sans',sans-serif"}}>¡Esta campaña alcanzó su meta! 🎉</div>
+            <div style={{fontSize:'12px',color:'#7C3AED',fontFamily:"'DM Sans',sans-serif",marginTop:'2px'}}>Se recaudó el 100% del objetivo. Gracias a todos los inversores.</div>
+          </div>
+        </div>
+      )}
+
+      <div style={{height:'260px',borderRadius:'20px',marginBottom:'28px',background:alc?'linear-gradient(135deg,#7C3AED,#A855F7)':`linear-gradient(135deg,${c1},${c2})`,position:'relative',overflow:'hidden',display:'flex',alignItems:'flex-end'}}>
+        <div style={{position:'absolute',inset:0,background:'linear-gradient(to top,rgba(0,0,0,.5),transparent)'}}/>
+        <div style={{position:'relative',padding:'28px',width:'100%'}}>
+          <div style={{marginBottom:'8px'}}><EstadoBadge campana={c} size="md"/></div>
+          <h1 style={{fontSize:'26px',fontWeight:900,color:'#fff',fontFamily:"'Plus Jakarta Sans',sans-serif",margin:'0 0 4px',textShadow:'0 2px 8px rgba(0,0,0,.2)'}}>{c.titulo}</h1>
+          <p style={{color:'rgba(255,255,255,.8)',fontSize:'13px',margin:0,fontFamily:"'DM Sans',sans-serif"}}>por {c.negocio?.nombreNegocio}</p>
+        </div>
+      </div>
+
+      <div style={{display:'grid',gridTemplateColumns:'1fr 300px',gap:'28px',alignItems:'start'}}>
+        <div>
+          {c.descripcion&&<div style={{marginBottom:'24px'}}><h2 style={{fontSize:'16px',fontWeight:800,color:'var(--gray-900)',fontFamily:"'Plus Jakarta Sans',sans-serif",margin:'0 0 10px'}}>Sobre este proyecto</h2><p style={{fontSize:'14px',color:'var(--gray-600)',lineHeight:1.7,fontFamily:"'DM Sans',sans-serif",margin:0}}>{c.descripcion}</p></div>}
+          {c.historia&&(
+            <div style={{padding:'20px',borderRadius:'14px',marginBottom:'24px',background:alc?'linear-gradient(135deg,#7C3AED10,#A855F710)':'linear-gradient(135deg,var(--capyme-blue-pale),#F0FDF4)',border:`1px solid ${alc?'#A855F740':'var(--border)'}`}}>
+              <h2 style={{fontSize:'16px',fontWeight:800,color:'var(--gray-900)',fontFamily:"'Plus Jakarta Sans',sans-serif",margin:'0 0 10px',display:'flex',alignItems:'center',gap:'8px'}}>
+                <Star style={{width:'16px',height:'16px',color:alc?'#A855F7':'var(--capyme-blue-mid)'}}/> Nuestra historia
+              </h2>
+              <p style={{fontSize:'14px',color:'var(--gray-600)',lineHeight:1.7,fontFamily:"'DM Sans',sans-serif",margin:0,whiteSpace:'pre-line'}}>{c.historia}</p>
             </div>
-          ) : (
+          )}
+          <h2 style={{fontSize:'16px',fontWeight:800,color:'var(--gray-900)',fontFamily:"'Plus Jakarta Sans',sans-serif",margin:'0 0 14px',display:'flex',alignItems:'center',gap:'8px'}}>
+            <Users style={{width:'16px',height:'16px',color:'var(--gray-400)'}}/> Inversores ({confirmed.length})
+          </h2>
+          {loading?(
+            <div style={{textAlign:'center',padding:'24px',color:'var(--gray-400)',fontSize:'13px'}}>Cargando...</div>
+          ):confirmed.length===0?(
+            <div style={{padding:'24px',borderRadius:'12px',border:'1.5px dashed var(--border)',textAlign:'center',color:'var(--gray-400)',fontSize:'13px',fontFamily:"'DM Sans',sans-serif"}}>
+              {puedeApoyar?'Sé el primero en apoyar esta campaña 🚀':'Aún no hay inversores registrados'}
+            </div>
+          ):(
             <div style={{display:'flex',flexDirection:'column',gap:'8px'}}>
-              {inversores.map((inv,i)=>{
+              {confirmed.map(inv=>{
                 const ini=`${inv.inversor?.nombre?.[0]||''}${inv.inversor?.apellido?.[0]||''}`.toUpperCase();
+                const esMio=inv.inversorId===currentUser.id;
                 return (
-                  <div key={inv.id} style={{display:'flex',alignItems:'center',gap:'12px',padding:'12px 14px',borderRadius:'12px',background:i===0?'linear-gradient(135deg,var(--capyme-blue-pale),#F0FDF4)':'var(--gray-50)',border:`1px solid ${i===0?'var(--capyme-blue-mid)':'var(--border)'}`}}>
-                    <div style={{width:'36px',height:'36px',borderRadius:'10px',background:`linear-gradient(135deg,${c1},${c2})`,display:'flex',alignItems:'center',justifyContent:'center',color:'#fff',fontSize:'13px',fontWeight:700,fontFamily:"'Plus Jakarta Sans',sans-serif",flexShrink:0}}>{ini}</div>
+                  <div key={inv.id} style={{display:'flex',alignItems:'center',gap:'12px',padding:'10px 14px',borderRadius:'10px',background:esMio?'linear-gradient(135deg,var(--capyme-blue-pale),#F0FDF4)':'var(--gray-50)',border:`1px solid ${esMio?'var(--capyme-blue-mid)':'transparent'}`}}>
+                    <div style={{width:'34px',height:'34px',borderRadius:'10px',flexShrink:0,background:`linear-gradient(135deg,${c1},${c2})`,display:'flex',alignItems:'center',justifyContent:'center',color:'#fff',fontSize:'12px',fontWeight:700,fontFamily:"'Plus Jakarta Sans',sans-serif"}}>{ini}</div>
                     <div style={{flex:1}}>
-                      <div style={{fontSize:'13px',fontWeight:600,color:'var(--gray-900)',fontFamily:"'DM Sans',sans-serif",display:'flex',alignItems:'center',gap:'6px'}}>
-                        {inv.inversor?.nombre} {inv.inversor?.apellido}
-                        {i===0&&<span style={{fontSize:'10px',background:'var(--capyme-blue-mid)',color:'#fff',padding:'1px 6px',borderRadius:'4px',fontWeight:700}}>TOP</span>}
+                      <div style={{fontSize:'13px',fontWeight:600,color:'var(--gray-900)',fontFamily:"'DM Sans',sans-serif"}}>
+                        {esMio&&!esDueno?'Tú':`${inv.inversor?.nombre} ${inv.inversor?.apellido?.[0]}.`}
+                        {esMio&&<span style={{marginLeft:'6px',fontSize:'10px',background:'var(--capyme-blue-mid)',color:'#fff',padding:'1px 6px',borderRadius:'4px',fontWeight:700}}>TÚ</span>}
                       </div>
                       <div style={{fontSize:'11px',color:'var(--gray-400)',fontFamily:"'DM Sans',sans-serif"}}>{fmtD(inv.fechaCreacion)}</div>
                     </div>
-                    <div style={{textAlign:'right', display:'flex', flexDirection:'column', alignItems:'flex-end', gap:'4px'}}>
-                      <div style={{fontSize:'14px',fontWeight:800,color:'var(--gray-900)',fontFamily:"'Plus Jakarta Sans',sans-serif"}}>{fmtM(inv.monto)}</div>
-                      {c.tipoCrowdfunding !== 'lending' && c.recompensaDesc && (
-                        <>
-                          {inv.recompensaRecibida ? (
-                            <div style={{fontSize:'10px',color:'#10B981',fontWeight:700,fontFamily:"'DM Sans',sans-serif"}}>✓ Entregada y confirmada</div>
-                          ) : inv.recompensaEnviada ? (
-                            <div style={{fontSize:'10px',color:'var(--capyme-blue-mid)',fontWeight:700,fontFamily:"'DM Sans',sans-serif"}}>Enviada (esperando)</div>
-                          ) : (
-                            <button onClick={() => handleMarcarEnviado(inv.id)} style={{background:'#F59E0B',color:'#fff',border:'none',padding:'4px 8px',borderRadius:'6px',fontSize:'10px',fontWeight:700,cursor:'pointer',fontFamily:"'DM Sans',sans-serif",transition:'all 150ms'}}>
-                              Marcar como enviada
-                            </button>
-                          )}
-                        </>
-                      )}
-                    </div>
+                    <div style={{fontSize:'14px',fontWeight:800,color:'var(--gray-900)',fontFamily:"'Plus Jakarta Sans',sans-serif"}}>{fmtM(inv.monto)}</div>
                   </div>
                 );
               })}
@@ -532,34 +410,194 @@ const DetalleMiCampana = ({ campana:c, onBack, onActualizar, onEditar }) => {
         </div>
 
         <div style={{position:'sticky',top:'20px'}}>
-          <div style={{borderRadius:'16px',border:`1.5px solid ${alc?'#A855F750':'var(--border)'}`,background:'#fff',padding:'20px',boxShadow:'0 4px 20px rgba(0,0,0,.08)'}}>
-            <div style={{marginBottom:'14px'}}>
-              <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:'3px'}}>
+          <div style={{borderRadius:'16px',border:`1.5px solid ${alc?'#A855F750':'var(--border)'}`,background:'#fff',padding:'20px',boxShadow:alc?'0 4px 24px rgba(168,85,247,.15)':'0 4px 20px rgba(0,0,0,.08)'}}>
+            <div style={{marginBottom:'16px'}}>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:'4px'}}>
                 <span style={{fontSize:'22px',fontWeight:900,color:'var(--gray-900)',fontFamily:"'Plus Jakarta Sans',sans-serif"}}>{fmtM(c.montoRecaudado)}</span>
-                <span style={{fontSize:'13px',fontWeight:700,color:alc?'#7C3AED':'var(--capyme-blue-mid)',fontFamily:"'Plus Jakarta Sans',sans-serif"}}>{pct}%</span>
+                <span style={{fontSize:'13px',fontWeight:700,color:alc?'#7C3AED':'var(--capyme-blue-mid)',fontFamily:"'Plus Jakarta Sans',sans-serif"}}>{porcentaje}%</span>
               </div>
-              <div style={{fontSize:'12px',color:'var(--gray-400)',fontFamily:"'DM Sans',sans-serif",marginBottom:'8px'}}>de {fmtM(c.metaRecaudacion)} meta</div>
+              <div style={{fontSize:'12px',color:'var(--gray-400)',fontFamily:"'DM Sans',sans-serif",marginBottom:'10px'}}>de {fmtM(c.metaRecaudacion)} meta</div>
               <div style={{height:'10px',borderRadius:'99px',background:'var(--gray-100)',overflow:'hidden'}}>
-                <div style={{height:'100%',borderRadius:'99px',background:alc?'linear-gradient(90deg,#7C3AED,#A855F7)':`linear-gradient(90deg,${c1},${c2})`,width:`${pct}%`,transition:'width 1s ease',boxShadow:alc?'0 0 8px rgba(168,85,247,.5)':'none'}}/>
+                <div style={{height:'100%',borderRadius:'99px',background:alc?'linear-gradient(90deg,#7C3AED,#A855F7)':`linear-gradient(90deg,${c1},${c2})`,width:`${porcentaje}%`,transition:'width 1s ease',boxShadow:alc?'0 0 10px rgba(168,85,247,.5)':'none'}}/>
               </div>
             </div>
-            {alc&&(
-              <div style={{padding:'12px',borderRadius:'12px',background:'linear-gradient(135deg,#7C3AED15,#A855F715)',border:'1.5px solid #A855F750',textAlign:'center',marginBottom:'14px'}}>
-                <Trophy style={{width:'20px',height:'20px',color:'#7C3AED',margin:'0 auto 4px',display:'block'}}/>
+
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'10px',marginBottom:'20px'}}>
+              {[
+                {icon:Users,   label:'Inversores',value:confirmed.length},
+                {icon:Clock,   label:d===0?'Finalizada':'Días restantes',value:d===0?'—':(d??'—'),red:d!==null&&d<=7&&d>0},
+                {icon:Calendar,label:'Inicio',    value:fmtD(c.fechaInicio)},
+                {icon:Target,  label:'Cierre',    value:fmtD(c.fechaCierre)},
+              ].map(({icon:Icon,label,value,red})=>(
+                <div key={label} style={{padding:'10px',borderRadius:'10px',background:'var(--gray-50)',border:'1px solid var(--gray-100)'}}>
+                  <div style={{display:'flex',alignItems:'center',gap:'5px',marginBottom:'2px'}}>
+                    <Icon style={{width:'11px',height:'11px',color:red?'#EF4444':'var(--gray-400)'}}/>
+                    <span style={{fontSize:'10px',color:'var(--gray-400)',fontFamily:"'DM Sans',sans-serif",textTransform:'uppercase',letterSpacing:'.05em'}}>{label}</span>
+                  </div>
+                  <div style={{fontSize:'13px',fontWeight:700,color:red?'#EF4444':'var(--gray-900)',fontFamily:"'Plus Jakarta Sans',sans-serif"}}>{value}</div>
+                </div>
+              ))}
+            </div>
+
+            {alc?(
+              <div style={{padding:'14px',borderRadius:'12px',background:'linear-gradient(135deg,#7C3AED15,#A855F715)',border:'1.5px solid #A855F750',textAlign:'center'}}>
+                <Trophy style={{width:'24px',height:'24px',color:'#7C3AED',margin:'0 auto 6px',display:'block'}}/>
                 <div style={{fontSize:'13px',fontWeight:800,color:'#581C87',fontFamily:"'Plus Jakarta Sans',sans-serif"}}>¡Meta alcanzada!</div>
+                <div style={{fontSize:'11px',color:'#7C3AED',fontFamily:"'DM Sans',sans-serif",marginTop:'2px'}}>Esta campaña ya logró su objetivo</div>
               </div>
+            ):puedeApoyar?(
+              <button onClick={onApoyar} style={{width:'100%',padding:'14px',background:`linear-gradient(135deg,${c1},${c2})`,border:'none',borderRadius:'14px',color:'#fff',fontSize:'15px',fontWeight:800,cursor:'pointer',fontFamily:"'Plus Jakarta Sans',sans-serif",letterSpacing:'.02em',boxShadow:'0 4px 16px rgba(0,0,0,.2)',transition:'all 200ms',display:'flex',alignItems:'center',justifyContent:'center',gap:'9px'}}
+                onMouseEnter={e=>{e.currentTarget.style.transform='scale(1.02)';}} onMouseLeave={e=>{e.currentTarget.style.transform='scale(1)';}}>
+                <Heart style={{width:'18px',height:'18px'}}/> Apoyar esta campaña
+              </button>
+            ):esDueno?(
+              <div style={{padding:'12px',borderRadius:'10px',background:'var(--capyme-blue-pale)',border:'1px solid var(--capyme-blue-mid)',textAlign:'center',fontSize:'12px',color:'var(--capyme-blue-mid)',fontFamily:"'DM Sans',sans-serif",fontWeight:600}}>Esta es tu campaña — solo lectura</div>
+            ):(
+              <div style={{padding:'12px',borderRadius:'10px',background:'var(--gray-50)',border:'1px solid var(--border)',textAlign:'center',fontSize:'12px',color:'var(--gray-500)',fontFamily:"'DM Sans',sans-serif"}}>Esta campaña no acepta nuevas inversiones</div>
             )}
-            <div style={{display:'flex',flexDirection:'column',gap:'8px'}}>
-              <button onClick={()=>onEditar(c)} style={{width:'100%',padding:'10px',border:'1.5px solid var(--border)',borderRadius:'10px',background:'#fff',fontSize:'12px',fontWeight:700,cursor:'pointer',fontFamily:"'DM Sans',sans-serif",display:'flex',alignItems:'center',justifyContent:'center',gap:'6px',color:'var(--gray-700)'}}>
-                <Edit2 style={{width:'13px',height:'13px'}}/> Editar campaña
-              </button>
-              <button onClick={()=>onActualizar(c)} style={{width:'100%',padding:'10px',background:`linear-gradient(135deg,${c1},${c2})`,border:'none',borderRadius:'10px',color:'#fff',fontSize:'12px',fontWeight:700,cursor:'pointer',fontFamily:"'DM Sans',sans-serif",display:'flex',alignItems:'center',justifyContent:'center',gap:'6px',boxShadow:'0 2px 8px rgba(0,0,0,.15)'}}>
-                <Bell style={{width:'13px',height:'13px'}}/> Publicar actualización
-              </button>
-            </div>
+
+            <button style={{width:'100%',marginTop:'10px',padding:'9px',border:'1.5px solid var(--border)',borderRadius:'10px',background:'#fff',fontSize:'12px',color:'var(--gray-600)',cursor:'pointer',fontFamily:"'DM Sans',sans-serif",fontWeight:600,display:'flex',alignItems:'center',justifyContent:'center',gap:'5px'}}>
+              <Share2 style={{width:'13px',height:'13px'}}/> Compartir
+            </button>
           </div>
         </div>
       </div>
+    </div>
+  );
+};
+
+const EstadoDropdown = ({ campana, pos, onSelect, onClose }) => {
+  useEffect(()=>{ const fn=()=>onClose(); document.addEventListener('mousedown',fn); return ()=>document.removeEventListener('mousedown',fn); },[]);
+  return (
+    <>
+      <div onClick={onClose} style={{position:'fixed',inset:0,zIndex:9998}}/>
+      <div onMouseDown={e=>e.stopPropagation()} style={{position:'fixed',top:pos.bottom+6,left:pos.left,zIndex:9999,background:'#fff',border:'1px solid var(--border)',borderRadius:'12px',boxShadow:'0 8px 32px rgba(0,0,0,.15)',overflow:'hidden',minWidth:'180px',padding:'6px'}}>
+        <div style={{padding:'6px 10px 8px',fontSize:'10px',fontWeight:700,color:'var(--gray-400)',textTransform:'uppercase',letterSpacing:'.06em',fontFamily:"'Plus Jakarta Sans',sans-serif"}}>Cambiar estado</div>
+        {ESTADOS_LISTA.map(est=>{
+          const info=ESTADO_INFO[est]; const act=campana.estado===est;
+          return <button key={est} onClick={()=>onSelect(est)} style={{display:'flex',alignItems:'center',gap:'8px',width:'100%',padding:'8px 10px',border:'none',background:act?info.bg:'transparent',borderRadius:'8px',cursor:'pointer',fontSize:'13px',color:act?info.color:'var(--gray-700)',fontFamily:"'DM Sans',sans-serif",fontWeight:act?700:400,textAlign:'left'}}>
+            <span style={{width:'8px',height:'8px',borderRadius:'50%',background:info.dot,flexShrink:0}}/>{info.label}{act&&<CheckCircle style={{width:'12px',height:'12px',marginLeft:'auto'}}/>}
+          </button>;
+        })}
+      </div>
+    </>
+  );
+};
+
+const CampanaModal = ({ mode, campana, negocios, currentUser, onClose, onSave }) => {
+  const metaBloq = mode==='edit' && currentUser.rol==='cliente' && parseFloat(campana?.montoRecaudado||0)>0;
+  const [form, setForm] = useState(mode==='edit'&&campana?{
+    titulo:campana.titulo||'',descripcion:campana.descripcion||'',historia:campana.historia||'',
+    negocioId:campana.negocioId||'',metaRecaudacion:campana.metaRecaudacion||'',
+    fechaInicio:campana.fechaInicio?campana.fechaInicio.slice(0,10):'',
+    fechaCierre:campana.fechaCierre?campana.fechaCierre.slice(0,10):'',
+  }:initForm);
+  const [errors, setErrors] = useState({});
+  const [saving, setSaving] = useState(false);
+  const validate = () => {const e={};if(!form.titulo||form.titulo.length<3)e.titulo='Mínimo 3 caracteres';if(!form.negocioId)e.negocioId='Selecciona un negocio';if(!form.metaRecaudacion||parseFloat(form.metaRecaudacion)<=0)e.metaRecaudacion='Meta inválida';setErrors(e);return!Object.keys(e).length;};
+  const handleSubmit = async () => {if(!validate())return;setSaving(true);try{await onSave(form);}finally{setSaving(false);}};
+  const inp = {width:'100%',padding:'10px 12px',border:'1px solid var(--border)',borderRadius:'10px',fontSize:'14px',fontFamily:"'DM Sans',sans-serif",color:'var(--gray-900)',background:'#fff',outline:'none',boxSizing:'border-box'};
+  const lbl = {display:'block',fontSize:'12px',fontWeight:700,color:'var(--gray-600)',marginBottom:'5px',fontFamily:"'DM Sans',sans-serif"};
+  const Err = ({k}) => errors[k]?<p style={{margin:'4px 0 0',fontSize:'11px',color:'#EF4444',fontFamily:"'DM Sans',sans-serif"}}>{errors[k]}</p>:null;
+  return (
+    <div onClick={onClose} style={{position:'fixed',inset:0,background:'rgba(0,0,0,.45)',backdropFilter:'blur(5px)',zIndex:1050,display:'flex',alignItems:'center',justifyContent:'center',padding:'20px'}}>
+      <div onClick={e=>e.stopPropagation()} style={{background:'#fff',borderRadius:'20px',width:'100%',maxWidth:'620px',maxHeight:'90vh',display:'flex',flexDirection:'column',boxShadow:'0 24px 64px rgba(0,0,0,.2)'}}>
+        <div style={{padding:'20px 24px',borderBottom:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+          <h2 style={{fontSize:'18px',fontWeight:800,color:'var(--gray-900)',fontFamily:"'Plus Jakarta Sans',sans-serif",margin:0}}>{mode==='create'?'🚀 Nueva campaña':'✏️ Editar campaña'}</h2>
+          <button onClick={onClose} style={{width:'32px',height:'32px',border:'none',background:'var(--gray-100)',borderRadius:'8px',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}><X style={{width:'15px',height:'15px',color:'var(--gray-500)'}}/></button>
+        </div>
+        <div style={{overflowY:'auto',flex:1,padding:'24px',display:'grid',gridTemplateColumns:'1fr 1fr',gap:'16px'}}>
+          <div style={{gridColumn:'1 / -1'}}><label style={lbl}>Título *</label><input value={form.titulo} onChange={e=>setForm(p=>({...p,titulo:e.target.value}))} placeholder="Ej. Expansión de mi panadería" style={{...inp,...(errors.titulo?{borderColor:'#EF4444'}:{})}}/><Err k="titulo"/></div>
+          <div style={{gridColumn:'1 / -1'}}><label style={lbl}>Negocio *</label><select value={form.negocioId} onChange={e=>setForm(p=>({...p,negocioId:e.target.value}))} disabled={mode==='edit'&&currentUser.rol==='cliente'} style={{...inp,appearance:'none',cursor:mode==='edit'&&currentUser.rol==='cliente'?'not-allowed':'pointer',...(errors.negocioId?{borderColor:'#EF4444'}:{})}}><option value="">Seleccionar...</option>{negocios.map(n=><option key={n.id} value={n.id}>{n.nombreNegocio}</option>)}</select><Err k="negocioId"/></div>
+          <div style={{gridColumn:'1 / -1'}}><label style={lbl}>Descripción breve</label><textarea value={form.descripcion} onChange={e=>setForm(p=>({...p,descripcion:e.target.value}))} rows={2} placeholder="Resumen de tu proyecto..." style={{...inp,resize:'vertical'}}/></div>
+          <div style={{gridColumn:'1 / -1'}}><label style={lbl}>Historia del proyecto</label><textarea value={form.historia} onChange={e=>setForm(p=>({...p,historia:e.target.value}))} rows={3} placeholder="Cuenta la historia de tu negocio..." style={{...inp,resize:'vertical'}}/></div>
+          <div>
+            <label style={lbl}>Meta de recaudación (MXN) *</label>
+            <input type="number" value={form.metaRecaudacion} disabled={metaBloq} onChange={e=>setForm(p=>({...p,metaRecaudacion:e.target.value}))} placeholder="0" style={{...inp,...(metaBloq?{background:'var(--gray-50)',cursor:'not-allowed'}:{}),...(errors.metaRecaudacion?{borderColor:'#EF4444'}:{})}}/>
+            {form.metaRecaudacion && parseFloat(form.metaRecaudacion) > 0 && (
+              <div style={{marginTop:'8px',padding:'10px',background:'var(--capyme-blue-pale)',borderRadius:'8px',border:'1px solid var(--capyme-blue-mid)'}}>
+                <div style={{fontSize:'12px',display:'flex',justifyContent:'space-between',color:'var(--gray-700)',marginBottom:'4px'}}>
+                  <span>Meta bruta:</span> <span>{fmtM(form.metaRecaudacion)}</span>
+                </div>
+                <div style={{fontSize:'12px',display:'flex',justifyContent:'space-between',color:'#EF4444',marginBottom:'4px'}}>
+                  <span>Comisión plataforma (7%):</span> <span>-{fmtM(parseFloat(form.metaRecaudacion) * 0.07)}</span>
+                </div>
+                <div style={{fontSize:'12px',display:'flex',justifyContent:'space-between',color:'var(--gray-900)',fontWeight:700}}>
+                  <span>Monto neto a recibir:</span> <span>{fmtM(parseFloat(form.metaRecaudacion) * 0.93)}</span>
+                </div>
+              </div>
+            )}
+            {metaBloq&&<p style={{margin:'3px 0 0',fontSize:'11px',color:'var(--gray-400)',fontFamily:"'DM Sans',sans-serif"}}>No editable: campaña con fondos</p>}
+            <Err k="metaRecaudacion"/>
+          </div>
+          <div/>
+          <div><label style={lbl}>Fecha de inicio</label><input type="date" value={form.fechaInicio} onChange={e=>setForm(p=>({...p,fechaInicio:e.target.value}))} style={inp}/></div>
+          <div><label style={lbl}>Fecha de cierre</label><input type="date" value={form.fechaCierre} onChange={e=>setForm(p=>({...p,fechaCierre:e.target.value}))} style={inp}/></div>
+        </div>
+        <div style={{padding:'16px 24px',borderTop:'1px solid var(--border)',display:'flex',justifyContent:'flex-end',gap:'10px'}}>
+          <button onClick={onClose} style={{padding:'10px 20px',border:'1.5px solid var(--border)',borderRadius:'10px',background:'#fff',color:'var(--gray-700)',fontSize:'13px',fontWeight:600,cursor:'pointer',fontFamily:"'DM Sans',sans-serif"}}>Cancelar</button>
+          <button onClick={handleSubmit} disabled={saving} style={{padding:'10px 24px',background:saving?'var(--gray-300)':'linear-gradient(135deg,var(--capyme-blue-mid),#4F46E5)',border:'none',borderRadius:'10px',color:'#fff',fontSize:'13px',fontWeight:700,cursor:saving?'not-allowed':'pointer',fontFamily:"'DM Sans',sans-serif",boxShadow:saving?'none':'0 2px 10px rgba(79,70,229,.3)'}}>
+            {saving?'Guardando...':mode==='create'?'🚀 Publicar':'Guardar'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const TablaAdmin = ({ campanas, onEdit, onToggleEstado, onToggleActivo, esAdmin, currentUser }) => {
+  const [hovRow,setHovRow]=useState(null);
+  if(!campanas.length) return <div style={{textAlign:'center',padding:'60px',color:'var(--gray-400)',fontSize:'14px',fontFamily:"'DM Sans',sans-serif"}}>No hay campañas</div>;
+  return (
+    <div style={{background:'#fff',border:'1px solid var(--border)',borderRadius:'16px',overflow:'hidden',boxShadow:'var(--shadow-sm)'}}>
+      <table style={{width:'100%',borderCollapse:'collapse'}}>
+        <thead>
+          <tr style={{background:'var(--gray-50)',borderBottom:'1px solid var(--border)'}}>
+            {['Campaña','Negocio','Progreso','Fechas','Estado','Activo','Acciones'].map(h=>(
+              <th key={h} style={{padding:'12px 16px',textAlign:h==='Acciones'?'right':'left',fontSize:'11px',fontWeight:700,color:'var(--gray-500)',textTransform:'uppercase',letterSpacing:'.05em',fontFamily:"'Plus Jakarta Sans',sans-serif",whiteSpace:'nowrap'}}>{h}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {campanas.map(c=>{
+            const p=getPct(c.montoRecaudado,c.metaRecaudacion); const alc=isMeta(c); const [col1,col2]=getClrs(c);
+            const puedeEditar = esAdmin || c.negocio?.usuarioId === currentUser.id;
+            return (
+              <tr key={c.id} onMouseEnter={()=>setHovRow(c.id)} onMouseLeave={()=>setHovRow(null)} style={{borderBottom:'1px solid var(--border)',background:hovRow===c.id?'var(--gray-50)':'#fff',transition:'background 120ms',opacity:c.activo?1:.55}}>
+                <td style={{padding:'12px 16px'}}>
+                  <div style={{display:'flex',alignItems:'center',gap:'10px'}}>
+                    <div style={{width:'36px',height:'36px',borderRadius:'10px',flexShrink:0,background:alc?'linear-gradient(135deg,#7C3AED,#A855F7)':`linear-gradient(135deg,${col1},${col2})`,display:'flex',alignItems:'center',justifyContent:'center'}}>
+                      {alc?<Trophy style={{width:'16px',height:'16px',color:'#fff'}}/>:<Megaphone style={{width:'16px',height:'16px',color:'#fff'}}/>}
+                    </div>
+                    <div>
+                      <div style={{fontSize:'13px',fontWeight:700,color:'var(--gray-900)',fontFamily:"'DM Sans',sans-serif",maxWidth:'180px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{c.titulo}</div>
+                      <div style={{fontSize:'11px',color:'var(--gray-400)',fontFamily:"'DM Sans',sans-serif"}}>{c.creador?.nombre} {c.creador?.apellido}</div>
+                    </div>
+                  </div>
+                </td>
+                <td style={{padding:'12px 16px'}}><div style={{fontSize:'13px',color:'var(--gray-700)',fontFamily:"'DM Sans',sans-serif",maxWidth:'130px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{c.negocio?.nombreNegocio}</div></td>
+                <td style={{padding:'12px 16px',minWidth:'150px'}}>
+                  <div style={{height:'5px',borderRadius:'99px',background:'var(--gray-100)',overflow:'hidden',marginBottom:'4px'}}><div style={{height:'100%',borderRadius:'99px',background:alc?'linear-gradient(90deg,#7C3AED,#A855F7)':`linear-gradient(90deg,${col1},${col2})`,width:`${p}%`}}/></div>
+                  <div style={{display:'flex',justifyContent:'space-between'}}>
+                    <span style={{fontSize:'11px',color:'var(--gray-600)',fontFamily:"'DM Sans',sans-serif"}}>{fmtM(c.montoRecaudado)}</span>
+                    <span style={{fontSize:'11px',fontWeight:700,color:alc?'#7C3AED':'var(--capyme-blue-mid)',fontFamily:"'DM Sans',sans-serif"}}>{p}%</span>
+                  </div>
+                </td>
+                <td style={{padding:'12px 16px'}}><div style={{fontSize:'11px',color:'var(--gray-600)',fontFamily:"'DM Sans',sans-serif",whiteSpace:'nowrap'}}><div>{fmtD(c.fechaInicio)}</div><div style={{color:'var(--gray-400)'}}>→ {fmtD(c.fechaCierre)}</div></div></td>
+                <td style={{padding:'12px 16px'}}><EstadoBadge campana={c}/></td>
+                <td style={{padding:'12px 16px'}}><span style={{padding:'3px 10px',borderRadius:'99px',fontSize:'11px',fontWeight:600,fontFamily:"'DM Sans',sans-serif",background:c.activo?'#ECFDF5':'#FEF2F2',color:c.activo?'#065F46':'#DC2626'}}>{c.activo?'Activo':'Inactivo'}</span></td>
+                <td style={{padding:'12px 16px',textAlign:'right'}}>
+                  <div style={{display:'flex',gap:'4px',justifyContent:'flex-end'}}>
+                    {puedeEditar&&<button onClick={()=>onEdit(c)} style={{width:'32px',height:'32px',border:'none',borderRadius:'8px',background:'transparent',color:'var(--gray-400)',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}} onMouseEnter={e=>{e.currentTarget.style.background='#EEF4FF';e.currentTarget.style.color='var(--capyme-blue-mid)';}} onMouseLeave={e=>{e.currentTarget.style.background='transparent';e.currentTarget.style.color='var(--gray-400)';}}><Edit2 style={{width:'14px',height:'14px'}}/></button>}
+                    {esAdmin&&<button onClick={e=>onToggleEstado(c,e)} style={{width:'32px',height:'32px',border:'none',borderRadius:'8px',background:'transparent',color:'var(--gray-400)',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}} onMouseEnter={e=>{e.currentTarget.style.background='#EEF4FF';e.currentTarget.style.color='var(--capyme-blue-mid)';}} onMouseLeave={e=>{e.currentTarget.style.background='transparent';e.currentTarget.style.color='var(--gray-400)';}}><ChevronDown style={{width:'14px',height:'14px'}}/></button>}
+                    {esAdmin&&<button onClick={()=>onToggleActivo(c)} style={{width:'32px',height:'32px',border:'none',borderRadius:'8px',background:'transparent',color:'var(--gray-400)',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}} onMouseEnter={e=>{e.currentTarget.style.background=c.activo?'#FEF2F2':'#ECFDF5';e.currentTarget.style.color=c.activo?'#DC2626':'#065F46';}} onMouseLeave={e=>{e.currentTarget.style.background='transparent';e.currentTarget.style.color='var(--gray-400)';}}>{c.activo?<Ban style={{width:'14px',height:'14px'}}/>:<RotateCcw style={{width:'14px',height:'14px'}}/>}</button>}
+                  </div>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
     </div>
   );
 };
@@ -568,63 +606,76 @@ const MisCampanas = () => {
   const authStorage = JSON.parse(localStorage.getItem('auth-storage')||'{}');
   const currentUser = authStorage?.state?.user || {};
 
-  const [campanas,  setCampanas]  = useState([]);
-  const [negocios,  setNegocios]  = useState([]);
-  const [loading,   setLoading]   = useState(true);
-  const [detalle,   setDetalle]   = useState(null);
-  const [showModal, setShowModal] = useState(false);
+  const [campanas, setCampanas] = useState([]);
+  const [negocios, setNegocios] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [filtro, setFiltro] = useState('');
+  const [vista, setVista] = useState('cards');
+  const [detalle, setDetalle] = useState(null);
+  const [apoyarCampana, setApoyarCampana] = useState(null);
+  const [showCampanaModal, setShowCampanaModal] = useState(false);
   const [modalMode, setModalMode] = useState('create');
-  const [selected,  setSelected]  = useState(null);
-  const [actUpdate, setActUpdate] = useState(null);
+  const [selected, setSelected] = useState(null);
+  const [estadoDrop, setEstadoDrop] = useState(null);
+
+  const esAdmin = currentUser.rol==='admin';
 
   useEffect(()=>{ cargarDatos(); },[]);
 
-  const cargarDatos = async () => {
+  const cargarDatos = async()=>{
     setLoading(true);
     try {
-      const [cR,nR] = await Promise.all([campanasService.getMias(), negociosService.getAll()]);
-      setCampanas(cR.data||[]); setNegocios(nR.data||[]);
-    } catch { toast.error('Error al cargar'); }
+      const [cR,nR] = await Promise.all([campanasService.getAll(), negociosService.getAll()]);
+      let fetchedCampanas = cR.data || [];
+      if (currentUser.rol === 'cliente') {
+        fetchedCampanas = fetchedCampanas.filter(c => c.negocio?.usuarioId === currentUser.id);
+      }
+      setCampanas(fetchedCampanas);
+      setNegocios(nR.data || []);
+    } catch { toast.error('Error al cargar campañas'); }
     finally { setLoading(false); }
   };
 
-  const handleSave = async (formData) => {
+  const campanasFiltradas = campanas.filter(c => {
+    const ms = !search || c.titulo?.toLowerCase().includes(search.toLowerCase()) || c.negocio?.nombreNegocio?.toLowerCase().includes(search.toLowerCase());
+    const mf = !filtro || c.estado===filtro || (filtro==='completada' && isMeta(c));
+    return ms && mf;
+  });
+
+  const handleSave = async(formData)=>{
     try {
-      if(modalMode==='create'){ await campanasService.create(formData); toast.success('¡Campaña publicada! Estará en revisión.'); }
-      else { await campanasService.update(selected.id,formData); toast.success('Campaña actualizada'); }
-      setShowModal(false); setDetalle(null); cargarDatos();
-    } catch(e){ toast.error(e?.response?.data?.message||'Error'); throw e; }
+      if(modalMode==='create'){await campanasService.create(formData);toast.success('¡Campaña publicada!');}
+      else{await campanasService.update(selected.id,formData);toast.success('Campaña actualizada');}
+      setShowCampanaModal(false); cargarDatos();
+      if(detalle) setDetalle(prev=>({...prev,...formData}));
+    } catch(e){toast.error(e?.response?.data?.message||'Error');throw e;}
   };
 
-  const handleActualizacion = async ({ titulo, contenido }) => {
-    try {
-      await campanasService.publicarActualizacion(actUpdate.id, { titulo, contenido });
-      toast.success('✅ Actualización publicada — tus inversores la verán');
-      setActUpdate(null);
-    } catch { toast.error('Error al publicar'); }
+  const handleEstadoSelect = async(campana,est)=>{
+    try{await campanasService.updateEstado(campana.id,est);toast.success(`Estado → "${ESTADO_INFO[est].label}"`);setEstadoDrop(null);cargarDatos();}
+    catch{toast.error('Error');}
   };
-
-  const negociosPropios = negocios.filter(n => n.usuarioId === currentUser.id && n.activo);
-  const totalRecaudado  = campanas.reduce((a,c)=>a+parseFloat(c.montoRecaudado||0),0);
-  const activas         = campanas.filter(c=>c.estado==='activa'||c.estado==='aprobada').length;
-  const completadas     = campanas.filter(isMeta).length;
+  const handleToggleActivo = async(campana)=>{
+    try{await campanasService.toggleActivo(campana.id);toast.success(campana.activo?'Desactivada':'Activada');cargarDatos();}
+    catch{toast.error('Error');}
+  };
+  const openDrop = (campana,e)=>{ const r=e.currentTarget.getBoundingClientRect(); setEstadoDrop({campana,pos:r}); };
+  const metaCount = campanas.filter(isMeta).length;
 
   if(loading) return(
-    <Layout>
-      <div style={{display:'flex',justifyContent:'center',alignItems:'center',height:'60vh'}}>
-        <div style={{width:'40px',height:'40px',border:'3px solid var(--gray-200)',borderTopColor:'var(--capyme-blue-mid)',borderRadius:'50%',animation:'spin .8s linear infinite'}}/>
-      </div>
-    </Layout>
+    <Layout><div style={{display:'flex',justifyContent:'center',alignItems:'center',height:'60vh'}}>
+      <div style={{width:'40px',height:'40px',border:'3px solid var(--gray-200)',borderTopColor:'var(--capyme-blue-mid)',borderRadius:'50%',animation:'spin .8s linear infinite'}}/>
+    </div></Layout>
   );
 
   if(detalle) return(
     <Layout>
       <style>{`@keyframes spin{to{transform:rotate(360deg)}} @keyframes shimmer{to{background-position:200% 0}}`}</style>
       <div style={{padding:'28px 24px',maxWidth:'1080px',margin:'0 auto'}}>
-        <DetalleMiCampana campana={detalle} onBack={()=>setDetalle(null)} onEditar={c=>{setModalMode('edit');setSelected(c);setShowModal(true);}} onActualizar={setActUpdate}/>
+        <CampanaDetalle campana={detalle} currentUser={currentUser} onBack={()=>setDetalle(null)} onApoyar={()=>setApoyarCampana(detalle)}/>
       </div>
-      {actUpdate&&<ActualizacionModal campana={actUpdate} onClose={()=>setActUpdate(null)} onSave={handleActualizacion}/>}
-      {showModal&&<CampanaModal mode={modalMode} campana={selected} negocios={negociosPropios} onClose={()=>setShowModal(false)} onSave={handleSave}/>}
+      {apoyarCampana&&<ApoyarModal campana={apoyarCampana} onClose={()=>setApoyarCampana(null)}/>}
     </Layout>
   );
 
@@ -635,68 +686,75 @@ const MisCampanas = () => {
 
         <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',marginBottom:'28px',gap:'16px',flexWrap:'wrap'}}>
           <div>
-            <h1 style={{fontSize:'28px',fontWeight:900,color:'var(--gray-900)',fontFamily:"'Plus Jakarta Sans',sans-serif",margin:'0 0 6px'}}>Mis campañas</h1>
-            <p style={{fontSize:'14px',color:'var(--gray-500)',margin:0,fontFamily:"'DM Sans',sans-serif"}}>Gestiona y sigue el progreso de tus proyectos de financiamiento</p>
-          </div>
-          <button onClick={()=>{setModalMode('create');setSelected(null);setShowModal(true);}} style={{padding:'11px 22px',background:'linear-gradient(135deg,var(--capyme-blue-mid),#4F46E5)',border:'none',borderRadius:'12px',color:'#fff',fontSize:'13px',fontWeight:700,cursor:'pointer',fontFamily:"'Plus Jakarta Sans',sans-serif",display:'flex',alignItems:'center',gap:'7px',boxShadow:'0 4px 14px rgba(79,70,229,.3)',letterSpacing:'.02em'}}>
-            <Plus style={{width:'15px',height:'15px'}}/> Nueva campaña
-          </button>
-        </div>
-
-        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(160px,1fr))',gap:'12px',marginBottom:'28px'}}>
-          {[
-            {icon:Megaphone,  label:'Mis campañas',   value:campanas.length,      color:'var(--capyme-blue-mid)'},
-            {icon:TrendingUp, label:'Activas',        value:activas,              color:'#10B981'},
-            {icon:Trophy,     label:'Completadas',     value:completadas,          color:'#7C3AED'},
-            {icon:DollarSign, label:'Total recaudado', value:fmtM(totalRecaudado), color:'#059669'},
-          ].map(({icon:Icon,label,value,color})=>(
-            <div key={label} style={{padding:'16px',borderRadius:'14px',background:'#fff',border:'1px solid var(--border)',boxShadow:'var(--shadow-sm)'}}>
-              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'8px'}}>
-                <div style={{width:'34px',height:'34px',borderRadius:'9px',background:color+'18',display:'flex',alignItems:'center',justifyContent:'center'}}>
-                  <Icon style={{width:'16px',height:'16px',color}}/>
-                </div>
-              </div>
-              <div style={{fontSize:'20px',fontWeight:900,color,fontFamily:"'Plus Jakarta Sans',sans-serif"}}>{value}</div>
-              <div style={{fontSize:'11px',color:'var(--gray-500)',fontFamily:"'DM Sans',sans-serif",marginTop:'2px'}}>{label}</div>
-            </div>
-          ))}
-        </div>
-
-        {campanas.some(c=>c.estado==='en_revision')&&(
-          <div style={{padding:'12px 16px',borderRadius:'12px',marginBottom:'20px',background:'#FEF9C3',border:'1px solid #FDE68A',display:'flex',alignItems:'center',gap:'10px'}}>
-            <AlertCircle style={{width:'16px',height:'16px',color:'#D97706',flexShrink:0}}/>
-            <span style={{fontSize:'13px',fontFamily:"'DM Sans',sans-serif",color:'#92400E',fontWeight:600}}>
-              Tienes {campanas.filter(c=>c.estado==='en_revision').length} campaña(s) pendiente(s) de revisión por CAPYME.
-            </span>
-          </div>
-        )}
-
-        {campanas.length===0 ? (
-          <div style={{textAlign:'center',padding:'80px 20px'}}>
-            <Megaphone style={{width:'56px',height:'56px',color:'var(--gray-200)',margin:'0 auto 16px',display:'block'}}/>
-            <h3 style={{fontSize:'20px',fontWeight:800,color:'var(--gray-600)',fontFamily:"'Plus Jakarta Sans',sans-serif",margin:'0 0 8px'}}>Aún no tienes campañas</h3>
-            <p style={{fontSize:'14px',color:'var(--gray-400)',fontFamily:"'DM Sans',sans-serif",margin:'0 0 28px',maxWidth:'380px',marginLeft:'auto',marginRight:'auto'}}>
-              Crea tu primera campaña de crowdfunding para empezar a recibir financiamiento de inversores
+            <h1 style={{fontSize:'28px',fontWeight:900,color:'var(--gray-900)',fontFamily:"'Plus Jakarta Sans',sans-serif",margin:'0 0 6px'}}>Mis Campañas</h1>
+            <p style={{fontSize:'14px',color:'var(--gray-500)',margin:0,fontFamily:"'DM Sans',sans-serif"}}>
+              {campanasFiltradas.length} campaña{campanasFiltradas.length!==1?'s':''} · Administra y edita tus proyectos
+              {metaCount>0&&<span style={{marginLeft:'10px',color:'#7C3AED',fontWeight:700}}>· <Trophy style={{width:'12px',height:'12px',display:'inline',verticalAlign:'middle'}}/> {metaCount} completada{metaCount!==1?'s':''}</span>}
             </p>
-            <button onClick={()=>{setModalMode('create');setSelected(null);setShowModal(true);}} style={{padding:'12px 28px',background:'linear-gradient(135deg,var(--capyme-blue-mid),#4F46E5)',border:'none',borderRadius:'12px',color:'#fff',fontSize:'14px',fontWeight:700,cursor:'pointer',fontFamily:"'Plus Jakarta Sans',sans-serif",boxShadow:'0 4px 16px rgba(79,70,229,.3)',display:'inline-flex',alignItems:'center',gap:'8px'}}>
-              <Sparkles style={{width:'16px',height:'16px'}}/> Crear mi primera campaña
+          </div>
+          <div style={{display:'flex',gap:'8px',alignItems:'center'}}>
+            <div style={{display:'flex',background:'var(--gray-100)',borderRadius:'10px',padding:'3px'}}>
+              {[{v:'cards',icon:LayoutGrid},{v:'tabla',icon:Table2}].map(({v,icon:Icon})=>(
+                <button key={v} onClick={()=>setVista(v)} style={{width:'34px',height:'34px',border:'none',borderRadius:'8px',background:vista===v?'#fff':'transparent',color:vista===v?'var(--capyme-blue-mid)':'var(--gray-400)',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',boxShadow:vista===v?'0 1px 4px rgba(0,0,0,.1)':'none',transition:'all 150ms'}}>
+                  <Icon style={{width:'15px',height:'15px'}}/>
+                </button>
+              ))}
+            </div>
+            <button onClick={()=>{setModalMode('create');setSelected(null);setShowCampanaModal(true);}} style={{padding:'10px 20px',background:'linear-gradient(135deg,var(--capyme-blue-mid),#4F46E5)',border:'none',borderRadius:'12px',color:'#fff',fontSize:'13px',fontWeight:700,cursor:'pointer',fontFamily:"'Plus Jakarta Sans',sans-serif",display:'flex',alignItems:'center',gap:'7px',boxShadow:'0 4px 14px rgba(79,70,229,.3)',letterSpacing:'.02em'}}>
+              <Plus style={{width:'15px',height:'15px'}}/> Nueva campaña
             </button>
           </div>
-        ) : (
-          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(300px,1fr))',gap:'20px'}}>
-            {campanas.map(c=>(
-              <MiCampanaCard key={c.id} campana={c}
-                onEditar={c=>{setModalMode('edit');setSelected(c);setShowModal(true);}}
-                onActualizar={setActUpdate}
-                onVerDetalle={setDetalle}
+        </div>
+
+        <div style={{display:'flex',gap:'10px',marginBottom:'24px',flexWrap:'wrap',alignItems:'center'}}>
+          <div style={{flex:1,minWidth:'200px',position:'relative'}}>
+            <Search style={{position:'absolute',left:'12px',top:'50%',transform:'translateY(-50%)',width:'15px',height:'15px',color:'var(--gray-400)'}}/>
+            <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar campañas..." style={{width:'100%',padding:'10px 12px 10px 36px',border:'1.5px solid var(--border)',borderRadius:'10px',fontSize:'14px',fontFamily:"'DM Sans',sans-serif",outline:'none',boxSizing:'border-box'}}/>
+          </div>
+          <div style={{display:'flex',gap:'6px',flexWrap:'wrap'}}>
+            {[{v:'',l:'Todas'},...ESTADOS_LISTA.map(e=>({v:e,l:ESTADO_INFO[e].label}))].map(({v,l})=>(
+              <button key={v} onClick={()=>setFiltro(v)} style={{padding:'8px 14px',borderRadius:'20px',border:filtro===v?'none':'1.5px solid var(--border)',background:filtro===v?(v==='completada'?'linear-gradient(135deg,#7C3AED,#A855F7)':'linear-gradient(135deg,var(--capyme-blue-mid),#4F46E5)'):'#fff',color:filtro===v?'#fff':'var(--gray-600)',fontSize:'12px',fontWeight:600,cursor:'pointer',fontFamily:"'DM Sans',sans-serif",transition:'all 150ms',display:'flex',alignItems:'center',gap:'4px'}}>
+                {v==='completada'&&<Trophy style={{width:'11px',height:'11px'}}/>}{l}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {campanasFiltradas.length===0?(
+          <div style={{textAlign:'center',padding:'80px 20px'}}>
+            <Megaphone style={{width:'48px',height:'48px',color:'var(--gray-300)',margin:'0 auto 16px',display:'block'}}/>
+            <h3 style={{fontSize:'18px',fontWeight:800,color:'var(--gray-600)',fontFamily:"'Plus Jakarta Sans',sans-serif",margin:'0 0 8px'}}>No hay campañas</h3>
+            <p style={{fontSize:'14px',color:'var(--gray-400)',fontFamily:"'DM Sans',sans-serif",margin:'0 0 24px'}}>{search?'Sin resultados':'Crea la primera campaña de crowdfunding'}</p>
+            <button onClick={()=>{setModalMode('create');setSelected(null);setShowCampanaModal(true);}} style={{padding:'10px 24px',background:'linear-gradient(135deg,var(--capyme-blue-mid),#4F46E5)',border:'none',borderRadius:'10px',color:'#fff',fontSize:'13px',fontWeight:700,cursor:'pointer',fontFamily:"'Plus Jakarta Sans',sans-serif",boxShadow:'0 4px 14px rgba(79,70,229,.3)'}}>+ Crear campaña</button>
+          </div>
+        ):vista==='tabla'?(
+          <TablaAdmin campanas={campanasFiltradas} esAdmin={esAdmin} currentUser={currentUser}
+            onEdit={c=>{setModalMode('edit');setSelected(c);setShowCampanaModal(true);}}
+            onToggleEstado={(c,e)=>openDrop(c,e)} onToggleActivo={handleToggleActivo}/>
+        ):(
+          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))',gap:'20px'}}>
+            {campanasFiltradas.map(c=>(
+              <CampanaCard key={c.id} campana={c} esAdmin={esAdmin} currentUser={currentUser}
+                onClick={()=>setDetalle(c)}
+                onEdit={()=>{setModalMode('edit');setSelected(c);setShowCampanaModal(true);}}
+                onToggleActivo={()=>handleToggleActivo(c)}
+                onToggleEstado={e=>openDrop(c,e)}
+                onApoyar={()=>setApoyarCampana(c)}
               />
             ))}
           </div>
         )}
       </div>
 
-      {showModal&&<CampanaModal mode={modalMode} campana={selected} negocios={negociosPropios} onClose={()=>setShowModal(false)} onSave={handleSave}/>}
-      {actUpdate&&<ActualizacionModal campana={actUpdate} onClose={()=>setActUpdate(null)} onSave={handleActualizacion}/>}
+      {apoyarCampana&&<ApoyarModal campana={apoyarCampana} onClose={()=>setApoyarCampana(null)}/>}
+
+      {showCampanaModal&&(
+        <CampanaModal mode={modalMode} campana={selected}
+          negocios={currentUser.rol==='cliente'?negocios.filter(n=>n.usuarioId===currentUser.id&&n.activo):negocios.filter(n=>n.activo)}
+          currentUser={currentUser} onClose={()=>setShowCampanaModal(false)} onSave={handleSave}/>
+      )}
+
+      {estadoDrop&&<EstadoDropdown campana={estadoDrop.campana} pos={estadoDrop.pos} onSelect={est=>handleEstadoSelect(estadoDrop.campana,est)} onClose={()=>setEstadoDrop(null)}/>}
     </Layout>
   );
 };

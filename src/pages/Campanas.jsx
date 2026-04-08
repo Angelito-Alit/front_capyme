@@ -1,16 +1,14 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
 import {
-  Search, Plus, Users, Clock, ArrowLeft, Heart, Share2,
-  CheckCircle, Edit2, ToggleLeft, ToggleRight, ChevronDown,
+  Search, Users, Clock, ArrowLeft, Heart, Share2,
   X, Star, Megaphone, LayoutGrid, Table2, Trophy,
-  Target, Calendar, Ban, RotateCcw, CreditCard, AlertCircle,
+  Target, Calendar, CreditCard, AlertCircle,
 } from 'lucide-react';
 import Layout from '../components/common/Layout';
-import { campanasService }   from '../services/campanasService';
-import { negociosService }   from '../services/negociosService';
+import { campanasService } from '../services/campanasService';
 import { inversionesService } from '../services/inversionesService';
-import { pagosService }      from '../services/pagosService';
+import { pagosService } from '../services/pagosService';
 
 const ESTADO_INFO = {
   en_revision: { label: 'En revisión', bg: '#FEF9C3', color: '#854D0E', dot: '#F59E0B' },
@@ -29,17 +27,15 @@ const COLORES = [
   ['#A18CD1','#FBC2EB'], ['#0BA360','#3CBA92'],
 ];
 
-const initForm = { titulo:'', descripcion:'', historia:'', negocioId:'', metaRecaudacion:'', fechaInicio:'', fechaCierre:'' };
-
-const fmtM  = v => new Intl.NumberFormat('es-MX',{style:'currency',currency:'MXN',maximumFractionDigits:0}).format(v||0);
-const fmtD  = d => d ? new Date(d).toLocaleDateString('es-MX',{timeZone:'UTC',day:'2-digit',month:'short',year:'numeric'}) : '—';
+const fmtM = v => new Intl.NumberFormat('es-MX',{style:'currency',currency:'MXN',maximumFractionDigits:0}).format(v||0);
+const fmtD = d => d ? new Date(d).toLocaleDateString('es-MX',{timeZone:'UTC',day:'2-digit',month:'short',year:'numeric'}) : '—';
 const getDias = c => { if(!c) return null; const d=Math.ceil((new Date(c)-new Date())/86400000); return d>0?d:0; };
-const getPct  = (r,m) => (!m||!parseFloat(m)) ? 0 : Math.min(100,Math.round((parseFloat(r)/parseFloat(m))*100));
-const isMeta  = c => parseFloat(c.metaRecaudacion||0)>0 && parseFloat(c.montoRecaudado||0)>=parseFloat(c.metaRecaudacion||1);
+const getPct = (r,m) => (!m||!parseFloat(m)) ? 0 : Math.min(100,Math.round((parseFloat(r)/parseFloat(m))*100));
+const isMeta = c => parseFloat(c.metaRecaudacion||0)>0 && parseFloat(c.montoRecaudado||0)>=parseFloat(c.metaRecaudacion||1);
 const getClrs = c => COLORES[(c.id||0)%COLORES.length];
 
 const EstadoBadge = ({ campana, size='sm' }) => {
-  const alc  = isMeta(campana);
+  const alc = isMeta(campana);
   const info = ESTADO_INFO[campana.estado] || ESTADO_INFO.en_revision;
   return (
     <span style={{
@@ -80,9 +76,9 @@ const BarraProgreso = ({ campana, h=6 }) => {
 };
 
 const ApoyarModal = ({ campana, onClose }) => {
-  const [monto,   setMonto]   = useState('');
-  const [notas,   setNotas]   = useState('');
-  const [err,     setErr]     = useState('');
+  const [monto, setMonto] = useState('');
+  const [notas, setNotas] = useState('');
+  const [err, setErr] = useState('');
   const [loading, setLoading] = useState(false);
   const [c1,c2] = getClrs(campana);
 
@@ -99,11 +95,11 @@ const ApoyarModal = ({ campana, onClose }) => {
       const referencia = invRes.referencia || invRes.data?.referencia;
 
       const mpRes = await pagosService.crearPreferencia({
-        titulo:       `Inversión en campaña: ${campana.titulo}`,
-        precio:       m,
-        cantidad:     1,
+        titulo: `Inversión en campaña: ${campana.titulo}`,
+        precio: m,
+        cantidad: 1,
         idReferencia: referencia,
-        tipo:         'campana',
+        tipo: 'campana',
       });
 
       if (mpRes.success && mpRes.init_point) {
@@ -189,12 +185,12 @@ const ApoyarModal = ({ campana, onClose }) => {
                 <span>{fmtM(monto)}</span>
               </div>
               <div style={{display:'flex',justifyContent:'space-between',fontSize:'13px',color:'#EF4444',fontFamily:"'DM Sans',sans-serif"}}>
-                <span>Comisión de plataforma (5%)</span>
-                <span>-{fmtM(parseFloat(monto) * 0.05)}</span>
+                <span>Comisión de plataforma (7%)</span>
+                <span>-{fmtM(parseFloat(monto) * 0.07)}</span>
               </div>
               <div style={{display:'flex',justifyContent:'space-between',fontSize:'13px',color:'var(--capyme-blue-mid)',fontWeight:700,fontFamily:"'DM Sans',sans-serif"}}>
                 <span>Neto para la campaña</span>
-                <span>{fmtM(parseFloat(monto) * 0.95)}</span>
+                <span>{fmtM(parseFloat(monto) * 0.93)}</span>
               </div>
               <div style={{height:'1px',background:'var(--border)',margin:'4px 0'}}/>
               <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
@@ -235,13 +231,12 @@ const ApoyarModal = ({ campana, onClose }) => {
   );
 };
 
-const CampanaCard = ({ campana:c, onClick, onEdit, onToggleEstado, onToggleActivo, onApoyar, esAdmin, esColab, currentUser }) => {
+const CampanaCard = ({ campana:c, onClick, onApoyar }) => {
   const [hov, setHov] = useState(false);
   const d = getDias(c.fechaCierre);
   const [c1,c2] = getClrs(c);
   const alc = isMeta(c);
-  const esDueno   = currentUser?.rol==='cliente' && c.negocio?.usuarioId===currentUser.id;
-  const puedeApoyar = !alc && c.activo && !esDueno && (c.estado==='aprobada'||c.estado==='activa');
+  const puedeApoyar = !alc && c.activo && (c.estado==='aprobada'||c.estado==='activa');
 
   return (
     <div onMouseEnter={()=>setHov(true)} onMouseLeave={()=>setHov(false)} style={{
@@ -260,18 +255,6 @@ const CampanaCard = ({ campana:c, onClick, onEdit, onToggleEstado, onToggleActiv
           {alc?<Trophy style={{width:'28px',height:'28px',color:'#fff'}}/>:<Megaphone style={{width:'26px',height:'26px',color:'#fff'}}/>}
         </div>
         <div style={{position:'absolute',top:'12px',left:'12px'}}><EstadoBadge campana={c}/></div>
-        {(esAdmin||esColab)&&(
-          <div style={{position:'absolute',top:'10px',right:'10px',display:'flex',gap:'4px'}}>
-            <button onClick={e=>{e.stopPropagation();onEdit();}} style={{width:'30px',height:'30px',borderRadius:'8px',background:'rgba(255,255,255,.9)',border:'none',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}}>
-              <Edit2 style={{width:'13px',height:'13px',color:'var(--gray-600)'}}/>
-            </button>
-            {esAdmin&&(
-              <button onClick={e=>{e.stopPropagation();onToggleActivo();}} style={{width:'30px',height:'30px',borderRadius:'8px',background:'rgba(255,255,255,.9)',border:'none',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}}>
-                {c.activo?<ToggleRight style={{width:'14px',height:'14px',color:'#10B981'}}/>:<ToggleLeft style={{width:'14px',height:'14px',color:'#9CA3AF'}}/>}
-              </button>
-            )}
-          </div>
-        )}
       </div>
 
       <div style={{padding:'16px',flex:1,display:'flex',flexDirection:'column'}}>
@@ -294,11 +277,6 @@ const CampanaCard = ({ campana:c, onClick, onEdit, onToggleEstado, onToggleActiv
                 <span style={{fontSize:'11px',color:d<=7&&d>0?'#EF4444':'var(--gray-500)',fontFamily:"'DM Sans',sans-serif",fontWeight:d<=7?700:400}}>{d===0?'Finalizada':`${d} días`}</span>
               </div>
             )}
-            {esAdmin&&(
-              <button onClick={e=>{e.stopPropagation();onToggleEstado(e);}} style={{marginLeft:'auto',padding:'3px 10px',border:'1.5px solid var(--border)',borderRadius:'6px',background:'transparent',fontSize:'11px',fontWeight:600,color:'var(--gray-600)',cursor:'pointer',fontFamily:"'DM Sans',sans-serif",display:'flex',alignItems:'center',gap:'4px'}}>
-                Estado <ChevronDown style={{width:'11px',height:'11px'}}/>
-              </button>
-            )}
           </div>
 
           {puedeApoyar && (
@@ -314,22 +292,20 @@ const CampanaCard = ({ campana:c, onClick, onEdit, onToggleEstado, onToggleActiv
             </button>
           )}
           {alc&&<div style={{textAlign:'center',padding:'8px',borderRadius:'10px',background:'linear-gradient(135deg,#7C3AED15,#A855F715)',border:'1px solid #A855F740',fontSize:'12px',fontWeight:700,color:'#581C87',fontFamily:"'DM Sans',sans-serif",display:'flex',alignItems:'center',justifyContent:'center',gap:'5px'}}><Trophy style={{width:'12px',height:'12px'}}/> Meta alcanzada</div>}
-          {esDueno&&!alc&&<div style={{textAlign:'center',padding:'8px',borderRadius:'10px',background:'var(--capyme-blue-pale)',fontSize:'12px',fontWeight:600,color:'var(--capyme-blue-mid)',fontFamily:"'DM Sans',sans-serif"}}>Tu campaña</div>}
         </div>
       </div>
     </div>
   );
 };
 
-const CampanaDetalle = ({ campana:c, currentUser, onBack, onApoyar }) => {
+const CampanaDetalle = ({ campana:c, onBack, onApoyar }) => {
   const [inversores, setInversores] = useState([]);
-  const [loading,    setLoading]    = useState(true);
+  const [loading, setLoading] = useState(true);
   const alc = isMeta(c);
-  const d   = getDias(c.fechaCierre);
+  const d = getDias(c.fechaCierre);
   const [c1,c2] = getClrs(c);
   const porcentaje = getPct(c.montoRecaudado, c.metaRecaudacion);
-  const esDueno    = currentUser.rol==='cliente' && c.negocio?.usuarioId===currentUser.id;
-  const puedeApoyar = !alc && c.activo && !esDueno && (c.estado==='aprobada'||c.estado==='activa');
+  const puedeApoyar = !alc && c.activo && (c.estado==='aprobada'||c.estado==='activa');
 
   useEffect(()=>{
     inversionesService.getByCampana(c.id)
@@ -389,14 +365,12 @@ const CampanaDetalle = ({ campana:c, currentUser, onBack, onApoyar }) => {
             <div style={{display:'flex',flexDirection:'column',gap:'8px'}}>
               {confirmed.map(inv=>{
                 const ini=`${inv.inversor?.nombre?.[0]||''}${inv.inversor?.apellido?.[0]||''}`.toUpperCase();
-                const esMio=inv.inversorId===currentUser.id;
                 return (
-                  <div key={inv.id} style={{display:'flex',alignItems:'center',gap:'12px',padding:'10px 14px',borderRadius:'10px',background:esMio?'linear-gradient(135deg,var(--capyme-blue-pale),#F0FDF4)':'var(--gray-50)',border:`1px solid ${esMio?'var(--capyme-blue-mid)':'transparent'}`}}>
+                  <div key={inv.id} style={{display:'flex',alignItems:'center',gap:'12px',padding:'10px 14px',borderRadius:'10px',background:'var(--gray-50)',border:'1px solid transparent'}}>
                     <div style={{width:'34px',height:'34px',borderRadius:'10px',flexShrink:0,background:`linear-gradient(135deg,${c1},${c2})`,display:'flex',alignItems:'center',justifyContent:'center',color:'#fff',fontSize:'12px',fontWeight:700,fontFamily:"'Plus Jakarta Sans',sans-serif"}}>{ini}</div>
                     <div style={{flex:1}}>
                       <div style={{fontSize:'13px',fontWeight:600,color:'var(--gray-900)',fontFamily:"'DM Sans',sans-serif"}}>
-                        {esMio&&!esDueno?'Tú':`${inv.inversor?.nombre} ${inv.inversor?.apellido?.[0]}.`}
-                        {esMio&&<span style={{marginLeft:'6px',fontSize:'10px',background:'var(--capyme-blue-mid)',color:'#fff',padding:'1px 6px',borderRadius:'4px',fontWeight:700}}>TÚ</span>}
+                        {`${inv.inversor?.nombre} ${inv.inversor?.apellido?.[0]}.`}
                       </div>
                       <div style={{fontSize:'11px',color:'var(--gray-400)',fontFamily:"'DM Sans',sans-serif"}}>{fmtD(inv.fechaCreacion)}</div>
                     </div>
@@ -449,8 +423,6 @@ const CampanaDetalle = ({ campana:c, currentUser, onBack, onApoyar }) => {
                 onMouseEnter={e=>{e.currentTarget.style.transform='scale(1.02)';}} onMouseLeave={e=>{e.currentTarget.style.transform='scale(1)';}}>
                 <Heart style={{width:'18px',height:'18px'}}/> Apoyar esta campaña
               </button>
-            ):esDueno?(
-              <div style={{padding:'12px',borderRadius:'10px',background:'var(--capyme-blue-pale)',border:'1px solid var(--capyme-blue-mid)',textAlign:'center',fontSize:'12px',color:'var(--capyme-blue-mid)',fontFamily:"'DM Sans',sans-serif",fontWeight:600}}>Esta es tu campaña — solo lectura</div>
             ):(
               <div style={{padding:'12px',borderRadius:'10px',background:'var(--gray-50)',border:'1px solid var(--border)',textAlign:'center',fontSize:'12px',color:'var(--gray-500)',fontFamily:"'DM Sans',sans-serif"}}>Esta campaña no acepta nuevas inversiones</div>
             )}
@@ -465,87 +437,7 @@ const CampanaDetalle = ({ campana:c, currentUser, onBack, onApoyar }) => {
   );
 };
 
-const EstadoDropdown = ({ campana, pos, onSelect, onClose }) => {
-  useEffect(()=>{ const fn=()=>onClose(); document.addEventListener('mousedown',fn); return ()=>document.removeEventListener('mousedown',fn); },[]);
-  return (
-    <>
-      <div onClick={onClose} style={{position:'fixed',inset:0,zIndex:9998}}/>
-      <div onMouseDown={e=>e.stopPropagation()} style={{position:'fixed',top:pos.bottom+6,left:pos.left,zIndex:9999,background:'#fff',border:'1px solid var(--border)',borderRadius:'12px',boxShadow:'0 8px 32px rgba(0,0,0,.15)',overflow:'hidden',minWidth:'180px',padding:'6px'}}>
-        <div style={{padding:'6px 10px 8px',fontSize:'10px',fontWeight:700,color:'var(--gray-400)',textTransform:'uppercase',letterSpacing:'.06em',fontFamily:"'Plus Jakarta Sans',sans-serif"}}>Cambiar estado</div>
-        {ESTADOS_LISTA.map(est=>{
-          const info=ESTADO_INFO[est]; const act=campana.estado===est;
-          return <button key={est} onClick={()=>onSelect(est)} style={{display:'flex',alignItems:'center',gap:'8px',width:'100%',padding:'8px 10px',border:'none',background:act?info.bg:'transparent',borderRadius:'8px',cursor:'pointer',fontSize:'13px',color:act?info.color:'var(--gray-700)',fontFamily:"'DM Sans',sans-serif",fontWeight:act?700:400,textAlign:'left'}}>
-            <span style={{width:'8px',height:'8px',borderRadius:'50%',background:info.dot,flexShrink:0}}/>{info.label}{act&&<CheckCircle style={{width:'12px',height:'12px',marginLeft:'auto'}}/>}
-          </button>;
-        })}
-      </div>
-    </>
-  );
-};
-
-const CampanaModal = ({ mode, campana, negocios, currentUser, onClose, onSave }) => {
-  const esCliente=currentUser.rol==='cliente';
-  const metaBloq=mode==='edit'&&esCliente&&parseFloat(campana?.montoRecaudado||0)>0;
-  const [form,setForm]=useState(mode==='edit'&&campana?{
-    titulo:campana.titulo||'',descripcion:campana.descripcion||'',historia:campana.historia||'',
-    negocioId:campana.negocioId||'',metaRecaudacion:campana.metaRecaudacion||'',
-    fechaInicio:campana.fechaInicio?campana.fechaInicio.slice(0,10):'',
-    fechaCierre:campana.fechaCierre?campana.fechaCierre.slice(0,10):'',
-  }:initForm);
-  const [errors,setErrors]=useState({});
-  const [saving,setSaving]=useState(false);
-  const validate=()=>{const e={};if(!form.titulo||form.titulo.length<3)e.titulo='Mínimo 3 caracteres';if(!form.negocioId)e.negocioId='Selecciona un negocio';if(!form.metaRecaudacion||parseFloat(form.metaRecaudacion)<=0)e.metaRecaudacion='Meta inválida';setErrors(e);return!Object.keys(e).length;};
-  const handleSubmit=async()=>{if(!validate())return;setSaving(true);try{await onSave(form);}finally{setSaving(false);}};
-  const inp={width:'100%',padding:'10px 12px',border:'1px solid var(--border)',borderRadius:'10px',fontSize:'14px',fontFamily:"'DM Sans',sans-serif",color:'var(--gray-900)',background:'#fff',outline:'none',boxSizing:'border-box'};
-  const lbl={display:'block',fontSize:'12px',fontWeight:700,color:'var(--gray-600)',marginBottom:'5px',fontFamily:"'DM Sans',sans-serif"};
-  const Err=({k})=>errors[k]?<p style={{margin:'4px 0 0',fontSize:'11px',color:'#EF4444',fontFamily:"'DM Sans',sans-serif"}}>{errors[k]}</p>:null;
-  return (
-    <div onClick={onClose} style={{position:'fixed',inset:0,background:'rgba(0,0,0,.45)',backdropFilter:'blur(5px)',zIndex:1050,display:'flex',alignItems:'center',justifyContent:'center',padding:'20px'}}>
-      <div onClick={e=>e.stopPropagation()} style={{background:'#fff',borderRadius:'20px',width:'100%',maxWidth:'620px',maxHeight:'90vh',display:'flex',flexDirection:'column',boxShadow:'0 24px 64px rgba(0,0,0,.2)'}}>
-        <div style={{padding:'20px 24px',borderBottom:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-          <h2 style={{fontSize:'18px',fontWeight:800,color:'var(--gray-900)',fontFamily:"'Plus Jakarta Sans',sans-serif",margin:0}}>{mode==='create'?'🚀 Nueva campaña':'✏️ Editar campaña'}</h2>
-          <button onClick={onClose} style={{width:'32px',height:'32px',border:'none',background:'var(--gray-100)',borderRadius:'8px',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}><X style={{width:'15px',height:'15px',color:'var(--gray-500)'}}/></button>
-        </div>
-        <div style={{overflowY:'auto',flex:1,padding:'24px',display:'grid',gridTemplateColumns:'1fr 1fr',gap:'16px'}}>
-          <div style={{gridColumn:'1 / -1'}}><label style={lbl}>Título *</label><input value={form.titulo} onChange={e=>setForm(p=>({...p,titulo:e.target.value}))} placeholder="Ej. Expansión de mi panadería" style={{...inp,...(errors.titulo?{borderColor:'#EF4444'}:{})}}/><Err k="titulo"/></div>
-          <div style={{gridColumn:'1 / -1'}}><label style={lbl}>Negocio *</label><select value={form.negocioId} onChange={e=>setForm(p=>({...p,negocioId:e.target.value}))} disabled={mode==='edit'&&esCliente} style={{...inp,appearance:'none',cursor:mode==='edit'&&esCliente?'not-allowed':'pointer',...(errors.negocioId?{borderColor:'#EF4444'}:{})}}><option value="">Seleccionar...</option>{negocios.map(n=><option key={n.id} value={n.id}>{n.nombreNegocio}</option>)}</select><Err k="negocioId"/></div>
-          <div style={{gridColumn:'1 / -1'}}><label style={lbl}>Descripción breve</label><textarea value={form.descripcion} onChange={e=>setForm(p=>({...p,descripcion:e.target.value}))} rows={2} placeholder="Resumen de tu proyecto..." style={{...inp,resize:'vertical'}}/></div>
-          <div style={{gridColumn:'1 / -1'}}><label style={lbl}>Historia del proyecto</label><textarea value={form.historia} onChange={e=>setForm(p=>({...p,historia:e.target.value}))} rows={3} placeholder="Cuenta la historia de tu negocio..." style={{...inp,resize:'vertical'}}/></div>
-          <div>
-            <label style={lbl}>Meta de recaudación (MXN) *</label>
-            <input type="number" value={form.metaRecaudacion} disabled={metaBloq} onChange={e=>setForm(p=>({...p,metaRecaudacion:e.target.value}))} placeholder="0" style={{...inp,...(metaBloq?{background:'var(--gray-50)',cursor:'not-allowed'}:{}),...(errors.metaRecaudacion?{borderColor:'#EF4444'}:{})}}/>
-            {form.metaRecaudacion && parseFloat(form.metaRecaudacion) > 0 && (
-              <div style={{marginTop:'8px',padding:'10px',background:'var(--capyme-blue-pale)',borderRadius:'8px',border:'1px solid var(--capyme-blue-mid)'}}>
-                <div style={{fontSize:'12px',display:'flex',justifyContent:'space-between',color:'var(--gray-700)',marginBottom:'4px'}}>
-                  <span>Meta bruta:</span> <span>{fmtM(form.metaRecaudacion)}</span>
-                </div>
-                <div style={{fontSize:'12px',display:'flex',justifyContent:'space-between',color:'#EF4444',marginBottom:'4px'}}>
-                  <span>Comisión plataforma (5%):</span> <span>-{fmtM(parseFloat(form.metaRecaudacion) * 0.05)}</span>
-                </div>
-                <div style={{fontSize:'12px',display:'flex',justifyContent:'space-between',color:'var(--gray-900)',fontWeight:700}}>
-                  <span>Monto neto a recibir:</span> <span>{fmtM(parseFloat(form.metaRecaudacion) * 0.95)}</span>
-                </div>
-              </div>
-            )}
-            {metaBloq&&<p style={{margin:'3px 0 0',fontSize:'11px',color:'var(--gray-400)',fontFamily:"'DM Sans',sans-serif"}}>No editable: campaña con fondos</p>}
-            <Err k="metaRecaudacion"/>
-          </div>
-          <div/>
-          <div><label style={lbl}>Fecha de inicio</label><input type="date" value={form.fechaInicio} onChange={e=>setForm(p=>({...p,fechaInicio:e.target.value}))} style={inp}/></div>
-          <div><label style={lbl}>Fecha de cierre</label><input type="date" value={form.fechaCierre} onChange={e=>setForm(p=>({...p,fechaCierre:e.target.value}))} style={inp}/></div>
-        </div>
-        <div style={{padding:'16px 24px',borderTop:'1px solid var(--border)',display:'flex',justifyContent:'flex-end',gap:'10px'}}>
-          <button onClick={onClose} style={{padding:'10px 20px',border:'1.5px solid var(--border)',borderRadius:'10px',background:'#fff',color:'var(--gray-700)',fontSize:'13px',fontWeight:600,cursor:'pointer',fontFamily:"'DM Sans',sans-serif"}}>Cancelar</button>
-          <button onClick={handleSubmit} disabled={saving} style={{padding:'10px 24px',background:saving?'var(--gray-300)':'linear-gradient(135deg,var(--capyme-blue-mid),#4F46E5)',border:'none',borderRadius:'10px',color:'#fff',fontSize:'13px',fontWeight:700,cursor:saving?'not-allowed':'pointer',fontFamily:"'DM Sans',sans-serif",boxShadow:saving?'none':'0 2px 10px rgba(79,70,229,.3)'}}>
-            {saving?'Guardando...':mode==='create'?'🚀 Publicar':'Guardar'}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const TablaAdmin = ({ campanas, onEdit, onToggleEstado, onToggleActivo, esAdmin }) => {
+const TablaAdmin = ({ campanas }) => {
   const [hovRow,setHovRow]=useState(null);
   if(!campanas.length) return <div style={{textAlign:'center',padding:'60px',color:'var(--gray-400)',fontSize:'14px',fontFamily:"'DM Sans',sans-serif"}}>No hay campañas</div>;
   return (
@@ -553,8 +445,8 @@ const TablaAdmin = ({ campanas, onEdit, onToggleEstado, onToggleActivo, esAdmin 
       <table style={{width:'100%',borderCollapse:'collapse'}}>
         <thead>
           <tr style={{background:'var(--gray-50)',borderBottom:'1px solid var(--border)'}}>
-            {['Campaña','Negocio','Progreso','Fechas','Estado','Activo','Acciones'].map(h=>(
-              <th key={h} style={{padding:'12px 16px',textAlign:h==='Acciones'?'right':'left',fontSize:'11px',fontWeight:700,color:'var(--gray-500)',textTransform:'uppercase',letterSpacing:'.05em',fontFamily:"'Plus Jakarta Sans',sans-serif",whiteSpace:'nowrap'}}>{h}</th>
+            {['Campaña','Negocio','Progreso','Fechas','Estado','Activo'].map(h=>(
+              <th key={h} style={{padding:'12px 16px',textAlign:'left',fontSize:'11px',fontWeight:700,color:'var(--gray-500)',textTransform:'uppercase',letterSpacing:'.05em',fontFamily:"'Plus Jakarta Sans',sans-serif",whiteSpace:'nowrap'}}>{h}</th>
             ))}
           </tr>
         </thead>
@@ -585,13 +477,6 @@ const TablaAdmin = ({ campanas, onEdit, onToggleEstado, onToggleActivo, esAdmin 
                 <td style={{padding:'12px 16px'}}><div style={{fontSize:'11px',color:'var(--gray-600)',fontFamily:"'DM Sans',sans-serif",whiteSpace:'nowrap'}}><div>{fmtD(c.fechaInicio)}</div><div style={{color:'var(--gray-400)'}}>→ {fmtD(c.fechaCierre)}</div></div></td>
                 <td style={{padding:'12px 16px'}}><EstadoBadge campana={c}/></td>
                 <td style={{padding:'12px 16px'}}><span style={{padding:'3px 10px',borderRadius:'99px',fontSize:'11px',fontWeight:600,fontFamily:"'DM Sans',sans-serif",background:c.activo?'#ECFDF5':'#FEF2F2',color:c.activo?'#065F46':'#DC2626'}}>{c.activo?'Activo':'Inactivo'}</span></td>
-                <td style={{padding:'12px 16px',textAlign:'right'}}>
-                  <div style={{display:'flex',gap:'4px',justifyContent:'flex-end'}}>
-                    <button onClick={()=>onEdit(c)} style={{width:'32px',height:'32px',border:'none',borderRadius:'8px',background:'transparent',color:'var(--gray-400)',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}} onMouseEnter={e=>{e.currentTarget.style.background='#EEF4FF';e.currentTarget.style.color='var(--capyme-blue-mid)';}} onMouseLeave={e=>{e.currentTarget.style.background='transparent';e.currentTarget.style.color='var(--gray-400)';}}><Edit2 style={{width:'14px',height:'14px'}}/></button>
-                    {esAdmin&&<button onClick={e=>onToggleEstado(c,e)} style={{width:'32px',height:'32px',border:'none',borderRadius:'8px',background:'transparent',color:'var(--gray-400)',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}} onMouseEnter={e=>{e.currentTarget.style.background='#EEF4FF';e.currentTarget.style.color='var(--capyme-blue-mid)';}} onMouseLeave={e=>{e.currentTarget.style.background='transparent';e.currentTarget.style.color='var(--gray-400)';}}><ChevronDown style={{width:'14px',height:'14px'}}/></button>}
-                    {esAdmin&&<button onClick={()=>onToggleActivo(c)} style={{width:'32px',height:'32px',border:'none',borderRadius:'8px',background:'transparent',color:'var(--gray-400)',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}} onMouseEnter={e=>{e.currentTarget.style.background=c.activo?'#FEF2F2':'#ECFDF5';e.currentTarget.style.color=c.activo?'#DC2626':'#065F46';}} onMouseLeave={e=>{e.currentTarget.style.background='transparent';e.currentTarget.style.color='var(--gray-400)';}}>{c.activo?<Ban style={{width:'14px',height:'14px'}}/>:<RotateCcw style={{width:'14px',height:'14px'}}/>}</button>}
-                  </div>
-                </td>
               </tr>
             );
           })}
@@ -602,67 +487,40 @@ const TablaAdmin = ({ campanas, onEdit, onToggleEstado, onToggleActivo, esAdmin 
 };
 
 const Campanas = () => {
+  const [campanas, setCampanas] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [filtro, setFiltro] = useState('');
+  const [vista, setVista] = useState('cards');
+  const [detalle, setDetalle] = useState(null);
+  const [apoyarCampana, setApoyarCampana] = useState(null);
+
   const authStorage = JSON.parse(localStorage.getItem('auth-storage')||'{}');
   const currentUser = authStorage?.state?.user || {};
-
-  const [campanas,  setCampanas]  = useState([]);
-  const [negocios,  setNegocios]  = useState([]);
-  const [loading,   setLoading]   = useState(true);
-  const [search,    setSearch]    = useState('');
-  const [filtro,    setFiltro]    = useState('');
-  const [vista,     setVista]     = useState('cards');
-  const [detalle,   setDetalle]   = useState(null);
-  const [apoyarCampana, setApoyarCampana] = useState(null);
-  const [showCampanaModal, setShowCampanaModal] = useState(false);
-  const [modalMode, setModalMode] = useState('create');
-  const [selected,  setSelected]  = useState(null);
-  const [estadoDrop,setEstadoDrop]= useState(null);
-
-  const esAdmin  = currentUser.rol==='admin';
-  const esColab  = currentUser.rol==='colaborador';
-  const esCliente= currentUser.rol==='cliente';
+  const esAdmin = currentUser.rol==='admin';
+  const esColab = currentUser.rol==='colaborador';
 
   useEffect(()=>{ cargarDatos(); },[]);
 
   const cargarDatos = async()=>{
     setLoading(true);
     try {
-      const [cR,nR] = await Promise.all([campanasService.getAll(), negociosService.getAll()]);
-      setCampanas(cR.data||[]); setNegocios(nR.data||[]);
+      const cR = await campanasService.getAll();
+      setCampanas(cR.data||[]);
     } catch { toast.error('Error al cargar campañas'); }
     finally { setLoading(false); }
   };
 
   const campanasFiltradas = campanas.filter(c => {
-    if (esCliente) {
-      const esDueno  = c.negocio?.usuarioId === currentUser.id;
-      const esPublica = c.activo && (c.estado==='aprobada'||c.estado==='activa');
-      if (!esDueno && !esPublica) return false;
+    if (currentUser.rol === 'cliente') {
+      if (!c.activo || (c.estado !== 'aprobada' && c.estado !== 'activa')) return false;
     }
     const ms = !search || c.titulo?.toLowerCase().includes(search.toLowerCase()) || c.negocio?.nombreNegocio?.toLowerCase().includes(search.toLowerCase());
     const mf = !filtro || c.estado===filtro || (filtro==='completada' && isMeta(c));
     return ms && mf;
   });
 
-  const handleSave = async(formData)=>{
-    try {
-      if(modalMode==='create'){await campanasService.create(formData);toast.success('¡Campaña publicada!');}
-      else{await campanasService.update(selected.id,formData);toast.success('Campaña actualizada');}
-      setShowCampanaModal(false); cargarDatos();
-      if(detalle) setDetalle(prev=>({...prev,...formData}));
-    } catch(e){toast.error(e?.response?.data?.message||'Error');throw e;}
-  };
-
-  const handleEstadoSelect = async(campana,est)=>{
-    try{await campanasService.updateEstado(campana.id,est);toast.success(`Estado → "${ESTADO_INFO[est].label}"`);setEstadoDrop(null);cargarDatos();}
-    catch{toast.error('Error');}
-  };
-  const handleToggleActivo = async(campana)=>{
-    try{await campanasService.toggleActivo(campana.id);toast.success(campana.activo?'Desactivada':'Activada');cargarDatos();}
-    catch{toast.error('Error');}
-  };
-  const openDrop = (campana,e)=>{ const r=e.currentTarget.getBoundingClientRect(); setEstadoDrop({campana,pos:r}); };
-  const metaCount = campanas.filter(isMeta).length;
+  const metaCount = campanasFiltradas.filter(isMeta).length;
 
   if(loading) return(
     <Layout><div style={{display:'flex',justifyContent:'center',alignItems:'center',height:'60vh'}}>
@@ -674,7 +532,7 @@ const Campanas = () => {
     <Layout>
       <style>{`@keyframes spin{to{transform:rotate(360deg)}} @keyframes shimmer{to{background-position:200% 0}}`}</style>
       <div style={{padding:'28px 24px',maxWidth:'1080px',margin:'0 auto'}}>
-        <CampanaDetalle campana={detalle} currentUser={currentUser} onBack={()=>setDetalle(null)} onApoyar={()=>setApoyarCampana(detalle)}/>
+        <CampanaDetalle campana={detalle} onBack={()=>setDetalle(null)} onApoyar={()=>setApoyarCampana(detalle)}/>
       </div>
       {apoyarCampana&&<ApoyarModal campana={apoyarCampana} onClose={()=>setApoyarCampana(null)}/>}
     </Layout>
@@ -687,7 +545,7 @@ const Campanas = () => {
 
         <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',marginBottom:'28px',gap:'16px',flexWrap:'wrap'}}>
           <div>
-            <h1 style={{fontSize:'28px',fontWeight:900,color:'var(--gray-900)',fontFamily:"'Plus Jakarta Sans',sans-serif",margin:'0 0 6px'}}>Campañas de crowdfunding</h1>
+            <h1 style={{fontSize:'28px',fontWeight:900,color:'var(--gray-900)',fontFamily:"'Plus Jakarta Sans',sans-serif",margin:'0 0 6px'}}>Explorar Campañas</h1>
             <p style={{fontSize:'14px',color:'var(--gray-500)',margin:0,fontFamily:"'DM Sans',sans-serif"}}>
               {campanasFiltradas.length} campaña{campanasFiltradas.length!==1?'s':''} · Apoya proyectos de emprendedores
               {metaCount>0&&<span style={{marginLeft:'10px',color:'#7C3AED',fontWeight:700}}>· <Trophy style={{width:'12px',height:'12px',display:'inline',verticalAlign:'middle'}}/> {metaCount} completada{metaCount!==1?'s':''}</span>}
@@ -703,28 +561,8 @@ const Campanas = () => {
                 ))}
               </div>
             )}
-            <button onClick={()=>{setModalMode('create');setSelected(null);setShowCampanaModal(true);}} style={{padding:'10px 20px',background:'linear-gradient(135deg,var(--capyme-blue-mid),#4F46E5)',border:'none',borderRadius:'12px',color:'#fff',fontSize:'13px',fontWeight:700,cursor:'pointer',fontFamily:"'Plus Jakarta Sans',sans-serif",display:'flex',alignItems:'center',gap:'7px',boxShadow:'0 4px 14px rgba(79,70,229,.3)',letterSpacing:'.02em'}}>
-              <Plus style={{width:'15px',height:'15px'}}/> Nueva campaña
-            </button>
           </div>
         </div>
-
-        {(esAdmin||esColab)&&(
-          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(150px,1fr))',gap:'12px',marginBottom:'28px'}}>
-            {[
-              {label:'Total',value:campanas.length,color:'var(--capyme-blue-mid)'},
-              {label:'Activas',value:campanas.filter(c=>c.estado==='activa'||c.estado==='aprobada').length,color:'#10B981'},
-              {label:'En revisión',value:campanas.filter(c=>c.estado==='en_revision').length,color:'#F59E0B'},
-              {label:'🏆 Metas logradas',value:metaCount,color:'#7C3AED'},
-              {label:'Total recaudado',value:fmtM(campanas.filter(c=>c.activo).reduce((a,c)=>a+parseFloat(c.montoRecaudado||0),0)),color:'#059669'},
-            ].map(s=>(
-              <div key={s.label} style={{padding:'14px 16px',borderRadius:'12px',background:'#fff',border:'1px solid var(--border)',boxShadow:'var(--shadow-sm)'}}>
-                <div style={{fontSize:'18px',fontWeight:900,color:s.color,fontFamily:"'Plus Jakarta Sans',sans-serif"}}>{s.value}</div>
-                <div style={{fontSize:'11px',color:'var(--gray-500)',fontFamily:"'DM Sans',sans-serif",marginTop:'2px'}}>{s.label}</div>
-              </div>
-            ))}
-          </div>
-        )}
 
         <div style={{display:'flex',gap:'10px',marginBottom:'24px',flexWrap:'wrap',alignItems:'center'}}>
           <div style={{flex:1,minWidth:'200px',position:'relative'}}>
@@ -744,21 +582,15 @@ const Campanas = () => {
           <div style={{textAlign:'center',padding:'80px 20px'}}>
             <Megaphone style={{width:'48px',height:'48px',color:'var(--gray-300)',margin:'0 auto 16px',display:'block'}}/>
             <h3 style={{fontSize:'18px',fontWeight:800,color:'var(--gray-600)',fontFamily:"'Plus Jakarta Sans',sans-serif",margin:'0 0 8px'}}>No hay campañas</h3>
-            <p style={{fontSize:'14px',color:'var(--gray-400)',fontFamily:"'DM Sans',sans-serif",margin:'0 0 24px'}}>{search?'Sin resultados':'Crea la primera campaña de crowdfunding'}</p>
-            <button onClick={()=>{setModalMode('create');setSelected(null);setShowCampanaModal(true);}} style={{padding:'10px 24px',background:'linear-gradient(135deg,var(--capyme-blue-mid),#4F46E5)',border:'none',borderRadius:'10px',color:'#fff',fontSize:'13px',fontWeight:700,cursor:'pointer',fontFamily:"'Plus Jakarta Sans',sans-serif",boxShadow:'0 4px 14px rgba(79,70,229,.3)'}}>+ Crear campaña</button>
+            <p style={{fontSize:'14px',color:'var(--gray-400)',fontFamily:"'DM Sans',sans-serif",margin:'0 0 24px'}}>{search?'Sin resultados':'Aún no hay campañas activas disponibles'}</p>
           </div>
         ):vista==='tabla'&&(esAdmin||esColab)?(
-          <TablaAdmin campanas={campanasFiltradas} esAdmin={esAdmin}
-            onEdit={c=>{setModalMode('edit');setSelected(c);setShowCampanaModal(true);}}
-            onToggleEstado={(c,e)=>openDrop(c,e)} onToggleActivo={handleToggleActivo}/>
+          <TablaAdmin campanas={campanasFiltradas} />
         ):(
           <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))',gap:'20px'}}>
             {campanasFiltradas.map(c=>(
-              <CampanaCard key={c.id} campana={c} esAdmin={esAdmin} esColab={esColab} currentUser={currentUser}
+              <CampanaCard key={c.id} campana={c}
                 onClick={()=>setDetalle(c)}
-                onEdit={()=>{setModalMode('edit');setSelected(c);setShowCampanaModal(true);}}
-                onToggleActivo={()=>handleToggleActivo(c)}
-                onToggleEstado={e=>openDrop(c,e)}
                 onApoyar={()=>setApoyarCampana(c)}
               />
             ))}
@@ -767,14 +599,6 @@ const Campanas = () => {
       </div>
 
       {apoyarCampana&&<ApoyarModal campana={apoyarCampana} onClose={()=>setApoyarCampana(null)}/>}
-
-      {showCampanaModal&&(
-        <CampanaModal mode={modalMode} campana={selected}
-          negocios={esCliente?negocios.filter(n=>n.usuarioId===currentUser.id&&n.activo):negocios.filter(n=>n.activo)}
-          currentUser={currentUser} onClose={()=>setShowCampanaModal(false)} onSave={handleSave}/>
-      )}
-
-      {estadoDrop&&<EstadoDropdown campana={estadoDrop.campana} pos={estadoDrop.pos} onSelect={est=>handleEstadoSelect(estadoDrop.campana,est)} onClose={()=>setEstadoDrop(null)}/>}
     </Layout>
   );
 };
