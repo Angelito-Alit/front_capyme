@@ -438,9 +438,6 @@ const CampanaDetalle = ({ campana:c, currentUser, onBack, onApoyar }) => {
               <div style={{padding:'12px',borderRadius:'10px',background:'var(--gray-50)',border:'1px solid var(--border)',textAlign:'center',fontSize:'12px',color:'var(--gray-500)',fontFamily:"'DM Sans',sans-serif"}}>Esta campaña no acepta nuevas inversiones</div>
             )}
 
-            <button style={{width:'100%',marginTop:'10px',padding:'9px',border:'1.5px solid var(--border)',borderRadius:'10px',background:'#fff',fontSize:'12px',color:'var(--gray-600)',cursor:'pointer',fontFamily:"'DM Sans',sans-serif",fontWeight:600,display:'flex',alignItems:'center',justifyContent:'center',gap:'5px'}}>
-              <Share2 style={{width:'13px',height:'13px'}}/> Compartir
-            </button>
           </div>
         </div>
       </div>
