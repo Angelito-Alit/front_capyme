@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
 import {
-  Heart, TrendingUp, DollarSign, Trophy, Clock,
-  Megaphone, Gift, Percent, ChevronRight,
-  ArrowUpRight, Sparkles, AlertCircle, BarChart2,
+  Heart, TrendingUp, Trophy, Clock,
+  Megaphone, ChevronRight,
+  ArrowUpRight, Sparkles, BarChart2,
 } from 'lucide-react';
 import Layout from '../components/common/Layout';
 import { inversionesService } from '../services/inversionesService';
@@ -31,29 +31,8 @@ const ESTADO_PAGO = {
 };
 
 const TIPO_INFO = {
-  reward:  { label:'Recompensa', icon:Gift,    color:'#F59E0B', bg:'#FEF9C3' },
-  lending: { label:'Préstamo',   icon:Percent, color:'#8B5CF6', bg:'#F5F3FF' },
-};
-
-const MiniDonut = ({ pct, color1, color2, size=64 }) => {
-  const r=24, cx=32, cy=32, stroke=6;
-  const circ=2*Math.PI*r;
-  const dash=(pct/100)*circ;
-  return (
-    <svg width={size} height={size} viewBox="0 0 64 64">
-      <circle cx={cx} cy={cy} r={r} fill="none" stroke="#F3F4F6" strokeWidth={stroke}/>
-      <circle cx={cx} cy={cy} r={r} fill="none" stroke={`url(#g${Math.round(pct)})`} strokeWidth={stroke}
-        strokeDasharray={`${dash} ${circ-dash}`} strokeLinecap="round"
-        style={{transform:'rotate(-90deg)',transformOrigin:'50% 50%'}}/>
-      <defs>
-        <linearGradient id={`g${Math.round(pct)}`} x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" stopColor={color1}/>
-          <stop offset="100%" stopColor={color2}/>
-        </linearGradient>
-      </defs>
-      <text x={cx} y={cy+5} textAnchor="middle" fontSize="12" fontWeight="800" fill="#111827" fontFamily="Plus Jakarta Sans,sans-serif">{pct}%</text>
-    </svg>
-  );
+  donativo:  { label:'Donativo',  icon:Heart,      color:'#F59E0B', bg:'#FEF9C3' },
+  inversion: { label:'Inversión', icon:TrendingUp, color:'#8B5CF6', bg:'#F5F3FF' },
 };
 
 const InvCard = ({ inv, onVerCampana }) => {
@@ -61,31 +40,11 @@ const InvCard = ({ inv, onVerCampana }) => {
   const campana=inv.campana;
   const [c1,c2]=getClr(campana?.id);
   const estadoInfo=ESTADO_PAGO[inv.estadoPago]||ESTADO_PAGO.pendiente;
-  const tipoInfo=TIPO_INFO[campana?.tipoCrowdfunding]||TIPO_INFO.reward;
+  const tipoInfo=TIPO_INFO[campana?.tipoCrowdfunding]||TIPO_INFO.donativo;
   const TipoIcon=tipoInfo.icon;
   const pctCampana=getPct(campana?.montoRecaudado,campana?.metaRecaudacion);
   const alc=isMeta(campana);
-
-  const recEnviada = inv.recompensaEnviada || false;
-  const [recRecibida, setRecRecibida] = useState(inv.recompensaRecibida || false);
-  const esLending = campana?.tipoCrowdfunding==='lending';
-
-  const retorno=esLending&&campana?.interesPct
-    ? parseFloat(inv.monto)*(1+parseFloat(campana.interesPct)/100)
-    : null;
-  const diasRetorno=campana?.plazoRetornoDias&&inv.fechaCreacion
-    ? Math.max(0,campana.plazoRetornoDias-Math.floor((new Date()-new Date(inv.fechaCreacion))/86400000))
-    : null;
-
-  const handleConfirmarRecepcion = async () => {
-    try {
-      await inversionesService.marcarRecompensaRecibida(inv.id);
-      setRecRecibida(true);
-      toast.success('¡Recompensa confirmada exitosamente!');
-    } catch (error) {
-      toast.error('Error al confirmar recepción');
-    }
-  };
+  const esInversion = campana?.tipoCrowdfunding === 'inversion';
 
   return (
     <div onMouseEnter={()=>setHov(true)} onMouseLeave={()=>setHov(false)} style={{
@@ -131,37 +90,25 @@ const InvCard = ({ inv, onVerCampana }) => {
         </div>
 
         {inv.estadoPago==='confirmado'&&(
-          <div style={{padding:'10px 12px',borderRadius:'12px',background:recRecibida?'#DCFCE7':tipoInfo.bg,border:`1px solid ${recRecibida?'#10B981':tipoInfo.color}30`,display:'flex',alignItems:'flex-start',gap:'10px'}}>
-            <TipoIcon style={{width:'16px',height:'16px',color:recRecibida?'#10B981':tipoInfo.color,flexShrink:0,marginTop:'2px'}}/>
+          <div style={{padding:'10px 12px',borderRadius:'12px',background:tipoInfo.bg,border:`1px solid ${tipoInfo.color}30`,display:'flex',alignItems:'flex-start',gap:'10px'}}>
+            <TipoIcon style={{width:'16px',height:'16px',color:tipoInfo.color,flexShrink:0,marginTop:'2px'}}/>
             <div style={{flex:1}}>
-              {esLending&&retorno?(
+              {esInversion ? (
                 <>
-                  <div style={{fontSize:'12px',fontWeight:700,color:tipoInfo.color,fontFamily:"'DM Sans',sans-serif"}}>Retorno esperado: {fmtM(retorno)}</div>
-                  {diasRetorno!==null&&<div style={{fontSize:'11px',color:'var(--gray-500)',fontFamily:"'DM Sans',sans-serif"}}>En ~{diasRetorno} días · {campana?.interesPct}% anual</div>}
+                  <div style={{fontSize:'12px',fontWeight:700,color:tipoInfo.color,fontFamily:"'DM Sans',sans-serif",marginBottom:'4px'}}>Acción requerida: Contactar a responsables</div>
+                  <div style={{fontSize:'11px',color:'var(--gray-600)',fontFamily:"'DM Sans',sans-serif",marginBottom:'6px',lineHeight:'1.4'}}>{inv.infoContacto?.mensaje || "Comunícate con el gerente de CAPYME y el dueño de la campaña para coordinar los detalles de tu inversión."}</div>
+                  <div style={{fontSize:'11px',fontWeight:600,color:'var(--gray-800)',fontFamily:"'DM Sans',sans-serif"}}>Teléfono: <span style={{fontWeight:400}}>{inv.infoContacto?.telefonoDueno || 'No disponible'}</span></div>
+                  <div style={{fontSize:'11px',fontWeight:600,color:'var(--gray-800)',fontFamily:"'DM Sans',sans-serif"}}>Email: <span style={{fontWeight:400}}>{inv.infoContacto?.emailDueno || 'No disponible'}</span></div>
                 </>
-              ):(
-                <>
-                  <div style={{display:'flex',flexDirection:'column',gap:'4px'}}>
-                    {recRecibida ? (
-                      <div style={{fontSize:'12px',fontWeight:700,color:'#10B981',fontFamily:"'DM Sans',sans-serif"}}>Recompensa recibida ✓</div>
-                    ) : (
-                      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                        <div style={{fontSize:'11px',fontWeight:700,color:tipoInfo.color,fontFamily:"'DM Sans',sans-serif", maxWidth:'120px'}}>
-                          {recEnviada ? 'El creador indicó el envío' : 'Recompensa pendiente'}
-                        </div>
-                        <button onClick={handleConfirmarRecepcion} style={{background:tipoInfo.color,color:'#fff',border:'none',padding:'4px 8px',borderRadius:'6px',fontSize:'10px',cursor:'pointer',fontWeight:'bold'}}>Ya la recibí</button>
-                      </div>
-                    )}
-                  </div>
-                  {campana?.recompensaDesc && !recRecibida && <div style={{fontSize:'11px',color:'var(--gray-500)',fontFamily:"'DM Sans',sans-serif",marginTop:'4px',lineHeight:1.4,display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical',overflow:'hidden'}}>{campana.recompensaDesc}</div>}
-                </>
+              ) : (
+                <div style={{fontSize:'12px',fontWeight:700,color:tipoInfo.color,fontFamily:"'DM Sans',sans-serif"}}>¡Gracias por tu donativo!</div>
               )}
             </div>
           </div>
         )}
 
         <button onClick={()=>onVerCampana(campana?.id)}
-          style={{width:'100%',padding:'8px',border:'1.5px solid var(--border)',borderRadius:'10px',background:'#fff',fontSize:'12px',fontWeight:600,cursor:'pointer',color:'var(--gray-600)',fontFamily:"'DM Sans',sans-serif",display:'flex',alignItems:'center',justifyContent:'center',gap:'5px',transition:'all 150ms'}}
+          style={{width:'100%',padding:'8px',border:'1.5px solid var(--border)',borderRadius:'10px',background:'#fff',fontSize:'12px',fontWeight:600,cursor:'pointer',color:'var(--gray-600)',fontFamily:"'DM Sans',sans-serif",display:'flex',alignItems:'center',justifyContent:'center',gap:'5px',transition:'all 150ms', marginTop:'auto'}}
           onMouseEnter={e=>{e.currentTarget.style.background='var(--gray-50)';}}
           onMouseLeave={e=>{e.currentTarget.style.background='#fff';}}>
           <Megaphone style={{width:'12px',height:'12px'}}/> Ver campaña <ChevronRight style={{width:'12px',height:'12px',marginLeft:'auto'}}/>
@@ -175,7 +122,7 @@ const CampanaSeguida = ({ campana:c, miInversion, onClick }) => {
   const [c1,c2]=getClr(c.id);
   const alc=isMeta(c);
   const pct=getPct(c.montoRecaudado,c.metaRecaudacion);
-  const tipoInfo=TIPO_INFO[c.tipoCrowdfunding]||TIPO_INFO.reward;
+  const tipoInfo=TIPO_INFO[c.tipoCrowdfunding]||TIPO_INFO.donativo;
 
   return (
     <div onClick={onClick}
@@ -196,8 +143,8 @@ const CampanaSeguida = ({ campana:c, miInversion, onClick }) => {
       </div>
       <div style={{textAlign:'right',flexShrink:0}}>
         <div style={{fontSize:'13px',fontWeight:800,color:'var(--gray-900)',fontFamily:"'Plus Jakarta Sans',sans-serif"}}>{fmtM(miInversion)}</div>
-        <div style={{fontSize:'10px',color:tipoInfo.color,fontFamily:"'DM Sans',sans-serif",fontWeight:600,display:'flex',alignItems:'center',gap:'2px',justifyContent:'flex-end',marginTop:'2px'}}>
-          <tipoInfo.icon style={{width:'9px',height:'9px'}}/>{tipoInfo.label}
+        <div style={{fontSize:'10px',color:tipoInfo.color,fontFamily:"'DM Sans',sans-serif",fontWeight:600,display:'flex',alignItems:'center',gap:'3px',justifyContent:'flex-end',marginTop:'2px'}}>
+          <tipoInfo.icon style={{width:'10px',height:'10px'}}/>{tipoInfo.label}
         </div>
       </div>
     </div>
@@ -217,7 +164,7 @@ const MisInversiones = () => {
     try {
       const res=await inversionesService.getMias();
       setInversiones(res.data||[]);
-    } catch { toast.error('Error al cargar mis inversiones'); }
+    } catch { toast.error('Error al cargar mis aportaciones'); }
     finally { setLoading(false); }
   };
 
@@ -225,9 +172,6 @@ const MisInversiones = () => {
   const pendientes =inversiones.filter(i=>i.estadoPago==='pendiente'&&i.activo);
 
   const totalInvertido=confirmadas.reduce((a,i)=>a+parseFloat(i.monto||0),0);
-  const retornoEsperado=confirmadas
-    .filter(i=>i.campana?.tipoCrowdfunding==='lending'&&i.campana?.interesPct)
-    .reduce((a,i)=>a+parseFloat(i.monto||0)*(parseFloat(i.campana.interesPct)/100),0);
   const campanasUnicas=new Set(confirmadas.map(i=>i.campanaId));
 
   const porCampana=Object.values(
@@ -243,8 +187,8 @@ const MisInversiones = () => {
   const invFiltradas=inversiones.filter(i=>{
     if(filtro==='activas')     return i.campana?.estado==='activa'&&i.activo;
     if(filtro==='completadas') return isMeta(i.campana);
-    if(filtro==='lending')     return i.campana?.tipoCrowdfunding==='lending';
-    if(filtro==='reward')      return i.campana?.tipoCrowdfunding==='reward';
+    if(filtro==='donativo')    return i.campana?.tipoCrowdfunding==='donativo';
+    if(filtro==='inversion')   return i.campana?.tipoCrowdfunding==='inversion';
     if(filtro==='pendientes')  return i.estadoPago==='pendiente';
     return i.activo;
   });
@@ -261,14 +205,13 @@ const MisInversiones = () => {
       <div style={{padding:'32px 24px',maxWidth:'1280px',margin:'0 auto',animation:'fadeUp .4s ease'}}>
 
         <div style={{marginBottom:'28px'}}>
-          <h1 style={{fontSize:'28px',fontWeight:900,color:'var(--gray-900)',fontFamily:"'Plus Jakarta Sans',sans-serif",margin:'0 0 6px'}}>Mis inversiones</h1>
+          <h1 style={{fontSize:'28px',fontWeight:900,color:'var(--gray-900)',fontFamily:"'Plus Jakarta Sans',sans-serif",margin:'0 0 6px'}}>Mis aportaciones</h1>
           <p style={{fontSize:'14px',color:'var(--gray-500)',margin:0,fontFamily:"'DM Sans',sans-serif"}}>Sigue el progreso de los proyectos que estás apoyando</p>
         </div>
 
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(180px,1fr))',gap:'14px',marginBottom:'28px'}}>
           {[
-            {icon:Heart,      label:'Total invertido',   value:fmtM(totalInvertido),  color:'#EF4444', sub:`${confirmadas.length} confirmadas`},
-            {icon:TrendingUp, label:'Retorno esperado',  value:fmtM(retornoEsperado), color:'#8B5CF6', sub:'de préstamos activos'},
+            {icon:Heart,      label:'Total aportado',    value:fmtM(totalInvertido),  color:'#EF4444', sub:`${confirmadas.length} confirmadas`},
             {icon:Megaphone,  label:'Campañas apoyadas', value:campanasUnicas.size,     color:'var(--capyme-blue-mid)', sub:'proyectos únicos'},
             {icon:Clock,      label:'Pendientes',        value:pendientes.length,        color:'#F59E0B', sub:'por confirmar'},
             {icon:Trophy,     label:'Metas alcanzadas',  value:porCampana.filter(p=>isMeta(p.campana)).length, color:'#7C3AED', sub:'campañas completadas'},
@@ -294,7 +237,8 @@ const MisInversiones = () => {
                 {v:'resumen',   l:'🏠 Resumen'},
                 {v:'todas',     l:'📋 Todas'},
                 {v:'pendientes',  l:'⏳ Pendientes'},
-                {v:'reward',      l:'🎁 Recompensas'},
+                {v:'donativo',    l:'💖 Donativos'},
+                {v:'inversion',   l:'📈 Inversiones'},
                 {v:'completadas', l:'🏆 Completadas'},
               ].map(({v,l})=>(
                 <button key={v}
@@ -336,7 +280,7 @@ const MisInversiones = () => {
               invFiltradas.length===0?(
                 <div style={{padding:'48px',textAlign:'center',borderRadius:'16px',border:'2px dashed var(--border)'}}>
                   <TrendingUp style={{width:'40px',height:'40px',color:'var(--gray-200)',margin:'0 auto 12px',display:'block'}}/>
-                  <p style={{fontSize:'14px',color:'var(--gray-400)',fontFamily:"'DM Sans',sans-serif",margin:0}}>No hay inversiones con este filtro</p>
+                  <p style={{fontSize:'14px',color:'var(--gray-400)',fontFamily:"'DM Sans',sans-serif",margin:0}}>No hay aportaciones con este filtro</p>
                 </div>
               ):(
                 <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))',gap:'16px'}}>
@@ -357,7 +301,6 @@ const MisInversiones = () => {
                 {[
                   {label:'Confirmado',  value:fmtM(totalInvertido),  color:'#10B981'},
                   {label:'Pendiente',   value:fmtM(pendientes.reduce((a,i)=>a+parseFloat(i.monto||0),0)), color:'#F59E0B'},
-                  {label:'Retorno est.',value:fmtM(retornoEsperado), color:'#8B5CF6'},
                 ].map(({label,value,color})=>(
                   <div key={label} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 12px',borderRadius:'10px',background:'var(--gray-50)'}}>
                     <div style={{display:'flex',alignItems:'center',gap:'7px'}}>
@@ -372,11 +315,11 @@ const MisInversiones = () => {
 
             <div style={{borderRadius:'16px',border:'1px solid var(--border)',background:'#fff',padding:'20px',boxShadow:'0 4px 20px rgba(0,0,0,.06)'}}>
               <h3 style={{fontSize:'14px',fontWeight:800,color:'var(--gray-900)',fontFamily:"'Plus Jakarta Sans',sans-serif",margin:'0 0 16px',display:'flex',alignItems:'center',gap:'8px'}}>
-                <Gift style={{width:'15px',height:'15px',color:'#F59E0B'}}/> Por tipo
+                <Heart style={{width:'15px',height:'15px',color:'#F59E0B'}}/> Por tipo
               </h3>
               {[
-                {tipo:'reward',  label:'Recompensa', color:'#F59E0B'},
-                {tipo:'lending', label:'Préstamo',   color:'#8B5CF6'},
+                {tipo:'donativo',  label:'Donativo', color:'#F59E0B'},
+                {tipo:'inversion', label:'Inversión', color:'#8B5CF6'},
               ].map(({tipo,label,color})=>{
                 const montoTipo=confirmadas.filter(i=>i.campana?.tipoCrowdfunding===tipo).reduce((a,i)=>a+parseFloat(i.monto||0),0);
                 const pctTipo=totalInvertido?Math.round((montoTipo/totalInvertido)*100):0;

@@ -13,6 +13,4 @@ export const inversionesService = {
   toggleActivo: async (id) => (await api.patch(`/inversiones/${id}/toggle-activo`)).data,
   confirmarPorReferencia: async (referencia) =>
     (await api.post('/inversiones/confirmar-por-referencia', { referencia })).data,
-  marcarRecompensaEnviada: async (id) => (await api.put(`/inversiones/${id}/recompensa-enviada`)).data,
-  marcarRecompensaRecibida: async (id) => (await api.put(`/inversiones/${id}/recompensa-recibida`)).data,
 };

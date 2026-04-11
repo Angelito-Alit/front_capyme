@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
 import {
-  Search, Users, Clock, ArrowLeft, Heart, Share2,
-  X, Star, Megaphone, LayoutGrid, Table2, Trophy,
+  Search, Users, Clock, ArrowLeft, Heart, X, Star, 
+  Megaphone, LayoutGrid, Table2, Trophy,
   Target, Calendar, CreditCard, AlertCircle,
 } from 'lucide-react';
 import Layout from '../components/common/Layout';
@@ -95,7 +95,7 @@ const ApoyarModal = ({ campana, onClose }) => {
       const referencia = invRes.referencia || invRes.data?.referencia;
 
       const mpRes = await pagosService.crearPreferencia({
-        titulo: `Inversión en campaña: ${campana.titulo}`,
+        titulo: `Aportación en campaña: ${campana.titulo}`,
         precio: m,
         cantidad: 1,
         idReferencia: referencia,
@@ -136,6 +136,16 @@ const ApoyarModal = ({ campana, onClose }) => {
         </div>
 
         <div style={{padding:'24px'}}>
+
+          {campana.tipoCrowdfunding === 'inversion' && (
+            <div style={{padding:'10px 12px', background:'var(--capyme-blue-pale)', border:'1px solid var(--capyme-blue-mid)', borderRadius:'10px', marginBottom:'16px', display:'flex', gap:'8px', alignItems:'flex-start'}}>
+              <AlertCircle style={{width:'16px', height:'16px', color:'var(--capyme-blue-mid)', flexShrink:0}}/>
+              <p style={{margin:0, fontSize:'11.5px', color:'var(--capyme-blue-mid)', fontFamily:"'DM Sans',sans-serif"}}>
+                <strong>Al ser una inversión:</strong> Al confirmarse tu pago, se te revelará la información de contacto para comunicarte con el gerente de CAPYME y el dueño de la campaña.
+              </p>
+            </div>
+          )}
+
           <div style={{marginBottom:'8px',fontSize:'13px',fontWeight:600,color:'var(--gray-500)',fontFamily:"'DM Sans',sans-serif"}}>¿Cuánto deseas aportar?</div>
 
           <div style={{position:'relative',marginBottom:'12px'}}>

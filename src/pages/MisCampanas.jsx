@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
 import {
-  Search, Plus, Users, Clock, ArrowLeft, Heart, Share2,
-  CheckCircle, Edit2, ToggleLeft, ToggleRight, ChevronDown,
+  Search, Plus, Users, Clock, ArrowLeft, Heart, CheckCircle, Edit2, ToggleLeft, ToggleRight, ChevronDown,
   X, Star, Megaphone, LayoutGrid, Table2, Trophy,
   Target, Calendar, Ban, RotateCcw, CreditCard, AlertCircle,
 } from 'lucide-react';
@@ -29,7 +28,7 @@ const COLORES = [
   ['#A18CD1','#FBC2EB'], ['#0BA360','#3CBA92'],
 ];
 
-const initForm = { titulo:'', descripcion:'', historia:'', negocioId:'', metaRecaudacion:'', fechaInicio:'', fechaCierre:'' };
+const initForm = { titulo:'', descripcion:'', historia:'', negocioId:'', metaRecaudacion:'', tipoCrowdfunding: 'donativo', fechaInicio:'', fechaCierre:'' };
 
 const fmtM = v => new Intl.NumberFormat('es-MX',{style:'currency',currency:'MXN',maximumFractionDigits:0}).format(v||0);
 const fmtD = d => d ? new Date(d).toLocaleDateString('es-MX',{timeZone:'UTC',day:'2-digit',month:'short',year:'numeric'}) : '—';
@@ -99,7 +98,7 @@ const ApoyarModal = ({ campana, onClose }) => {
       const referencia = invRes.referencia || invRes.data?.referencia;
 
       const mpRes = await pagosService.crearPreferencia({
-        titulo: `Inversión en campaña: ${campana.titulo}`,
+        titulo: `Aportación en campaña: ${campana.titulo}`,
         precio: m,
         cantidad: 1,
         idReferencia: referencia,
@@ -140,6 +139,16 @@ const ApoyarModal = ({ campana, onClose }) => {
         </div>
 
         <div style={{padding:'24px'}}>
+
+          {campana.tipoCrowdfunding === 'inversion' && (
+            <div style={{padding:'10px 12px', background:'var(--capyme-blue-pale)', border:'1px solid var(--capyme-blue-mid)', borderRadius:'10px', marginBottom:'16px', display:'flex', gap:'8px', alignItems:'flex-start'}}>
+              <AlertCircle style={{width:'16px', height:'16px', color:'var(--capyme-blue-mid)', flexShrink:0}}/>
+              <p style={{margin:0, fontSize:'11.5px', color:'var(--capyme-blue-mid)', fontFamily:"'DM Sans',sans-serif"}}>
+                <strong>Al ser una inversión:</strong> Al confirmarse tu pago, se te revelará la información de contacto para comunicarte con el gerente de CAPYME y el dueño de la campaña.
+              </p>
+            </div>
+          )}
+
           <div style={{marginBottom:'8px',fontSize:'13px',fontWeight:600,color:'var(--gray-500)',fontFamily:"'DM Sans',sans-serif"}}>¿Cuánto deseas aportar?</div>
 
           <div style={{position:'relative',marginBottom:'12px'}}>
@@ -491,6 +500,7 @@ const CampanaModal = ({ mode, campana, negocios, currentUser, onClose, onSave })
   const [form, setForm] = useState(mode==='edit'&&campana?{
     titulo:campana.titulo||'',descripcion:campana.descripcion||'',historia:campana.historia||'',
     negocioId:campana.negocioId||'',metaRecaudacion:campana.metaRecaudacion||'',
+    tipoCrowdfunding: campana.tipoCrowdfunding || 'donativo',
     fechaInicio:campana.fechaInicio?campana.fechaInicio.slice(0,10):'',
     fechaCierre:campana.fechaCierre?campana.fechaCierre.slice(0,10):'',
   }:initForm);
@@ -511,6 +521,13 @@ const CampanaModal = ({ mode, campana, negocios, currentUser, onClose, onSave })
         <div style={{overflowY:'auto',flex:1,padding:'24px',display:'grid',gridTemplateColumns:'1fr 1fr',gap:'16px'}}>
           <div style={{gridColumn:'1 / -1'}}><label style={lbl}>Título *</label><input value={form.titulo} onChange={e=>setForm(p=>({...p,titulo:e.target.value}))} placeholder="Ej. Expansión de mi panadería" style={{...inp,...(errors.titulo?{borderColor:'#EF4444'}:{})}}/><Err k="titulo"/></div>
           <div style={{gridColumn:'1 / -1'}}><label style={lbl}>Negocio *</label><select value={form.negocioId} onChange={e=>setForm(p=>({...p,negocioId:e.target.value}))} disabled={mode==='edit'&&currentUser.rol==='cliente'} style={{...inp,appearance:'none',cursor:mode==='edit'&&currentUser.rol==='cliente'?'not-allowed':'pointer',...(errors.negocioId?{borderColor:'#EF4444'}:{})}}><option value="">Seleccionar...</option>{negocios.map(n=><option key={n.id} value={n.id}>{n.nombreNegocio}</option>)}</select><Err k="negocioId"/></div>
+          <div style={{gridColumn:'1 / -1'}}>
+            <label style={lbl}>Tipo de Campaña *</label>
+            <select value={form.tipoCrowdfunding} onChange={e=>setForm(p=>({...p,tipoCrowdfunding:e.target.value}))} disabled={metaBloq} style={{...inp,appearance:'none',cursor:metaBloq?'not-allowed':'pointer'}}>
+              <option value="donativo">Donativo</option>
+              <option value="inversion">Inversión (Muestra datos de contacto al inversor)</option>
+            </select>
+          </div>
           <div style={{gridColumn:'1 / -1'}}><label style={lbl}>Descripción breve</label><textarea value={form.descripcion} onChange={e=>setForm(p=>({...p,descripcion:e.target.value}))} rows={2} placeholder="Resumen de tu proyecto..." style={{...inp,resize:'vertical'}}/></div>
           <div style={{gridColumn:'1 / -1'}}><label style={lbl}>Historia del proyecto</label><textarea value={form.historia} onChange={e=>setForm(p=>({...p,historia:e.target.value}))} rows={3} placeholder="Cuenta la historia de tu negocio..." style={{...inp,resize:'vertical'}}/></div>
           <div>

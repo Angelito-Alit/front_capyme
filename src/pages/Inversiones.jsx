@@ -114,7 +114,8 @@ const InvRow = ({ inv, hov, setHov }) => {
           <div style={{width:'34px',height:'34px',borderRadius:'10px',flexShrink:0,background:`linear-gradient(135deg,${c1},${c2})`,display:'flex',alignItems:'center',justifyContent:'center',color:'#fff',fontSize:'12px',fontWeight:700,fontFamily:"'Plus Jakarta Sans',sans-serif"}}>{ini}</div>
           <div>
             <div style={{fontSize:'13px',fontWeight:700,color:'var(--gray-900)',fontFamily:"'DM Sans',sans-serif"}}>{inv.inversor?.nombre} {inv.inversor?.apellido}</div>
-            <div style={{fontSize:'10px',color:'var(--gray-400)',fontFamily:"'JetBrains Mono',monospace"}}>{inv.referencia}</div>
+            <div style={{fontSize:'11px',color:'var(--gray-500)',fontFamily:"'DM Sans',sans-serif"}}>{inv.inversor?.email}</div>
+            <div style={{fontSize:'10px',color:'var(--gray-400)',fontFamily:"'JetBrains Mono',monospace",marginTop:'2px'}}>{inv.referencia}</div>
           </div>
         </div>
       </td>
@@ -203,6 +204,7 @@ const Inversiones = () => {
   const invFiltradas = inversiones.filter(i=>{
     const ms = !search || i.referencia?.toLowerCase().includes(search.toLowerCase()) ||
       i.inversor?.nombre?.toLowerCase().includes(search.toLowerCase()) ||
+      i.inversor?.email?.toLowerCase().includes(search.toLowerCase()) ||
       i.campana?.titulo?.toLowerCase().includes(search.toLowerCase());
     const mf = !filtroEstado || i.estadoPago===filtroEstado;
     return ms&&mf;
@@ -301,7 +303,7 @@ const Inversiones = () => {
           {/* Header de tabla */}
           <div style={{padding:'16px 20px',borderBottom:'1px solid var(--border)',display:'flex',alignItems:'center',gap:'12px',flexWrap:'wrap'}}>
             <h3 style={{fontSize:'15px',fontWeight:800,color:'var(--gray-900)',fontFamily:"'Plus Jakarta Sans',sans-serif",margin:0,flex:1}}>
-              Historial de inversiones
+              Historial de aportaciones
             </h3>
             {/* Buscador */}
             <div style={{position:'relative',width:'220px'}}>
@@ -321,7 +323,7 @@ const Inversiones = () => {
           {invFiltradas.length===0 ? (
             <div style={{textAlign:'center',padding:'60px 20px',color:'var(--gray-400)'}}>
               <TrendingUp style={{width:'40px',height:'40px',margin:'0 auto 12px',display:'block',color:'var(--gray-200)'}}/>
-              <p style={{fontSize:'14px',fontFamily:"'DM Sans',sans-serif",margin:0}}>No hay inversiones{search?' con esa búsqueda':''}</p>
+              <p style={{fontSize:'14px',fontFamily:"'DM Sans',sans-serif",margin:0}}>No hay aportaciones{search?' con esa búsqueda':''}</p>
             </div>
           ) : (
             <div style={{overflowX:'auto'}}>
