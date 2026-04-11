@@ -189,12 +189,12 @@ const ApoyarModal = ({ campana, onClose }) => {
                 <span>{fmtM(monto)}</span>
               </div>
               <div style={{display:'flex',justifyContent:'space-between',fontSize:'13px',color:'#EF4444',fontFamily:"'DM Sans',sans-serif"}}>
-                <span>Comisión de plataforma (7%)</span>
-                <span>-{fmtM(parseFloat(monto) * 0.07)}</span>
+                <span>Comisión de plataforma (10%)</span>
+                <span>-{fmtM(parseFloat(monto) * 0.10)}</span>
               </div>
               <div style={{display:'flex',justifyContent:'space-between',fontSize:'13px',color:'var(--capyme-blue-mid)',fontWeight:700,fontFamily:"'DM Sans',sans-serif"}}>
                 <span>Neto para la campaña</span>
-                <span>{fmtM(parseFloat(monto) * 0.93)}</span>
+                <span>{fmtM(parseFloat(monto) * 0.90)}</span>
               </div>
               <div style={{height:'1px',background:'var(--border)',margin:'4px 0'}}/>
               <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
@@ -522,10 +522,10 @@ const CampanaModal = ({ mode, campana, negocios, currentUser, onClose, onSave })
                   <span>Meta bruta:</span> <span>{fmtM(form.metaRecaudacion)}</span>
                 </div>
                 <div style={{fontSize:'12px',display:'flex',justifyContent:'space-between',color:'#EF4444',marginBottom:'4px'}}>
-                  <span>Comisión plataforma (7%):</span> <span>-{fmtM(parseFloat(form.metaRecaudacion) * 0.07)}</span>
+                  <span>Comisión plataforma (10%):</span> <span>-{fmtM(parseFloat(form.metaRecaudacion) * 0.10)}</span>
                 </div>
                 <div style={{fontSize:'12px',display:'flex',justifyContent:'space-between',color:'var(--gray-900)',fontWeight:700}}>
-                  <span>Monto neto a recibir:</span> <span>{fmtM(parseFloat(form.metaRecaudacion) * 0.93)}</span>
+                  <span>Monto neto a recibir:</span> <span>{fmtM(parseFloat(form.metaRecaudacion) * 0.90)}</span>
                 </div>
               </div>
             )}
