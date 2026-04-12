@@ -25,7 +25,6 @@ const Sidebar = ({ isOpen, onClose }) => {
       { path: '/avisos',          icon: BellRing,        label: 'Avisos' },
       { path: '/enlaces',         icon: Link2,           label: 'Recursos' },
       { path: '/contacto',        icon: Phone,           label: 'Contacto' },
-      { path: '/historial',       icon: History,         label: 'Historial' },
       { section: 'Crowdfunding' },
       { path: '/campanas',        icon: Megaphone,       label: 'Campañas' },
       { path: '/inversiones',     icon: TrendingUp,      label: 'Inversiones' },
