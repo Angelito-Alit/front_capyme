@@ -15,7 +15,6 @@ import Avisos from './pages/Avisos';
 import AvisoDetalle from './pages/AvisoDetalle';
 import Enlaces from './pages/Enlaces';
 import Contacto from './pages/Contacto';
-import Historial from './pages/Historial';
 import JovenesConstruyendoFuturo from './pages/JovenesConstruyendoFuturo';
 import Campanas from './pages/Campanas';
 import Inversiones from './pages/Inversiones';
@@ -66,7 +65,6 @@ function App() {
         <Route path="/avisos/:id"     element={<ProtectedRoute allowedRoles={['admin','colaborador']}><AvisoDetalle /></ProtectedRoute>} />
         <Route path="/enlaces"        element={<ProtectedRoute allowedRoles={['admin','colaborador']}><Enlaces /></ProtectedRoute>} />
         <Route path="/contacto"       element={<ProtectedRoute allowedRoles={['admin','colaborador']}><Contacto /></ProtectedRoute>} />
-        <Route path="/historial"      element={<ProtectedRoute allowedRoles={['admin']}><Historial /></ProtectedRoute>} />
         <Route path="/jcf"            element={<ProtectedRoute allowedRoles={['admin','colaborador']}><JovenesConstruyendoFuturo /></ProtectedRoute>} />
 
         <Route path="/cliente/dashboard"      element={<ProtectedRoute allowedRoles={['cliente']}><ClienteDashboard /></ProtectedRoute>} />
