@@ -7,10 +7,8 @@ export const enlacesService = {
   update:        async (id, data)    => (await api.put(`/enlaces/${id}`, data)).data,
   toggleActivo:  async (id)          => (await api.patch(`/enlaces/${id}/toggle-activo`)).data,
 
-  // Solicitar acceso — devuelve { pagoInfo } si tiene costo, o acceso directo si es gratis
   solicitarAcceso: async (id) => (await api.post(`/enlaces/${id}/solicitar-acceso`)).data,
 
-  // Confirmar por referencia (back_url de MP — respaldo al webhook)
   confirmarPorReferencia: async (referencia) =>
     (await api.post('/enlaces/pagos/confirmar-por-referencia', { referencia })).data,
 

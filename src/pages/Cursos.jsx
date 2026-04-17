@@ -76,7 +76,7 @@ const Cursos = () => {
   const selectSt   = { ...inputBase, appearance:'none', paddingRight:'36px', cursor:'pointer' };
   const textareaSt = { ...inputBase, resize:'vertical', minHeight:'80px' };
 
-  useEffect(()=>{ cargarCursos(); },[filterModalidad,filterEstado]); // eslint-disable-line
+  useEffect(()=>{ cargarCursos(); },[filterModalidad,filterEstado]);
 
   const cargarCursos = async () => {
     try { setLoading(true); const p={}; if(filterModalidad)p.modalidad=filterModalidad; if(filterEstado!=='')p.activo=filterEstado; const r=await cursosService.getAll(p); setCursos(r.data); }

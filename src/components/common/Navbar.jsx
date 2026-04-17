@@ -89,7 +89,6 @@ const Navbar = ({ onMenuClick }) => {
     return () => clearInterval(interval);
   }, [isAdmin]);
 
-  // Al abrir el panel: marcar todos los avisos no leídos como leídos en BD
   const handleAbrirPanel = async () => {
     const abriendo = !showNotifications;
     setShowNotifications(abriendo);
@@ -98,10 +97,8 @@ const Navbar = ({ onMenuClick }) => {
     if (abriendo) {
       const avisosNoLeidos = items.filter(i => i.origen === 'aviso' && !i.leida);
       if (avisosNoLeidos.length > 0) {
-        // Actualizar UI inmediatamente
         setItems(prev => prev.map(i => i.origen === 'aviso' ? { ...i, leida: true } : i));
         setNoLeidas(prev => Math.max(0, prev - avisosNoLeidos.length));
-        // Persistir en BD
         try {
           await notificacionesService.marcarAvisosLeidos(avisosNoLeidos.map(i => i._id));
         } catch {}
@@ -109,7 +106,6 @@ const Navbar = ({ onMenuClick }) => {
     }
   };
 
-  // Marcar notificación personal como leída al hacer clic
   const marcarLeida = async (item) => {
     if (item.origen !== 'notificacion' || item.leida) return;
     setItems(prev => prev.map(n => n.id === item.id ? { ...n, leida: true } : n));
@@ -119,7 +115,6 @@ const Navbar = ({ onMenuClick }) => {
     } catch {}
   };
 
-  // Marcar todas las notificaciones personales como leídas
   const marcarTodas = async () => {
     setItems(prev => prev.map(n => ({ ...n, leida: true })));
     setNoLeidas(0);

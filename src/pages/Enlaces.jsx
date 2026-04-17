@@ -90,7 +90,7 @@ const Enlaces = () => {
   const selectStyle       = { ...inputBaseStyle,appearance:'none',paddingRight:'36px',cursor:'pointer' };
   const textareaStyle     = { ...inputBaseStyle,resize:'vertical',minHeight:'80px' };
 
-  useEffect(()=>{ cargarEnlaces(); },[filterTipo,filterActivo]); // eslint-disable-line
+  useEffect(()=>{ cargarEnlaces(); },[filterTipo,filterActivo]); 
 
   const cargarEnlaces = async () => {
     try {

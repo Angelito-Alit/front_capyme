@@ -8,9 +8,8 @@ export const useAuthStore = create(
       token: null,
       isAuthenticated: false,
 
-      // ── Modal de usuario inactivo ────────────────────────────────────────
       inactivoModal: false,
-      inactivoContacto: null, // { email, whatsapp }
+      inactivoContacto: null, 
 
       mostrarInactivoModal: (contacto = null) => {
         set({ inactivoModal: true, inactivoContacto: contacto });
@@ -18,7 +17,6 @@ export const useAuthStore = create(
       cerrarInactivoModal: () => {
         set({ inactivoModal: false, inactivoContacto: null });
       },
-      // ─────────────────────────────────────────────────────────────────────
 
       login: (userData, token) => {
         set({
@@ -57,7 +55,6 @@ export const useAuthStore = create(
         user: state.user,
         token: state.token,
         isAuthenticated: state.isAuthenticated,
-        // NO persistir el modal: si recargan, no queremos mostrarlo de nuevo
       }),
     }
   )

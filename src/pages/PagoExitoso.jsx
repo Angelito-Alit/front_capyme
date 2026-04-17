@@ -1,187 +1,126 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { CheckCircle, GraduationCap, ArrowRight, LogIn, Link2 } from 'lucide-react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
+import { cursosService }      from '../services/cursosService';
+import { enlacesService }     from '../services/enlacesService';
+import { inversionesService } from '../services/inversionesService';
+import { CheckCircle, XCircle, Loader } from 'lucide-react';
 
-const getToken = () => {
-  try {
-    return JSON.parse(localStorage.getItem('auth-storage') || '{}')?.state?.token || null;
-  } catch { return null; }
-};
+const PagoExitoso = () => {
+  const [searchParams] = useSearchParams();
+  const navigate       = useNavigate();
 
-const leerSesion = () => !!getToken();
-
-const confirmarCurso = async (referencia, token) => {
-  try {
-    const base = import.meta.env.VITE_API_URL?.endsWith('/api')
-      ? import.meta.env.VITE_API_URL
-      : `${import.meta.env.VITE_API_URL}/api`;
-
-    await fetch(`${base}/cursos/pagos/confirmar-por-referencia`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ referencia }),
-    });
-  } catch {}
-};
-
-const confirmarRecurso = async (referencia, token) => {
-  try {
-    const base = import.meta.env.VITE_API_URL?.endsWith('/api')
-      ? import.meta.env.VITE_API_URL
-      : `${import.meta.env.VITE_API_URL}/api`;
-
-    await fetch(`${base}/enlaces/pagos/confirmar-por-referencia`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ referencia }),
-    });
-  } catch {}
-};
-
-export default function PagoExitoso() {
-  const navigate = useNavigate();
-  const [params] = useSearchParams();
-  const [verificando, setVerificando] = useState(true);
-  const [segundos, setSegundos] = useState(6);
-  const [tipoDetectado, setTipoDetectado] = useState('curso');
-
-  const paymentId = params.get('payment_id');
-  const status = params.get('status');
-  const extRef = params.get('external_reference');
-  const haySession = leerSesion();
+  const [estado,  setEstado]  = useState('procesando');
+  const [titulo,  setTitulo]  = useState('');
+  const [mensaje, setMensaje] = useState('');
 
   useEffect(() => {
-    const run = async () => {
-      if (status === 'approved' && extRef) {
-        const token = getToken();
-        if (token) {
-          const refStr = String(extRef);
-          if (refStr.startsWith('RESR') || refStr.startsWith('REC')) {
-            setTipoDetectado('recurso');
-            await confirmarRecurso(refStr, token);
-          } else {
-            setTipoDetectado('curso');
-            await confirmarCurso(refStr, token);
-          }
+    const externalRef = searchParams.get('external_reference');
+    const status      = searchParams.get('status');
+
+    if (!externalRef) {
+      setEstado('error'); setTitulo('Sin referencia');
+      setMensaje('No se encontró la referencia del pago.'); return;
+    }
+    if (status !== 'approved') {
+      setEstado('error'); setTitulo('Pago no aprobado');
+      setMensaje('El pago no fue aprobado por Mercado Pago.'); return;
+    }
+
+    const confirmar = async () => {
+      try {
+        const ref = String(externalRef);
+        if (ref.startsWith('INV')) {
+          const res = await inversionesService.confirmarPorReferencia(ref);
+          if (res.success) {
+            setEstado('ok'); setTitulo('¡Inversión confirmada!');
+            setMensaje('Tu inversión fue registrada exitosamente. ¡Gracias por apoyar este proyecto!');
+          } else throw new Error('No se pudo confirmar la inversión');
+        } else if (ref.startsWith('RESR') || ref.startsWith('REC')) {
+          const res = await enlacesService.confirmarPorReferencia(ref);
+          if (res.success) {
+            setEstado('ok'); setTitulo('¡Acceso confirmado!');
+            setMensaje('Tu acceso al recurso fue confirmado exitosamente.');
+          } else throw new Error('No se pudo confirmar el acceso');
+        } else {
+          const res = await cursosService.confirmarPorReferencia(ref);
+          if (res.success) {
+            setEstado('ok'); setTitulo('¡Pago confirmado!');
+            setMensaje('Tu pago fue procesado y tu inscripción está activa.');
+          } else throw new Error('No se pudo confirmar el pago del curso');
         }
+      } catch (e) {
+        setEstado('error'); setTitulo('Error al confirmar');
+        setMensaje(e?.response?.data?.message || e?.message || 'Hubo un problema al confirmar tu pago.');
       }
-      setVerificando(false);
     };
-    run();
+
+    confirmar();
   }, []);
 
-  useEffect(() => {
-    if (verificando) return;
-    if (segundos <= 0) {
-      const destino = !haySession
-        ? '/login'
-        : tipoDetectado === 'recurso'
-        ? '/cliente/recursos'
-        : '/cliente/cursos';
-      navigate(destino);
-      return;
+  const handleContinuar = () => {
+    const returnUrl = localStorage.getItem('capyme_return_url') || '/campanas';
+    localStorage.removeItem('capyme_return_url');
+
+    const authRaw = localStorage.getItem('auth-storage');
+    const authData = authRaw ? JSON.parse(authRaw) : null;
+    const isLoggedIn = !!authData?.state?.user?.id;
+
+    if (isLoggedIn) {
+      navigate(returnUrl, { replace: true });
+    } else {
+      localStorage.setItem('capyme_post_login_url', returnUrl);
+      navigate('/login', { replace: true });
     }
-    const t = setTimeout(() => setSegundos((s) => s - 1), 1000);
-    return () => clearTimeout(t);
-  }, [segundos, verificando, navigate, haySession, tipoDetectado]);
-
-  const destino = !haySession
-    ? '/login'
-    : tipoDetectado === 'recurso'
-    ? '/cliente/recursos'
-    : '/cliente/cursos';
-
-  const DestinoIcon = !haySession ? LogIn : tipoDetectado === 'recurso' ? Link2 : GraduationCap;
-  const destinoLabel = !haySession
-    ? 'Iniciar sesión'
-    : tipoDetectado === 'recurso'
-    ? 'Ver mis recursos'
-    : 'Ver mis cursos';
+  };
 
   return (
-    <>
-      <style>{`
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'DM Sans', system-ui, sans-serif; }
-        @keyframes fadeUp { from{opacity:0;transform:translateY(28px);}to{opacity:1;transform:translateY(0);} }
-        @keyframes popIn  { from{opacity:0;transform:scale(0.3);}to{opacity:1;transform:scale(1);} }
-        @keyframes pulse  { 0%,100%{transform:scale(1);}50%{transform:scale(1.1);} }
-        @keyframes spin   { to{transform:rotate(360deg);} }
-        @keyframes fadeIn { from{opacity:0;}to{opacity:1;} }
-        .btn-cta:hover { transform: translateY(-2px) !important; box-shadow: 0 10px 28px rgba(5,150,105,0.46) !important; }
-      `}</style>
+    <div style={{
+      minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center',
+      background:'#F9FAFB', padding:'20px',
+    }}>
+      <div style={{
+        background:'#fff', borderRadius:'16px', padding:'48px 40px',
+        maxWidth:'440px', width:'100%', textAlign:'center',
+        boxShadow:'0 8px 32px rgba(0,0,0,.10)',
+      }}>
 
-      <div style={{ minHeight: '100vh', background: 'linear-gradient(145deg,#f0fdf4 0%,#dcfce7 35%,#ecfdf5 60%,#f0f9ff 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
-        <div style={{ background: '#fff', borderRadius: '24px', maxWidth: '460px', width: '100%', boxShadow: '0 32px 80px rgba(0,0,0,0.11)', overflow: 'hidden', animation: 'fadeUp 0.5s cubic-bezier(0.16,1,0.3,1) both' }}>
+        {estado === 'procesando' && (
+          <>
+            <Loader style={{width:'56px',height:'56px',color:'#1F4E9E',margin:'0 auto 20px',animation:'spin 1s linear infinite',display:'block'}}/>
+            <h2 style={{fontSize:'20px',fontWeight:800,color:'#111827',fontFamily:"'Plus Jakarta Sans',sans-serif",marginBottom:'8px'}}>Verificando pago...</h2>
+            <p style={{fontSize:'14px',color:'#6B7280',fontFamily:"'DM Sans',sans-serif",margin:0}}>Espera un momento mientras confirmamos tu transacción.</p>
+          </>
+        )}
 
-          <div style={{ background: 'linear-gradient(135deg,#059669 0%,#10b981 60%,#34d399 100%)', padding: '44px 32px 40px', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
-            <div style={{ position: 'absolute', top: '-50px', right: '-50px', width: '160px', height: '160px', background: 'rgba(255,255,255,0.07)', borderRadius: '50%' }} />
-            <div style={{ position: 'absolute', bottom: '-30px', left: '-30px', width: '100px', height: '100px', background: 'rgba(255,255,255,0.05)', borderRadius: '50%' }} />
-
-            {verificando ? (
-              <div style={{ width: '80px', height: '80px', margin: '0 auto 20px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <svg width="56" height="56" viewBox="0 0 56 56" style={{ animation: 'spin 0.9s linear infinite' }}>
-                  <circle cx="28" cy="28" r="24" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="4" />
-                  <path d="M28 4 A24 24 0 0 1 52 28" fill="none" stroke="white" strokeWidth="4" strokeLinecap="round" />
-                </svg>
-              </div>
-            ) : (
-              <div style={{ width: '80px', height: '80px', background: 'rgba(255,255,255,0.2)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', border: '3px solid rgba(255,255,255,0.5)', animation: 'popIn 0.6s cubic-bezier(0.175,0.885,0.32,1.275) both' }}>
-                <CheckCircle style={{ width: '46px', height: '46px', color: '#fff', animation: 'pulse 2.5s ease-in-out infinite' }} />
-              </div>
-            )}
-
-            <h1 style={{ fontSize: '28px', fontWeight: 800, color: '#fff', margin: '0 0 8px', fontFamily: "'Plus Jakarta Sans',sans-serif", letterSpacing: '-0.02em', lineHeight: 1.2 }}>
-              {verificando ? 'Verificando pago…' : '¡Pago exitoso!'}
-            </h1>
-            <p style={{ fontSize: '15px', color: 'rgba(255,255,255,0.88)', margin: 0, lineHeight: 1.5 }}>
-              {verificando ? 'Confirmando con Mercado Pago…' : '¡Tu pago ha sido confirmado!'}
-            </p>
-          </div>
-
-          {!verificando && (
-            <div style={{ padding: '28px 32px 36px', animation: 'fadeIn 0.4s ease both' }}>
-              <div style={{ background: 'linear-gradient(135deg,#f0fdf4,#ecfdf5)', borderRadius: '16px', padding: '20px 22px', marginBottom: '22px', border: '1px solid #a7f3d0' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: paymentId ? '14px' : 0 }}>
-                  <div style={{ width: '46px', height: '46px', background: 'linear-gradient(135deg,#059669,#10b981)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 4px 12px rgba(5,150,105,0.3)' }}>
-                    <DestinoIcon style={{ width: '22px', height: '22px', color: '#fff' }} />
-                  </div>
-                  <div>
-                    <p style={{ fontSize: '11px', color: '#6B7280', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 3px', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>Estado</p>
-                    <p style={{ fontSize: '16px', fontWeight: 800, color: '#065F46', margin: 0, fontFamily: "'Plus Jakarta Sans',sans-serif" }}>✓ Aprobado por Mercado Pago</p>
-                  </div>
-                </div>
-                {paymentId && (
-                  <div style={{ borderTop: '1px dashed #a7f3d0', paddingTop: '12px', marginTop: '4px' }}>
-                    <p style={{ fontSize: '11px', color: '#6B7280', margin: '0 0 3px', fontFamily: "'Plus Jakarta Sans',sans-serif", fontWeight: 600 }}>ID de transacción</p>
-                    <p style={{ fontSize: '13px', color: '#065F46', fontFamily: 'monospace', fontWeight: 700, margin: 0, letterSpacing: '0.03em' }}>{paymentId}</p>
-                  </div>
-                )}
-              </div>
-
-              <p style={{ fontSize: '14px', color: '#6B7280', lineHeight: 1.7, margin: '0 0 24px', textAlign: 'center' }}>
-                {haySession
-                  ? `Tu ${tipoDetectado === 'recurso' ? 'acceso al recurso' : 'inscripción al curso'} ha sido confirmada. Te redirigimos automáticamente.`
-                  : 'Tu pago fue registrado correctamente. Inicia sesión para acceder.'}
-              </p>
-
-              <button
-                className="btn-cta"
-                onClick={() => navigate(destino)}
-                style={{ width: '100%', padding: '15px 24px', background: 'linear-gradient(135deg,#059669,#10b981)', color: '#fff', border: 'none', borderRadius: '14px', fontSize: '15px', fontWeight: 700, fontFamily: "'Plus Jakarta Sans',sans-serif", cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', boxShadow: '0 6px 20px rgba(5,150,105,0.38)', transition: 'all 150ms ease' }}
-              >
-                <DestinoIcon style={{ width: '18px', height: '18px' }} />
-                {destinoLabel}
-                <ArrowRight style={{ width: '16px', height: '16px' }} />
-              </button>
-
-              <p style={{ textAlign: 'center', fontSize: '13px', color: '#9CA3AF', margin: '14px 0 0' }}>
-                Redirigiendo en <span style={{ fontWeight: 800, color: '#059669', fontSize: '16px' }}>{segundos}</span> seg…
-              </p>
+        {estado === 'ok' && (
+          <>
+            <div style={{width:'72px',height:'72px',background:'linear-gradient(135deg,#10B981,#059669)',borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 20px',boxShadow:'0 8px 24px rgba(16,185,129,.35)'}}>
+              <CheckCircle style={{width:'38px',height:'38px',color:'#fff'}}/>
             </div>
-          )}
-        </div>
+            <h2 style={{fontSize:'22px',fontWeight:900,color:'#111827',fontFamily:"'Plus Jakarta Sans',sans-serif",marginBottom:'8px'}}>{titulo}</h2>
+            <p style={{fontSize:'14px',color:'#6B7280',fontFamily:"'DM Sans',sans-serif",marginBottom:'28px',lineHeight:1.6}}>{mensaje}</p>
+            <button onClick={handleContinuar} style={{width:'100%',padding:'13px',background:'linear-gradient(135deg,#10B981,#059669)',border:'none',borderRadius:'12px',color:'#fff',fontSize:'14px',fontWeight:700,cursor:'pointer',fontFamily:"'Plus Jakarta Sans',sans-serif",boxShadow:'0 4px 14px rgba(16,185,129,.35)'}}>
+              Continuar
+            </button>
+          </>
+        )}
+
+        {estado === 'error' && (
+          <>
+            <div style={{width:'72px',height:'72px',background:'linear-gradient(135deg,#EF4444,#DC2626)',borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 20px',boxShadow:'0 8px 24px rgba(239,68,68,.3)'}}>
+              <XCircle style={{width:'38px',height:'38px',color:'#fff'}}/>
+            </div>
+            <h2 style={{fontSize:'22px',fontWeight:900,color:'#111827',fontFamily:"'Plus Jakarta Sans',sans-serif",marginBottom:'8px'}}>{titulo}</h2>
+            <p style={{fontSize:'14px',color:'#6B7280',fontFamily:"'DM Sans',sans-serif",marginBottom:'28px',lineHeight:1.6}}>{mensaje}</p>
+            <button onClick={handleContinuar} style={{width:'100%',padding:'13px',background:'linear-gradient(135deg,#1F4E9E,#4F46E5)',border:'none',borderRadius:'12px',color:'#fff',fontSize:'14px',fontWeight:700,cursor:'pointer',fontFamily:"'Plus Jakarta Sans',sans-serif"}}>
+              Volver
+            </button>
+          </>
+        )}
       </div>
-    </>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    </div>
   );
-}
+};
+
+export default PagoExitoso;

@@ -3,7 +3,7 @@ import Layout from '../components/common/Layout';
 import { contactoService } from '../services/contactoService';
 import {
   Phone, Mail, MapPin, Clock, Facebook, Instagram, Linkedin,
-  Globe, MessageSquare, Save, AlertCircle, Eye, ExternalLink,
+  Globe, MessageSquare, Save, AlertCircle, Eye,
   Contact, CheckCircle, Lock,
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
@@ -30,8 +30,7 @@ const sInputErr  = { borderColor: '#EF4444', boxShadow: '0 0 0 3px rgba(239,68,6
 const sInputOff  = { background: 'var(--gray-50)', color: 'var(--gray-500)', cursor: 'not-allowed', borderColor: 'var(--gray-200)' };
 
 /* ─────────────────────────────────────────────────────────
-   SUB-COMPONENTES PUROS (declarados FUERA del componente
-   principal → React no los desmonta/remonta en cada render)
+   SUB-COMPONENTES PUROS
 ───────────────────────────────────────────────────────── */
 const ErrorMsg = ({ text }) => (
   <p style={{ margin: '5px 0 0', fontSize: '12px', color: '#EF4444', display: 'flex', alignItems: 'center', gap: '4px', fontFamily: "'DM Sans', sans-serif" }}>
@@ -139,9 +138,16 @@ const Contacto = () => {
       .finally(() => setLoading(false));
   }, []);
 
-  /* useCallback evita que la referencia cambie en cada render */
   const handleChange = useCallback((e) => {
-    const { name, value } = e.target;
+    let { name, value } = e.target;
+    
+    // Autocompletar con https:// si el usuario escribe www. en una red social
+    if (['sitioWeb', 'facebookUrl', 'instagramUrl', 'linkedinUrl'].includes(name)) {
+      if (value.startsWith('www.')) {
+        value = 'https://' + value;
+      }
+    }
+
     setFormData((prev) => ({ ...prev, [name]: value }));
     setErrors((prev) => prev[name] ? { ...prev, [name]: '' } : prev);
     setSaved(false);
@@ -151,16 +157,22 @@ const Contacto = () => {
     const e = {};
     if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email))
       e.email = 'Email no válido';
+      
     ['sitioWeb', 'facebookUrl', 'instagramUrl', 'linkedinUrl'].forEach((k) => {
       if (formData[k] && !/^https?:\/\//.test(formData[k]))
         e[k] = 'Debe comenzar con https://';
     });
+    
     setErrors(e);
     return Object.keys(e).length === 0;
   };
 
   const handleSave = async () => {
-    if (!validate()) return;
+    if (!validate()) {
+      toast.error('Por favor, corrige los errores antes de guardar');
+      return;
+    }
+    
     setSaving(true);
     try {
       await contactoService.update(formData);
@@ -168,7 +180,7 @@ const Contacto = () => {
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Error al guardar');
+      toast.error(err.response?.data?.message || 'Error al guardar la información');
     } finally {
       setSaving(false);
     }
@@ -187,7 +199,6 @@ const Contacto = () => {
     </Layout>
   );
 
-  /* Botón guardar como JSX local (no como componente interno) */
   const saveButtonJSX = (
     <button
       onClick={handleSave}

@@ -15,7 +15,6 @@ const tipoConfig = {
   otro:           { label: 'Otro',           icon: Link2,      bg: 'var(--gray-100)', color: 'var(--gray-600)' },
 };
 
-// ─── Logo MP ──────────────────────────────────────────────────────────────────
 const MPLogo = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
     <circle cx="12" cy="12" r="12" fill="white" fillOpacity="0.22"/>
@@ -29,8 +28,6 @@ const Spinner = ({ size = 14, trackColor = 'rgba(255,255,255,0.3)', headColor = 
     <path d="M8 2 A6 6 0 0 1 14 8" fill="none" stroke={headColor} strokeWidth="2" strokeLinecap="round"/>
   </svg>
 );
-
-// ─── Página principal ─────────────────────────────────────────────────────────
 const ClienteRecursos = () => {
   const [recursos,        setRecursos]        = useState([]);
   const [loading,         setLoading]         = useState(true);
@@ -42,7 +39,7 @@ const ClienteRecursos = () => {
   const inputBase = { width: '100%', padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', fontSize: '14px', fontFamily: "'DM Sans',sans-serif", color: 'var(--gray-900)', background: '#fff', outline: 'none', transition: 'all 200ms ease', boxSizing: 'border-box' };
   const selectSt  = { ...inputBase, appearance: 'none', paddingRight: '36px', cursor: 'pointer' };
 
-  useEffect(() => { cargarRecursos(); }, [filterTipo, filterCategoria]); // eslint-disable-line
+  useEffect(() => { cargarRecursos(); }, [filterTipo, filterCategoria]);
 
   const cargarRecursos = async () => {
     try {
@@ -56,7 +53,6 @@ const ClienteRecursos = () => {
     finally  { setLoading(false); }
   };
 
-  // ─── Solicitar acceso → Checkout Pro ─────────────────────────────────────
   const handleAcceso = async (recurso) => {
     const costo    = recurso.costo ? parseFloat(recurso.costo) : 0;
     const esGratis = costo === 0;
@@ -71,7 +67,6 @@ const ClienteRecursos = () => {
         return;
       }
 
-      // Pago requerido → redirigir a MP
       const referencia = res.pagoInfo?.referencia;
       if (!referencia) { toast.error('No se pudo obtener la referencia'); return; }
 
@@ -92,7 +87,6 @@ const ClienteRecursos = () => {
     } catch (error) {
       const data = error.response?.data;
 
-      // Pago pendiente existente → reanudar checkout
       if (data?.pagoExistente) {
         try {
           const { referencia, monto, tituloRecurso } = data.pagoExistente;
@@ -249,7 +243,6 @@ const ClienteRecursos = () => {
   );
 };
 
-// ─── Tarjeta individual ───────────────────────────────────────────────────────
 const RecursoCard = ({ recurso, onAcceso, procesando, idx, fmt }) => {
   const cfg        = tipoConfig[recurso.tipo] || tipoConfig.otro;
   const Icon       = cfg.icon;
