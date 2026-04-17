@@ -7,13 +7,9 @@ import api from '../../services/axios';
 import {
   Bell, User, LogOut, Menu, ChevronDown,
   AlertCircle, Info, Calendar, BellRing,
-  ExternalLink, Activity, CheckCheck, GraduationCap, Users,
+  ExternalLink, CheckCheck, GraduationCap, Users,
 } from 'lucide-react';
 import LogoCapyme from '../../assets/LogoCapyme.png';
-
-const LS_KEY = 'historial_visto_en';
-const getUltimaVista = () => { const v = localStorage.getItem(LS_KEY); return v ? new Date(v) : null; };
-const marcarComoVisto = () => { localStorage.setItem(LS_KEY, new Date().toISOString()); };
 
 const Navbar = ({ onMenuClick }) => {
   const { user }   = useAuthStore();
@@ -26,7 +22,6 @@ const Navbar = ({ onMenuClick }) => {
   const [items,             setItems]             = useState([]);
   const [noLeidas,          setNoLeidas]          = useState(0);
   const [loadingNotif,      setLoadingNotif]      = useState(false);
-  const [nuevosMovimientos, setNuevosMovimientos] = useState(0);
 
   const notifRef = useRef(null);
   const userRef  = useRef(null);
@@ -64,30 +59,6 @@ const Navbar = ({ onMenuClick }) => {
     const interval = setInterval(cargarNotificaciones, 30_000);
     return () => clearInterval(interval);
   }, []);
-
-  const consultarNuevos = async () => {
-    if (!isAdmin) return;
-    try {
-      const ultimaVista = getUltimaVista();
-      const params = ultimaVista ? { desde: ultimaVista.toISOString() } : {};
-      const res = await api.get('/dashboard/historial/nuevos', { params });
-      setNuevosMovimientos(res.data.total || 0);
-    } catch {}
-  };
-
-  useEffect(() => {
-    if (location.pathname === '/historial') {
-      marcarComoVisto();
-      setNuevosMovimientos(0);
-    }
-  }, [location.pathname]);
-
-  useEffect(() => {
-    if (!isAdmin) return;
-    consultarNuevos();
-    const interval = setInterval(consultarNuevos, 60_000);
-    return () => clearInterval(interval);
-  }, [isAdmin]);
 
   const handleAbrirPanel = async () => {
     const abriendo = !showNotifications;
@@ -136,12 +107,6 @@ const Navbar = ({ onMenuClick }) => {
     navigate(user?.rol === 'cliente' ? '/cliente/avisos' : '/avisos');
   };
 
-  const handleHistorialClick = () => {
-    marcarComoVisto();
-    setNuevosMovimientos(0);
-    navigate('/historial');
-  };
-
   const getItemStyle = (tipo, origen) => {
     if (origen === 'notificacion') {
       if (tipo === 'inscripcion_declinada')      return { bg: '#FEF2F2', color: '#DC2626', Icon: GraduationCap };
@@ -186,10 +151,6 @@ const Navbar = ({ onMenuClick }) => {
           to   { opacity: 1; transform: translateY(0); }
         }
         @keyframes spin { to { transform: rotate(360deg); } }
-        @keyframes pulse-badge {
-          0%, 100% { transform: scale(1); }
-          50%       { transform: scale(1.18); }
-        }
         .nav-icon-btn {
           padding: 8px;
           border-radius: var(--radius-md);
@@ -219,34 +180,6 @@ const Navbar = ({ onMenuClick }) => {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-
-          {isAdmin && (
-            <button
-              onClick={handleHistorialClick}
-              className={`nav-icon-btn${location.pathname === '/historial' ? ' active' : ''}`}
-              title="Historial de actividad"
-              style={{ color: nuevosMovimientos > 0 ? 'var(--capyme-blue-mid)' : undefined }}
-            >
-              <Activity style={{ width: '20px', height: '20px' }} />
-              {nuevosMovimientos > 0 && (
-                <span style={{
-                  position: 'absolute', top: '4px', right: '4px',
-                  minWidth: '17px', height: '17px',
-                  background: 'linear-gradient(135deg, var(--capyme-blue-mid), var(--capyme-blue))',
-                  borderRadius: '99px', border: '2px solid white',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: '9px', fontWeight: 800, color: '#fff',
-                  fontFamily: "'Plus Jakarta Sans', sans-serif",
-                  padding: '0 3px',
-                  animation: 'pulse-badge 2s ease-in-out infinite',
-                  boxShadow: '0 1px 6px rgba(31,78,158,0.4)',
-                  lineHeight: 1,
-                }}>
-                  {nuevosMovimientos > 99 ? '99+' : nuevosMovimientos}
-                </span>
-              )}
-            </button>
-          )}
 
           <div style={{ position: 'relative' }} ref={notifRef}>
             <button
