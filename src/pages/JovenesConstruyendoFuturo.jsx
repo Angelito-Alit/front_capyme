@@ -4,7 +4,8 @@ import {
   Users, Plus, Search, Edit, CheckCircle, Trash2,
   AlertCircle, X, FolderOpen, Link, UserCheck, MapPin,
   Calendar, Phone, Mail, Building2, ExternalLink,
-  ChevronDown, SlidersHorizontal, User, AlertTriangle
+  ChevronDown, SlidersHorizontal, User, AlertTriangle,
+  Eye, Tag
 } from 'lucide-react';
 import Layout from '../components/common/Layout';
 import { jcfService } from '../services/jcfService';
@@ -82,6 +83,24 @@ const ConfirmModal = ({ config, onClose }) => {
   );
 };
 
+const InfoRow = ({ label, value, icon: Icon, isLink }) => (
+  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+    <span style={{ fontSize: '12px', color: 'var(--gray-500)', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", display: 'flex', alignItems: 'center', gap: '5px' }}>
+      {Icon && <Icon style={{ width: '13px', height: '13px', color: 'var(--gray-400)' }} />}
+      {label}
+    </span>
+    {isLink && value ? (
+      <a href={value} target="_blank" rel="noopener noreferrer" style={{ fontSize: '14px', color: 'var(--capyme-blue-mid)', fontFamily: "'DM Sans', sans-serif", fontWeight: 500, display: 'inline-flex', alignItems: 'center', gap: '4px', textDecoration: 'none' }}>
+        Ver enlace <ExternalLink style={{ width: '12px', height: '12px' }} />
+      </a>
+    ) : (
+      <span style={{ fontSize: '14px', color: value ? 'var(--gray-900)' : 'var(--gray-400)', fontFamily: "'DM Sans', sans-serif", fontWeight: 500 }}>
+        {value || '—'}
+      </span>
+    )}
+  </div>
+);
+
 const JovenesConstruyendoFuturo = () => {
   const authStorage = JSON.parse(localStorage.getItem('auth-storage') || '{}');
   const currentUser = authStorage?.state?.user || {};
@@ -91,24 +110,31 @@ const JovenesConstruyendoFuturo = () => {
   const [negocios, setNegocios] = useState([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  
+  // Modals state
   const [showModal, setShowModal] = useState(false);
   const [modalMode, setModalMode] = useState('create');
   const [selectedItem, setSelectedItem] = useState(null);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [detailsItem, setDetailsItem] = useState(null);
+  const [showRecursoModal, setShowRecursoModal] = useState(false);
+  
   const [searchTerm, setSearchTerm] = useState('');
   const [formData, setFormData] = useState(initialFormData);
   const [formErrors, setFormErrors] = useState({});
-  const [showRecursoModal, setShowRecursoModal] = useState(false);
   const [recursoItem, setRecursoItem] = useState(null);
   const [recursoUrl, setRecursoUrl] = useState('');
   const [submittingRecurso, setSubmittingRecurso] = useState(false);
   const [hoveredRow, setHoveredRow] = useState(null);
-  const [showFilters, setShowFilters] = useState(false);
   
+  // Filters state
+  const [showFilters, setShowFilters] = useState(false);
   const [filterEstado, setFilterEstado] = useState('');
   const [filterCliente, setFilterCliente] = useState('');
   const [filterNegocio, setFilterNegocio] = useState('');
   const [filterEstadoGeo, setFilterEstadoGeo] = useState('');
   const [filterMunicipioNegocio, setFilterMunicipioNegocio] = useState('');
+  const [filterEstatus, setFilterEstatus] = useState('');
 
   const [confirmConfig, setConfirmConfig] = useState({ show: false });
   const showConfirm = (cfg) => setConfirmConfig({ show: true, ...cfg });
@@ -120,13 +146,9 @@ const JovenesConstruyendoFuturo = () => {
   }, [formData.negocioId, negocios]);
 
   const inputBaseStyle = {
-    width: '100%', padding: '10px 12px',
-    border: '1px solid var(--border)',
-    borderRadius: 'var(--radius-md)',
-    fontSize: '14px', fontFamily: "'DM Sans', sans-serif",
-    color: 'var(--gray-900)', background: '#fff',
-    outline: 'none', transition: 'all 200ms ease',
-    boxSizing: 'border-box',
+    width: '100%', padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)',
+    fontSize: '14px', fontFamily: "'DM Sans', sans-serif", color: 'var(--gray-900)', background: '#fff',
+    outline: 'none', transition: 'all 200ms ease', boxSizing: 'border-box',
   };
   const inputErrorStyle = { borderColor: '#EF4444', boxShadow: '0 0 0 2px rgba(239,68,68,0.15)' };
   const labelStyle = { display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--gray-600)', marginBottom: '6px', fontFamily: "'DM Sans', sans-serif" };
@@ -152,19 +174,8 @@ const JovenesConstruyendoFuturo = () => {
     }
   };
 
-  const cargarClientes = async () => {
-    try {
-      const res = await jcfService.getClientes();
-      setClientes(res.data || []);
-    } catch {}
-  };
-
-  const cargarNegocios = async () => {
-    try {
-      const res = await jcfService.getNegocios();
-      setNegocios(res.data || []);
-    } catch {}
-  };
+  const cargarClientes = async () => { try { const res = await jcfService.getClientes(); setClientes(res.data || []); } catch {} };
+  const cargarNegocios = async () => { try { const res = await jcfService.getNegocios(); setNegocios(res.data || []); } catch {} };
 
   const negociosFiltradosPorCliente = useMemo(() => {
     if (!formData.clienteId) return [];
@@ -192,10 +203,10 @@ const JovenesConstruyendoFuturo = () => {
     return [...map.values()].sort((a, b) => `${a.nombre} ${a.apellido}`.localeCompare(`${b.nombre} ${b.apellido}`));
   }, [items]);
 
-  const activeFiltersCount = [filterEstado, filterCliente, filterNegocio, filterEstadoGeo, filterMunicipioNegocio].filter(Boolean).length;
+  const activeFiltersCount = [filterEstado, filterCliente, filterNegocio, filterEstadoGeo, filterMunicipioNegocio, filterEstatus].filter(Boolean).length;
 
   const clearFilters = () => {
-    setFilterEstado(''); setFilterCliente(''); setFilterNegocio(''); setFilterEstadoGeo(''); setFilterMunicipioNegocio('');
+    setFilterEstado(''); setFilterCliente(''); setFilterNegocio(''); setFilterEstadoGeo(''); setFilterMunicipioNegocio(''); setFilterEstatus('');
   };
 
   const filtered = useMemo(() => {
@@ -217,9 +228,10 @@ const JovenesConstruyendoFuturo = () => {
       const matchNegocio = !filterNegocio || String(item.negocioId) === String(filterNegocio);
       const matchEstadoGeo = !filterEstadoGeo || item.negocio?.estado === filterEstadoGeo;
       const matchMunicipioNegocio = !filterMunicipioNegocio || item.negocio?.ciudad === filterMunicipioNegocio;
-      return matchSearch && matchEstado && matchCliente && matchNegocio && matchEstadoGeo && matchMunicipioNegocio;
+      const matchEstatus = !filterEstatus || item.estatus === filterEstatus;
+      return matchSearch && matchEstado && matchCliente && matchNegocio && matchEstadoGeo && matchMunicipioNegocio && matchEstatus;
     });
-  }, [items, searchTerm, filterEstado, filterCliente, filterNegocio, filterEstadoGeo, filterMunicipioNegocio]);
+  }, [items, searchTerm, filterEstado, filterCliente, filterNegocio, filterEstadoGeo, filterMunicipioNegocio, filterEstatus]);
 
   const validateForm = () => {
     const errors = {};
@@ -235,10 +247,7 @@ const JovenesConstruyendoFuturo = () => {
     return Object.keys(errors).length === 0;
   };
 
-  const isFormValid = formData.clienteId !== '' &&
-                      formData.negocioId !== '' &&
-                      formData.nombre.trim() !== '' &&
-                      formData.apellido.trim() !== '' &&
+  const isFormValid = formData.clienteId !== '' && formData.negocioId !== '' && formData.nombre.trim() !== '' && formData.apellido.trim() !== '' &&
                       (!formData.correo || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.correo)) &&
                       (!formData.curp || formData.curp.length === 18) &&
                       (!formData.telefono || /^\d{10}$/.test(formData.telefono.replace(/\s/g, ''))) &&
@@ -251,16 +260,9 @@ const JovenesConstruyendoFuturo = () => {
     if (mode === 'edit' && item) {
       const clienteId = item.negocio?.usuarioId ? String(item.negocio.usuarioId) : '';
       setFormData({
-        nombre: item.nombre || '',
-        apellido: item.apellido || '',
-        correo: item.correo || '',
-        telefono: item.telefono || '',
-        curp: item.curp || '',
-        fechaInicio: item.fechaInicio ? item.fechaInicio.split('T')[0] : '',
-        fechaTermino: item.fechaTermino ? item.fechaTermino.split('T')[0] : '',
-        clienteId,
-        negocioId: item.negocioId ? String(item.negocioId) : '',
-        estatus: item.estatus || 'Por registrar',
+        nombre: item.nombre || '', apellido: item.apellido || '', correo: item.correo || '', telefono: item.telefono || '',
+        curp: item.curp || '', fechaInicio: item.fechaInicio ? item.fechaInicio.split('T')[0] : '', fechaTermino: item.fechaTermino ? item.fechaTermino.split('T')[0] : '',
+        clienteId, negocioId: item.negocioId ? String(item.negocioId) : '', estatus: item.estatus || 'Por registrar',
       });
     } else {
       setFormData(initialFormData);
@@ -268,9 +270,9 @@ const JovenesConstruyendoFuturo = () => {
     setShowModal(true);
   };
 
-  const handleCloseModal = () => {
-    setShowModal(false); setSelectedItem(null); setFormData(initialFormData); setFormErrors({});
-  };
+  const handleCloseModal = () => { setShowModal(false); setSelectedItem(null); setFormData(initialFormData); setFormErrors({}); };
+  const handleOpenDetails = (item) => { setDetailsItem(item); setShowDetailsModal(true); };
+  const handleCloseDetails = () => { setShowDetailsModal(false); setDetailsItem(null); };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -404,6 +406,7 @@ const JovenesConstruyendoFuturo = () => {
 
       <div style={{ padding: '28px 32px', animation: 'fadeIn 250ms ease' }}>
 
+        {/* HEADER */}
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '28px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
             <div style={{ width: '48px', height: '48px', borderRadius: 'var(--radius-md)', background: 'linear-gradient(135deg, var(--capyme-blue-mid), var(--capyme-blue))', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(31,78,158,0.25)' }}>
@@ -432,6 +435,7 @@ const JovenesConstruyendoFuturo = () => {
           )}
         </div>
 
+        {/* FILTROS Y BÚSQUEDA */}
         <div style={{ background: '#fff', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)', padding: '16px 20px', marginBottom: '20px', boxShadow: 'var(--shadow-sm)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
             <div style={{ position: 'relative', flex: 1, minWidth: '260px', maxWidth: '420px' }}>
@@ -448,7 +452,19 @@ const JovenesConstruyendoFuturo = () => {
           </div>
 
           {showFilters && (
-            <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid var(--border)', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '14px', animation: 'filtersIn 200ms ease' }}>
+            <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid var(--border)', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '14px', animation: 'filtersIn 200ms ease' }}>
+              <div>
+                <label style={{ ...labelStyle, fontSize: '12px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                  <Tag style={{ width: '11px', height: '11px' }} /> Estatus
+                </label>
+                <div style={{ position: 'relative' }}>
+                  <select value={filterEstatus} onChange={e => setFilterEstatus(e.target.value)} style={{ ...selectStyle, fontSize: '13px', padding: '8px 30px 8px 10px' }}>
+                    <option value="">Todos los estatus</option>
+                    {ESTATUS_OPCIONES.map(est => <option key={est} value={est}>{est}</option>)}
+                  </select>
+                  <SmallDropArrow />
+                </div>
+              </div>
               <div>
                 <label style={{ ...labelStyle, fontSize: '12px', display: 'flex', alignItems: 'center', gap: '5px' }}>
                   <User style={{ width: '11px', height: '11px' }} /> Cliente
@@ -502,18 +518,14 @@ const JovenesConstruyendoFuturo = () => {
           )}
         </div>
 
-        {/* CONTENEDOR RESPONSIVO DE LA TABLA */}
-        <div style={{ background: '#fff', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)', overflow: 'hidden', boxShadow: 'var(--shadow-sm)', width: '100%' }}>
-          <div style={{ overflowX: 'auto', width: '100%' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '1100px' }}>
+        {/* TABLA PRINCIPAL REDUCIDA PARA MAYOR RESPONSIVIDAD */}
+        <div style={{ background: '#fff', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)', overflow: 'hidden', boxShadow: 'var(--shadow-sm)' }}>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '600px' }}>
               <thead>
                 <tr style={{ background: 'var(--gray-50)' }}>
-                  {[
-                    'Beneficiario', 'CURP', 'Contacto',
-                    'Cliente', 'Negocio Asignado', 'Ubicación', 'Estatus', 'Periodo', 'Sistema',
-                    ...(currentUser.rol !== 'cliente' ? ['Recursos', 'Acciones'] : [])
-                  ].map((col, i) => (
-                    <th key={i} style={{ padding: '12px 16px', textAlign: i >= 8 ? 'center' : 'left', fontSize: '11px', fontWeight: 700, color: 'var(--gray-500)', fontFamily: "'Plus Jakarta Sans', sans-serif", textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap' }}>
+                  {[ 'Beneficiario', 'Negocio Asignado', 'Estatus', 'Sistema', 'Acciones' ].map((col, i) => (
+                    <th key={i} style={{ padding: '13px 20px', textAlign: i === 4 ? 'right' : i >= 2 ? 'center' : 'left', fontSize: '11px', fontWeight: 700, color: 'var(--gray-500)', fontFamily: "'Plus Jakarta Sans', sans-serif", textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap' }}>
                       {col}
                     </th>
                   ))}
@@ -522,81 +534,77 @@ const JovenesConstruyendoFuturo = () => {
               <tbody>
                 {filtered.length === 0 ? (
                   <tr>
-                    <td colSpan={currentUser.rol !== 'cliente' ? 11 : 9} style={{ padding: '60px 16px', textAlign: 'center', color: 'var(--gray-400)', fontFamily: "'DM Sans', sans-serif", fontSize: '14px' }}>
+                    <td colSpan={5} style={{ padding: '60px 16px', textAlign: 'center', color: 'var(--gray-400)', fontFamily: "'DM Sans', sans-serif", fontSize: '14px' }}>
                       <Users style={{ width: '40px', height: '40px', margin: '0 auto 12px', display: 'block', opacity: 0.3 }} />
                       No se encontraron beneficiarios
                     </td>
                   </tr>
                 ) : filtered.map(item => (
                   <tr key={item.id} onMouseEnter={() => setHoveredRow(item.id)} onMouseLeave={() => setHoveredRow(null)} style={{ background: hoveredRow === item.id ? 'var(--gray-50)' : '#fff', transition: 'background 150ms ease', borderBottom: '1px solid var(--border)' }}>
-                    <td style={{ padding: '12px 16px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    {/* BENEFICIARIO */}
+                    <td style={{ padding: '13px 20px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                         <div style={{ width: '38px', height: '38px', borderRadius: 'var(--radius-md)', background: 'linear-gradient(135deg, var(--capyme-blue-mid), var(--capyme-blue))', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: '12px', fontWeight: 700, color: '#fff', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
                           {getInitials(item.nombre, item.apellido)}
                         </div>
                         <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--gray-900)', fontFamily: "'DM Sans', sans-serif" }}>{item.nombre} {item.apellido}</div>
                       </div>
                     </td>
-                    <td style={{ padding: '12px 16px' }}><span style={{ fontSize: '12px', fontFamily: "'JetBrains Mono', monospace", color: 'var(--gray-600)', background: 'var(--gray-50)', padding: '2px 8px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>{item.curp || '—'}</span></td>
-                    <td style={{ padding: '12px 16px' }}>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                        {item.correo && <span style={{ fontSize: '12px', color: 'var(--gray-600)', fontFamily: "'DM Sans', sans-serif", display: 'flex', alignItems: 'center', gap: '4px' }}><Mail style={{ width: '11px', height: '11px' }} />{item.correo}</span>}
-                        {item.telefono && <span style={{ fontSize: '12px', color: 'var(--gray-600)', fontFamily: "'DM Sans', sans-serif", display: 'flex', alignItems: 'center', gap: '4px' }}><Phone style={{ width: '11px', height: '11px' }} />{item.telefono}</span>}
-                        {!item.correo && !item.telefono && <span style={{ fontSize: '12px', color: 'var(--gray-300)' }}>—</span>}
-                      </div>
-                    </td>
-                    <td style={{ padding: '12px 16px' }}>
-                      {item.negocio?.usuario ? (
-                        <div>
-                          <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--gray-800)', fontFamily: "'DM Sans', sans-serif" }}>{item.negocio.usuario.nombre} {item.negocio.usuario.apellido}</div>
-                          <div style={{ fontSize: '11px', color: 'var(--gray-400)', fontFamily: "'DM Sans', sans-serif" }}>{item.negocio.usuario.email}</div>
+                    {/* NEGOCIO ASIGNADO */}
+                    <td style={{ padding: '13px 20px' }}>
+                      {item.negocio ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                          <span style={{ fontSize: '13px', color: 'var(--gray-800)', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", display: 'flex', alignItems: 'center', gap: '5px' }}>
+                            <Building2 style={{ width: '12px', height: '12px', color: 'var(--capyme-blue-mid)' }} />{item.negocio.nombreNegocio}
+                          </span>
+                          <span style={{ fontSize: '11px', color: 'var(--gray-400)', fontFamily: "'DM Sans', sans-serif" }}>Cliente: {item.negocio.usuario?.nombre}</span>
                         </div>
                       ) : <span style={{ color: 'var(--gray-300)', fontSize: '13px' }}>—</span>}
                     </td>
-                    <td style={{ padding: '12px 16px' }}>
-                      {item.negocio ? <span style={{ fontSize: '13px', color: 'var(--gray-700)', fontFamily: "'DM Sans', sans-serif", display: 'flex', alignItems: 'center', gap: '4px' }}><Building2 style={{ width: '12px', height: '12px', color: 'var(--gray-400)' }} />{item.negocio.nombreNegocio}</span> : <span style={{ color: 'var(--gray-300)', fontSize: '13px' }}>—</span>}
-                    </td>
-                    <td style={{ padding: '12px 16px' }}>
-                      {(item.negocio?.ciudad || item.negocio?.estado) ? <span style={{ fontSize: '12px', color: 'var(--gray-600)', fontFamily: "'DM Sans', sans-serif", display: 'flex', alignItems: 'center', gap: '4px' }}><MapPin style={{ width: '11px', height: '11px', color: 'var(--gray-400)', flexShrink: 0 }} />{[item.negocio.ciudad, item.negocio.estado].filter(Boolean).join(', ')}</span> : <span style={{ color: 'var(--gray-300)', fontSize: '12px' }}>—</span>}
-                    </td>
-                    {/* NUEVA COLUMNA DE ESTATUS */}
-                    <td style={{ padding: '12px 16px' }}>
-                      <span style={{
-                        display: 'inline-flex', padding: '4px 10px', borderRadius: 'var(--radius-sm)',
-                        fontSize: '11px', fontWeight: 700, fontFamily: "'Plus Jakarta Sans', sans-serif",
-                        background: getEstatusColor(item.estatus || 'Por registrar').bg,
-                        color: getEstatusColor(item.estatus || 'Por registrar').text
-                      }}>
+                    {/* ESTATUS */}
+                    <td style={{ padding: '13px 20px', textAlign: 'center' }}>
+                      <span style={{ display: 'inline-flex', padding: '4px 10px', borderRadius: 'var(--radius-sm)', fontSize: '11px', fontWeight: 700, fontFamily: "'Plus Jakarta Sans', sans-serif", background: getEstatusColor(item.estatus || 'Por registrar').bg, color: getEstatusColor(item.estatus || 'Por registrar').text }}>
                         {item.estatus || 'Por registrar'}
                       </span>
                     </td>
-                    <td style={{ padding: '12px 16px' }}>
-                      <div style={{ fontSize: '12px', color: 'var(--gray-600)', fontFamily: "'DM Sans', sans-serif" }}>
-                        {item.fechaInicio || item.fechaTermino ? <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Calendar style={{ width: '11px', height: '11px', color: 'var(--gray-400)' }} />{formatFecha(item.fechaInicio)} — {formatFecha(item.fechaTermino)}</span> : '—'}
-                      </div>
-                    </td>
-                    <td style={{ padding: '12px 16px', textAlign: 'center' }}>
+                    {/* SISTEMA */}
+                    <td style={{ padding: '13px 20px', textAlign: 'center' }}>
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '4px 10px', borderRadius: 'var(--radius-sm)', fontSize: '12px', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", background: item.activo ? '#ECFDF5' : '#FEF2F2', color: item.activo ? '#065F46' : '#DC2626' }}>
                         <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: item.activo ? '#10B981' : '#EF4444', display: 'inline-block' }} />{item.activo ? 'Activo' : 'Inactivo'}
                       </span>
                     </td>
-                    {currentUser.rol !== 'cliente' && (
-                      <td style={{ padding: '12px 16px', textAlign: 'center' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2px' }}>
-                          {item.urlRecurso && <a href={item.urlRecurso} target="_blank" rel="noopener noreferrer" title="Abrir recurso" style={{ width: '34px', height: '34px', borderRadius: 'var(--radius-sm)', background: 'transparent', cursor: 'pointer', transition: 'all 150ms ease', color: '#059669', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none' }} onMouseEnter={e => { e.currentTarget.style.background = '#ECFDF5'; }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}><ExternalLink style={{ width: '15px', height: '15px' }} /></a>}
-                          <button onClick={() => handleOpenRecurso(item)} title={item.urlRecurso ? 'Editar recurso' : 'Agregar recurso'} style={{ width: '34px', height: '34px', border: 'none', borderRadius: 'var(--radius-sm)', background: 'transparent', cursor: 'pointer', transition: 'all 150ms ease', color: item.urlRecurso ? 'var(--capyme-blue-mid)' : 'var(--gray-400)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }} onMouseEnter={e => { e.currentTarget.style.background = '#EEF4FF'; e.currentTarget.style.color = 'var(--capyme-blue-mid)'; }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = item.urlRecurso ? 'var(--capyme-blue-mid)' : 'var(--gray-400)'; }}><FolderOpen style={{ width: '16px', height: '16px' }} /></button>
-                        </div>
-                      </td>
-                    )}
-                    {currentUser.rol !== 'cliente' && (
-                      <td style={{ padding: '12px 16px', textAlign: 'right' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '4px' }}>
-                          <button onClick={() => handleOpenModal('edit', item)} title="Editar" style={{ width: '34px', height: '34px', border: 'none', borderRadius: 'var(--radius-sm)', background: 'transparent', cursor: 'pointer', color: 'var(--gray-400)', transition: 'all 150ms ease', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }} onMouseEnter={e => { e.currentTarget.style.background = '#EEF4FF'; e.currentTarget.style.color = 'var(--capyme-blue-mid)'; }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gray-400)'; }}><Edit style={{ width: '16px', height: '16px' }} /></button>
-                          {!item.activo && <button onClick={() => handleToggleActivo(item)} title={currentUser.rol === 'admin' ? 'Activar' : 'Sin permiso'} style={{ width: '34px', height: '34px', border: 'none', borderRadius: 'var(--radius-sm)', background: 'transparent', cursor: currentUser.rol === 'admin' ? 'pointer' : 'not-allowed', color: 'var(--gray-400)', transition: 'all 150ms ease', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', opacity: currentUser.rol === 'admin' ? 1 : 0.4 }} onMouseEnter={e => { if (currentUser.rol === 'admin') { e.currentTarget.style.background = '#ECFDF5'; e.currentTarget.style.color = '#065F46'; } }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gray-400)'; }}><CheckCircle style={{ width: '16px', height: '16px' }} /></button>}
-                          {item.activo && <button onClick={() => handleToggleActivo(item)} title={currentUser.rol === 'admin' ? 'Desactivar' : 'Sin permiso'} style={{ width: '34px', height: '34px', border: 'none', borderRadius: 'var(--radius-sm)', background: 'transparent', cursor: currentUser.rol === 'admin' ? 'pointer' : 'not-allowed', color: 'var(--gray-400)', transition: 'all 150ms ease', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', opacity: currentUser.rol === 'admin' ? 1 : 0.4 }} onMouseEnter={e => { if (currentUser.rol === 'admin') { e.currentTarget.style.background = '#FEF2F2'; e.currentTarget.style.color = '#DC2626'; } }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gray-400)'; }}><Trash2 style={{ width: '16px', height: '16px' }} /></button>}
-                        </div>
-                      </td>
-                    )}
+                    {/* ACCIONES */}
+                    <td style={{ padding: '13px 20px', textAlign: 'right' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '4px' }}>
+                        
+                        {/* BOTÓN VER DETALLES (NUEVO) */}
+                        <button onClick={() => handleOpenDetails(item)} title="Ver detalles completos" style={{ width: '34px', height: '34px', border: 'none', borderRadius: 'var(--radius-sm)', background: 'transparent', cursor: 'pointer', color: 'var(--gray-400)', transition: 'all 150ms ease', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }} onMouseEnter={e => { e.currentTarget.style.background = '#EEF4FF'; e.currentTarget.style.color = 'var(--capyme-blue-mid)'; }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gray-400)'; }}>
+                          <Eye style={{ width: '16px', height: '16px' }} />
+                        </button>
+
+                        {currentUser.rol !== 'cliente' && (
+                          <>
+                            <button onClick={() => handleOpenRecurso(item)} title={item.urlRecurso ? 'Editar recurso' : 'Agregar recurso'} style={{ width: '34px', height: '34px', border: 'none', borderRadius: 'var(--radius-sm)', background: 'transparent', cursor: 'pointer', transition: 'all 150ms ease', color: item.urlRecurso ? '#059669' : 'var(--gray-400)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }} onMouseEnter={e => { e.currentTarget.style.background = item.urlRecurso ? '#ECFDF5' : '#EEF4FF'; e.currentTarget.style.color = item.urlRecurso ? '#047857' : 'var(--capyme-blue-mid)'; }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = item.urlRecurso ? '#059669' : 'var(--gray-400)'; }}>
+                              <FolderOpen style={{ width: '16px', height: '16px' }} />
+                            </button>
+
+                            <button onClick={() => handleOpenModal('edit', item)} title="Editar" style={{ width: '34px', height: '34px', border: 'none', borderRadius: 'var(--radius-sm)', background: 'transparent', cursor: 'pointer', color: 'var(--gray-400)', transition: 'all 150ms ease', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }} onMouseEnter={e => { e.currentTarget.style.background = '#EEF4FF'; e.currentTarget.style.color = 'var(--capyme-blue-mid)'; }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gray-400)'; }}>
+                              <Edit style={{ width: '16px', height: '16px' }} />
+                            </button>
+
+                            {currentUser.rol === 'admin' ? (
+                              <button onClick={() => handleToggleActivo(item)} title={item.activo ? 'Desactivar' : 'Activar'} style={{ width: '34px', height: '34px', border: 'none', borderRadius: 'var(--radius-sm)', background: 'transparent', cursor: 'pointer', color: 'var(--gray-400)', transition: 'all 150ms ease', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }} onMouseEnter={e => { e.currentTarget.style.background = item.activo ? '#FEF2F2' : '#ECFDF5'; e.currentTarget.style.color = item.activo ? '#DC2626' : '#065F46'; }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gray-400)'; }}>
+                                {item.activo ? <Trash2 style={{ width: '16px', height: '16px' }} /> : <CheckCircle style={{ width: '16px', height: '16px' }} />}
+                              </button>
+                            ) : (
+                              <div style={{ width: '34px', height: '34px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: 'var(--gray-300)', cursor: 'not-allowed' }}>
+                                {item.activo ? <Trash2 style={{ width: '16px', height: '16px' }} /> : <CheckCircle style={{ width: '16px', height: '16px' }} />}
+                              </div>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -605,6 +613,7 @@ const JovenesConstruyendoFuturo = () => {
         </div>
       </div>
 
+      {/* MODAL PARA CREAR / EDITAR BENEFICIARIO */}
       {showModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
           <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 'var(--radius-lg)', width: '100%', maxWidth: '720px', maxHeight: '90vh', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 60px rgba(0,0,0,0.18)', animation: 'modalIn 200ms ease' }}>
@@ -652,7 +661,6 @@ const JovenesConstruyendoFuturo = () => {
                     <DropArrow />
                   </div>
                 </div>
-
                 <div></div>
 
                 <div><label style={labelStyle}>Fecha de inicio</label><input name="fechaInicio" value={formData.fechaInicio} onChange={handleChange} type="date" style={{ ...inputBaseStyle, ...(formErrors.fechaInicio ? inputErrorStyle : {}) }} /></div>
@@ -681,6 +689,80 @@ const JovenesConstruyendoFuturo = () => {
         </div>
       )}
 
+      {/* NUEVO MODAL: DETALLES COMPLETOS DEL BENEFICIARIO */}
+      {showDetailsModal && detailsItem && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 'var(--radius-lg)', width: '100%', maxWidth: '640px', maxHeight: '90vh', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 60px rgba(0,0,0,0.18)', animation: 'modalIn 200ms ease' }}>
+            <div style={{ padding: '20px 24px', background: 'var(--gray-50)', borderBottom: '1px solid var(--border)', borderRadius: 'var(--radius-lg) var(--radius-lg) 0 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                <div style={{ width: '42px', height: '42px', borderRadius: 'var(--radius-md)', background: 'linear-gradient(135deg, var(--capyme-blue-mid), var(--capyme-blue))', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '15px', fontWeight: 700, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                  {getInitials(detailsItem.nombre, detailsItem.apellido)}
+                </div>
+                <div>
+                  <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 800, fontFamily: "'Plus Jakarta Sans', sans-serif", color: 'var(--gray-900)' }}>
+                    {detailsItem.nombre} {detailsItem.apellido}
+                  </h2>
+                  <p style={{ margin: 0, fontSize: '13px', color: 'var(--gray-500)', fontFamily: "'DM Sans', sans-serif" }}>Detalles completos del beneficiario JCF</p>
+                </div>
+              </div>
+              <button onClick={handleCloseDetails} style={{ width: '34px', height: '34px', border: 'none', background: 'transparent', borderRadius: 'var(--radius-sm)', cursor: 'pointer', color: 'var(--gray-400)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 150ms ease' }} onMouseEnter={e => { e.currentTarget.style.background = 'var(--gray-100)'; e.currentTarget.style.color = 'var(--gray-700)'; }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gray-400)'; }}><X style={{ width: '18px', height: '18px' }} /></button>
+            </div>
+
+            <div style={{ overflowY: 'auto', flex: 1, padding: '24px', display: 'flex', flexDirection: 'column', gap: '28px' }}>
+              
+              {/* Información Personal */}
+              <div>
+                <SectionTitle icon={Users} text="Información Personal" />
+                <div style={{ marginTop: '12px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', background: '#fff', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '16px' }}>
+                  <InfoRow label="CURP" value={detailsItem.curp} />
+                  <InfoRow label="Correo Electrónico" value={detailsItem.correo} icon={Mail} />
+                  <InfoRow label="Teléfono" value={detailsItem.telefono} icon={Phone} />
+                </div>
+              </div>
+
+              {/* Asignación (Negocio / Cliente) */}
+              <div>
+                <SectionTitle icon={Building2} text="Asignación y Ubicación" />
+                <div style={{ marginTop: '12px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', background: '#fff', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '16px' }}>
+                  <InfoRow label="Negocio Asignado" value={detailsItem.negocio?.nombreNegocio} icon={Building2} />
+                  <InfoRow label="Cliente / Propietario" value={detailsItem.negocio?.usuario ? `${detailsItem.negocio.usuario.nombre} ${detailsItem.negocio.usuario.apellido}` : null} icon={User} />
+                  <InfoRow label="Ubicación del Negocio" value={(detailsItem.negocio?.ciudad || detailsItem.negocio?.estado) ? [detailsItem.negocio?.ciudad, detailsItem.negocio?.estado].filter(Boolean).join(', ') : null} icon={MapPin} />
+                </div>
+              </div>
+
+              {/* Estado y Programa */}
+              <div>
+                <SectionTitle icon={Tag} text="Programa Jóvenes Construyendo el Futuro" />
+                <div style={{ marginTop: '12px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', background: '#fff', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '16px' }}>
+                  <div>
+                    <span style={{ fontSize: '12px', color: 'var(--gray-500)', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", display: 'block', marginBottom: '4px' }}>Estatus de Vinculación</span>
+                    <span style={{ display: 'inline-flex', padding: '4px 10px', borderRadius: 'var(--radius-sm)', fontSize: '12px', fontWeight: 700, fontFamily: "'Plus Jakarta Sans', sans-serif", background: getEstatusColor(detailsItem.estatus || 'Por registrar').bg, color: getEstatusColor(detailsItem.estatus || 'Por registrar').text }}>
+                      {detailsItem.estatus || 'Por registrar'}
+                    </span>
+                  </div>
+                  <InfoRow label="Periodo de Capacitación" value={(detailsItem.fechaInicio || detailsItem.fechaTermino) ? `${formatFecha(detailsItem.fechaInicio)} — ${formatFecha(detailsItem.fechaTermino)}` : null} icon={Calendar} />
+                  
+                  <div>
+                    <span style={{ fontSize: '12px', color: 'var(--gray-500)', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", display: 'block', marginBottom: '4px' }}>Estado en Sistema</span>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '4px 10px', borderRadius: 'var(--radius-sm)', fontSize: '12px', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", background: detailsItem.activo ? '#ECFDF5' : '#FEF2F2', color: detailsItem.activo ? '#065F46' : '#DC2626' }}>
+                      <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: detailsItem.activo ? '#10B981' : '#EF4444', display: 'inline-block' }} />{detailsItem.activo ? 'Activo' : 'Inactivo'}
+                    </span>
+                  </div>
+
+                  <InfoRow label="Recurso / Drive" value={detailsItem.urlRecurso} isLink={true} icon={Link} />
+                </div>
+              </div>
+
+            </div>
+
+            <div style={{ padding: '16px 24px', background: 'var(--gray-50)', borderTop: '1px solid var(--border)', borderRadius: '0 0 var(--radius-lg) var(--radius-lg)', display: 'flex', justifyContent: 'flex-end' }}>
+              <button onClick={handleCloseDetails} style={{ padding: '9px 24px', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', background: '#fff', color: 'var(--gray-700)', fontSize: '14px', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", cursor: 'pointer', transition: 'all 150ms ease' }} onMouseEnter={e => e.currentTarget.style.background = 'var(--gray-100)'} onMouseLeave={e => e.currentTarget.style.background = '#fff'}>Cerrar Detalles</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL PARA AGREGAR/EDITAR URL DE RECURSO */}
       {showRecursoModal && recursoItem && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1001, padding: '20px' }}>
           <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 'var(--radius-lg)', width: '100%', maxWidth: '480px', boxShadow: '0 20px 60px rgba(0,0,0,0.18)', animation: 'modalIn 200ms ease' }}>
