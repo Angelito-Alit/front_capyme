@@ -1,26 +1,10 @@
-import axios from './axios'
+import api from './axios'
 
-export const getCampanasAdmin = async () => {
-  const response = await axios.get('/api/admin/campanas')
-  return response.data
-}
-
-export const createCampanaAdmin = async (data) => {
-  const response = await axios.post('/api/admin/campanas', data)
-  return response.data
-}
-
-export const updateCampanaAdmin = async (id, data) => {
-  const response = await axios.put(`/api/admin/campanas/${id}`, data)
-  return response.data
-}
-
-export const deleteCampanaAdmin = async (id) => {
-  const response = await axios.delete(`/api/admin/campanas/${id}`)
-  return response.data
-}
-
-export const getNegociosSelect = async () => {
-  const response = await axios.get('/api/admin/campanas/negocios/opciones')
-  return response.data
+export const campanasAdminService = {
+  getAll: async (params = {}) => (await api.get('/admin/campanas', { params })).data,
+  getById: async (id) => (await api.get(`/admin/campanas/${id}`)).data,
+  create: async (data) => (await api.post('/admin/campanas', data)).data,
+  update: async (id, data) => (await api.put(`/admin/campanas/${id}`, data)).data,
+  toggleActivo: async (id) => (await api.patch(`/admin/campanas/${id}/toggle-activo`)).data,
+  getNegocios: async () => (await api.get('/admin/campanas/negocios/opciones')).data
 }
