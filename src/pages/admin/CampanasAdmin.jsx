@@ -58,6 +58,7 @@ const CampanasAdmin = () => {
   const [showModal, setShowModal] = useState(false)
   const [modalMode, setModalMode] = useState('create')
   const [selectedItem, setSelectedItem] = useState(null)
+  const [hoveredRow, setHoveredRow] = useState(null)
   
   const [searchTerm, setSearchTerm] = useState('')
   const [filterEstado, setFilterEstado] = useState('todos')
@@ -282,9 +283,15 @@ const CampanasAdmin = () => {
               {filteredItems.map((item) => (
                 <tr 
                   key={item.id} 
-                  style={{ borderBottom: '1px solid var(--border)', transition: 'background 150ms ease' }}
-                  onMouseEnter={e => e.currentTarget.style.background = 'var(--gray-50)'}
-                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                  onClick={() => handleOpenModal('view', item)}
+                  onMouseEnter={() => setHoveredRow(item.id)}
+                  onMouseLeave={() => setHoveredRow(null)}
+                  style={{ 
+                    background: hoveredRow === item.id ? 'var(--gray-50)' : 'transparent', 
+                    transition: 'background 150ms ease', 
+                    borderBottom: '1px solid var(--border)',
+                    cursor: 'pointer'
+                  }}
                 >
                   <td style={{ padding: '16px 20px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -315,7 +322,7 @@ const CampanasAdmin = () => {
                       </span>
                     </div>
                   </td>
-                  <td style={{ padding: '16px 20px', textAlign: 'right' }}>
+                  <td style={{ padding: '16px 20px', textAlign: 'right' }} onClick={e => e.stopPropagation()}>
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '4px' }}>
                       
                       <button
@@ -629,7 +636,7 @@ const CampanasAdmin = () => {
 
             </div>
 
-            <div style={{ padding: '16px 24px', borderTop: '1px solid var(--border)', background: 'var(--gray-50)', display: 'flex', justifyContent: 'flex-end', gap: '12px', borderRadius: '0 0 var(--radius-lg) var(--radius-lg)' }}>
+            <div style={{ padding: '16px 24px', background: 'var(--gray-50)', borderTop: '1px solid var(--border)', borderRadius: '0 0 var(--radius-lg) var(--radius-lg)', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
               <button 
                 onClick={handleCloseModal}
                 style={{ padding: '10px 18px', background: '#fff', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', fontSize: '14px', fontWeight: 600, color: 'var(--gray-700)', fontFamily: "'DM Sans', sans-serif", cursor: 'pointer', transition: 'all 200ms ease' }}

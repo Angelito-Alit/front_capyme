@@ -516,7 +516,7 @@ const Postulaciones = () => {
         ) : viewMode === 'grid' ? (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '16px' }}>
             {postulacionesFiltradas.map((post, idx) => (
-              <div key={post.id} className="post-card" style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '18px 20px', boxShadow: 'var(--shadow-sm)', transition: 'all 200ms ease', animationDelay: `${idx * 0.04}s` }}>
+              <div key={post.id} className="post-card" onClick={() => handleOpenDetalle(post.id)} style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '18px 20px', boxShadow: 'var(--shadow-sm)', transition: 'all 200ms ease', animationDelay: `${idx * 0.04}s`, cursor: 'pointer' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
                   <EstadoBadge estado={post.estado} />
                   <span style={{ fontSize: '11px', color: 'var(--gray-400)', fontFamily: "'DM Sans', sans-serif" }}>#{post.id}</span>
@@ -545,7 +545,7 @@ const Postulaciones = () => {
                     <span style={{ fontSize: '12px', color: 'var(--gray-500)', fontFamily: "'DM Sans', sans-serif" }}>{formatDate(post.fechaPostulacion)}</span>
                   </div>
                 </div>
-                <div style={{ display: 'flex', gap: '6px', paddingTop: '12px', borderTop: '1px solid var(--gray-100)' }}>
+                <div onClick={e => e.stopPropagation()} style={{ display: 'flex', gap: '6px', paddingTop: '12px', borderTop: '1px solid var(--gray-100)' }}>
                   <button onClick={() => handleOpenDetalle(post.id)} title="Ver detalle" style={{ width: '32px', height: '32px', border: 'none', borderRadius: 'var(--radius-sm)', background: 'transparent', cursor: 'pointer', color: 'var(--gray-400)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 150ms ease' }} onMouseEnter={e => { e.currentTarget.style.background = '#EEF4FF'; e.currentTarget.style.color = 'var(--capyme-blue-mid)'; }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gray-400)'; }}>
                     <Eye style={{ width: '14px', height: '14px' }} />
                   </button>
@@ -583,7 +583,7 @@ const Postulaciones = () => {
               </thead>
               <tbody>
                 {postulacionesFiltradas.map(post => (
-                  <tr key={post.id} onMouseEnter={() => setHoveredRow(post.id)} onMouseLeave={() => setHoveredRow(null)} style={{ borderBottom: '1px solid var(--gray-100)', background: hoveredRow === post.id ? 'var(--gray-50)' : '#fff', transition: 'background 150ms ease' }}>
+                  <tr key={post.id} onClick={() => handleOpenDetalle(post.id)} onMouseEnter={() => setHoveredRow(post.id)} onMouseLeave={() => setHoveredRow(null)} style={{ borderBottom: '1px solid var(--gray-100)', background: hoveredRow === post.id ? 'var(--gray-50)' : '#fff', transition: 'background 150ms ease', cursor: 'pointer' }}>
                     <td style={{ padding: '12px 16px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <div style={{ width: '30px', height: '30px', background: '#EEF4FF', borderRadius: 'var(--radius-sm)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -617,7 +617,7 @@ const Postulaciones = () => {
                     <td style={{ padding: '12px 16px' }}>
                       <span style={{ fontSize: '12px', color: 'var(--gray-500)', fontFamily: "'DM Sans', sans-serif" }}>{formatDate(post.fechaPostulacion)}</span>
                     </td>
-                    <td style={{ padding: '12px 16px', textAlign: 'right' }}>
+                    <td style={{ padding: '12px 16px', textAlign: 'right' }} onClick={e => e.stopPropagation()}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '4px' }}>
                         <button onClick={() => handleOpenDetalle(post.id)} title="Ver" style={{ width: '30px', height: '30px', border: 'none', borderRadius: 'var(--radius-sm)', background: 'transparent', cursor: 'pointer', color: 'var(--gray-400)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 150ms ease' }} onMouseEnter={e => { e.currentTarget.style.background = '#EEF4FF'; e.currentTarget.style.color = 'var(--capyme-blue-mid)'; }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gray-400)'; }}>
                           <Eye style={{ width: '14px', height: '14px' }} />
