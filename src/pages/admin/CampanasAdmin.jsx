@@ -384,11 +384,9 @@ const CampanasAdmin = () => {
 
       {showModal && (modalMode === 'create' || modalMode === 'edit') && (
         <div 
-          onClick={handleCloseModal}
           style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.45)', backdropFilter: 'blur(4px)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}
         >
           <div 
-            onClick={e => e.stopPropagation()}
             style={{ background: '#fff', borderRadius: 'var(--radius-lg)', width: '100%', maxWidth: '720px', maxHeight: '90vh', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04)' }}
           >
             <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)', background: 'var(--gray-50)', borderRadius: 'var(--radius-lg) var(--radius-lg) 0 0' }}>
@@ -540,11 +538,9 @@ const CampanasAdmin = () => {
 
       {showModal && modalMode === 'view' && selectedItem && (
         <div 
-          onClick={handleCloseModal}
           style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.45)', backdropFilter: 'blur(4px)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}
         >
           <div 
-            onClick={e => e.stopPropagation()}
             style={{ background: '#fff', borderRadius: 'var(--radius-lg)', width: '100%', maxWidth: '600px', maxHeight: '90vh', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04)' }}
           >
             <div style={{ padding: '24px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
