@@ -141,7 +141,6 @@ const Contacto = () => {
   const handleChange = useCallback((e) => {
     let { name, value } = e.target;
     
-    // Autocompletar con https:// si el usuario escribe www. en una red social
     if (['sitioWeb', 'facebookUrl', 'instagramUrl', 'linkedinUrl'].includes(name)) {
       if (value.startsWith('www.')) {
         value = 'https://' + value;
