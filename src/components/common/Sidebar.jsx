@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Building2, FileText, GraduationCap,
   Users, BellRing, Link2, Phone, ClipboardList,
   X, ChevronRight, MessageCircle, UserCheck,
-  History, Megaphone, TrendingUp, Heart,
+  Megaphone
 } from 'lucide-react';
 import LogoCapyme from '../../assets/LogoCapyme.png';
 
@@ -26,10 +26,7 @@ const Sidebar = ({ isOpen, onClose }) => {
       { path: '/enlaces',         icon: Link2,           label: 'Recursos' },
       { path: '/contacto',        icon: Phone,           label: 'Contacto' },
       { section: 'Crowdfunding' },
-      { path: '/campanas',        icon: Megaphone,       label: 'Campañas' },
-      { path: '/inversiones',     icon: TrendingUp,      label: 'Inversiones' },
-      { path: '/mis-campanas',    icon: Megaphone,       label: 'Mis Campañas' },
-      { path: '/mis-inversiones', icon: Heart,           label: 'Mis Inversiones' },
+      { path: '/campanas',        icon: Megaphone,       label: 'Gestión Campañas' },
     ],
     colaborador: [
       { section: 'Gestión' },
