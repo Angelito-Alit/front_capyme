@@ -67,7 +67,7 @@ function App() {
         <Route path="/enlaces"        element={<ProtectedRoute allowedRoles={['admin','colaborador']}><Enlaces /></ProtectedRoute>} />
         <Route path="/contacto"       element={<ProtectedRoute allowedRoles={['admin','colaborador']}><Contacto /></ProtectedRoute>} />
         <Route path="/jcf"            element={<ProtectedRoute allowedRoles={['admin','colaborador']}><JovenesConstruyendoFuturo /></ProtectedRoute>} />
-        <Route path="/admin/campanas" element={<ProtectedRoute allowedRoles={['admin']}><CampanasAdmin /></ProtectedRoute>} />
+        <Route path="/admin/CampanasAdmin" element={<ProtectedRoute allowedRoles={['admin']}><CampanasAdmin /></ProtectedRoute>} />
 
         <Route path="/cliente/dashboard"      element={<ProtectedRoute allowedRoles={['cliente']}><ClienteDashboard /></ProtectedRoute>} />
         <Route path="/cliente/mis-negocios"   element={<ProtectedRoute allowedRoles={['cliente']}><MisNegocios /></ProtectedRoute>} />
