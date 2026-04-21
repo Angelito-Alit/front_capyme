@@ -11,6 +11,7 @@ const initialForm = {
   titulo: '',
   descripcion: '',
   metaRecaudacion: '',
+  montoRecaudado: '0',
   fechaInicio: '',
   fechaCierre: '',
   negocioId: '',
@@ -51,6 +52,7 @@ export default function CampanasAdmin() {
         titulo: campana.titulo,
         descripcion: campana.descripcion || '',
         metaRecaudacion: campana.metaRecaudacion,
+        montoRecaudado: campana.montoRecaudado || '0',
         fechaInicio: campana.fechaInicio.split('T')[0],
         fechaCierre: campana.fechaCierre.split('T')[0],
         negocioId: campana.negocioId,
@@ -100,7 +102,7 @@ export default function CampanasAdmin() {
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-800">Administración de Crowdfunding</h1>
+        <h1 className="text-2xl font-bold text-gray-800">Administración de Crowdfunding (Manual)</h1>
         <button
           onClick={() => openModal()}
           className="bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700"
@@ -115,7 +117,7 @@ export default function CampanasAdmin() {
             <tr>
               <th className="px-6 py-4">Título</th>
               <th className="px-6 py-4">Negocio (Cliente)</th>
-              <th className="px-6 py-4">Meta</th>
+              <th className="px-6 py-4">Recaudado / Meta</th>
               <th className="px-6 py-4">Estado</th>
               <th className="px-6 py-4">Tipo</th>
               <th className="px-6 py-4">Acciones</th>
@@ -131,7 +133,9 @@ export default function CampanasAdmin() {
                     {c.negocio?.usuario?.nombre} {c.negocio?.usuario?.apellido}
                   </span>
                 </td>
-                <td className="px-6 py-4">${c.metaRecaudacion}</td>
+                <td className="px-6 py-4">
+                  <span className="font-semibold text-green-600">${c.montoRecaudado}</span> / ${c.metaRecaudacion}
+                </td>
                 <td className="px-6 py-4">
                   <span className="px-2 py-1 bg-gray-100 text-gray-800 rounded-full text-xs">
                     {c.estado}
@@ -210,16 +214,16 @@ export default function CampanasAdmin() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Tipo</label>
-                  <select
-                    name="tipoCrowdfunding"
-                    value={formData.tipoCrowdfunding}
+                  <label className="block text-sm font-medium text-gray-700">Monto Recaudado (Manual)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    name="montoRecaudado"
+                    value={formData.montoRecaudado}
                     onChange={handleInputChange}
-                    className="mt-1 w-full border border-gray-300 rounded p-2"
-                  >
-                    <option value="donativo">Donativo</option>
-                    <option value="inversion">Inversión</option>
-                  </select>
+                    className="mt-1 w-full border border-gray-300 rounded p-2 bg-green-50"
+                    required
+                  />
                 </div>
               </div>
 
@@ -248,22 +252,36 @@ export default function CampanasAdmin() {
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Estado</label>
-                <select
-                  name="estado"
-                  value={formData.estado}
-                  onChange={handleInputChange}
-                  className="mt-1 w-full border border-gray-300 rounded p-2"
-                >
-                  <option value="en_revision">En Revisión</option>
-                  <option value="aprobada">Aprobada</option>
-                  <option value="rechazada">Rechazada</option>
-                  <option value="activa">Activa</option>
-                  <option value="pausada">Pausada</option>
-                  <option value="completada">Completada</option>
-                  <option value="cancelada">Cancelada</option>
-                </select>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Tipo</label>
+                  <select
+                    name="tipoCrowdfunding"
+                    value={formData.tipoCrowdfunding}
+                    onChange={handleInputChange}
+                    className="mt-1 w-full border border-gray-300 rounded p-2"
+                  >
+                    <option value="donativo">Donativo</option>
+                    <option value="inversion">Inversión</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Estado</label>
+                  <select
+                    name="estado"
+                    value={formData.estado}
+                    onChange={handleInputChange}
+                    className="mt-1 w-full border border-gray-300 rounded p-2"
+                  >
+                    <option value="en_revision">En Revisión</option>
+                    <option value="aprobada">Aprobada</option>
+                    <option value="rechazada">Rechazada</option>
+                    <option value="activa">Activa</option>
+                    <option value="pausada">Pausada</option>
+                    <option value="completada">Completada</option>
+                    <option value="cancelada">Cancelada</option>
+                  </select>
+                </div>
               </div>
 
               <div>
