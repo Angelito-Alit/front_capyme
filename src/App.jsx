@@ -16,11 +16,10 @@ import AvisoDetalle from './pages/AvisoDetalle';
 import Enlaces from './pages/Enlaces';
 import Contacto from './pages/Contacto';
 import JovenesConstruyendoFuturo from './pages/JovenesConstruyendoFuturo';
-import Campanas from './pages/Campanas';
 import Inversiones from './pages/Inversiones';
 import MisCampanas from './pages/MisCampanas';
 import MisInversiones from './pages/MisInversiones';
-import CampanasAdmin from './pages/CampanasAdmin'
+import CampanasAdmin from './pages/admin/CampanasAdmin';
 
 import ClienteDashboard from './pages/cliente/Dashboard';
 import MisNegocios from './pages/cliente/MisNegocios';
@@ -67,7 +66,8 @@ function App() {
         <Route path="/enlaces"        element={<ProtectedRoute allowedRoles={['admin','colaborador']}><Enlaces /></ProtectedRoute>} />
         <Route path="/contacto"       element={<ProtectedRoute allowedRoles={['admin','colaborador']}><Contacto /></ProtectedRoute>} />
         <Route path="/jcf"            element={<ProtectedRoute allowedRoles={['admin','colaborador']}><JovenesConstruyendoFuturo /></ProtectedRoute>} />
-        <Route path="/admin/CampanasAdmin" element={<ProtectedRoute allowedRoles={['admin']}><CampanasAdmin /></ProtectedRoute>} />
+        
+        <Route path="/campanas"       element={<ProtectedRoute allowedRoles={['admin']}><CampanasAdmin /></ProtectedRoute>} />
 
         <Route path="/cliente/dashboard"      element={<ProtectedRoute allowedRoles={['cliente']}><ClienteDashboard /></ProtectedRoute>} />
         <Route path="/cliente/mis-negocios"   element={<ProtectedRoute allowedRoles={['cliente']}><MisNegocios /></ProtectedRoute>} />
@@ -80,7 +80,6 @@ function App() {
         <Route path="/cliente/contacto"       element={<ProtectedRoute allowedRoles={['cliente']}><ClienteContacto /></ProtectedRoute>} />
 
         <Route path="/perfil"          element={<ProtectedRoute><Perfil /></ProtectedRoute>} />
-        <Route path="/campanas"        element={<ProtectedRoute><Campanas /></ProtectedRoute>} />
         <Route path="/inversiones"     element={<ProtectedRoute><Inversiones /></ProtectedRoute>} />
         <Route path="/mis-campanas"    element={<ProtectedRoute><MisCampanas /></ProtectedRoute>} />
         <Route path="/mis-inversiones" element={<ProtectedRoute><MisInversiones /></ProtectedRoute>} />
