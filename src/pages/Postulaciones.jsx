@@ -227,13 +227,14 @@ const Postulaciones = () => {
     setShowModal(true);
   };
 
-  const handleOpenDetalle = async (id) => {
+  const handleOpenDetalle = async (post) => {
+    setSelectedPost(post);
+    setShowDetalle(true);
     try {
-      const res = await postulacionesService.getById(id);
-      setSelectedPost(res.data);
-      setShowDetalle(true);
+      const res = await postulacionesService.getById(post.id);
+      setSelectedPost(res.data); 
     } catch {
-      toast.error('Error al cargar detalles');
+      console.error('Error al actualizar detalles en segundo plano');
     }
   };
 
