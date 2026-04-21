@@ -43,11 +43,6 @@ const Sidebar = ({ isOpen, onClose }) => {
       { path: '/avisos',          icon: BellRing,        label: 'Avisos' },
       { path: '/enlaces',         icon: Link2,           label: 'Recursos' },
       { path: '/contacto',        icon: Phone,           label: 'Contacto' },
-      { section: 'Crowdfunding' },
-      { path: '/campanas',        icon: Megaphone,       label: 'Campañas' },
-      { path: '/inversiones',     icon: TrendingUp,      label: 'Inversiones' },
-      { path: '/mis-campanas',    icon: Megaphone,       label: 'Mis Campañas' },
-      { path: '/mis-inversiones', icon: Heart,           label: 'Mis Inversiones' },
     ],
     cliente: [
       { section: 'Mi Espacio' },
@@ -58,10 +53,6 @@ const Sidebar = ({ isOpen, onClose }) => {
       { path: '/cliente/cursos',         icon: GraduationCap,   label: 'Cursos' },
       { path: '/cliente/avisos',         icon: BellRing,        label: 'Avisos' },
       { path: '/cliente/recursos',       icon: Link2,           label: 'Recursos' },
-      { section: 'Crowdfunding' },
-      { path: '/campanas',               icon: Megaphone,       label: 'Explorar campañas' },
-      { path: '/mis-campanas',           icon: Megaphone,       label: 'Mis Campañas' },
-      { path: '/mis-inversiones',        icon: Heart,           label: 'Mis Inversiones' },
     ],
   };
 

@@ -2,22 +2,9 @@ import { useState, useEffect } from 'react';
 import Layout from '../components/common/Layout';
 import { usuariosService } from '../services/usuariosService';
 import {
-  Users,
-  Plus,
-  Search,
-  Edit,
-  Trash2,
-  X,
-  Phone,
-  Mail,
-  ChevronDown,
-  AlertCircle,
-  CheckCircle,
-  Eye,
-  EyeOff,
-  Shield,
-  User,
-  AlertTriangle,
+  Users, Plus, Search, Edit, Trash2, X, Phone, Mail,
+  ChevronDown, AlertCircle, CheckCircle, Eye, EyeOff,
+  Shield, User, AlertTriangle, Calendar, ExternalLink
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
@@ -52,13 +39,8 @@ const ConfirmModal = ({ config, onClose }) => {
       : '0 2px 8px rgba(31,78,158,0.28)';
 
   return (
-    <div
-      style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.45)', backdropFilter:'blur(4px)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:1200, padding:'20px' }}
-    >
-      <div
-        onClick={e => e.stopPropagation()}
-        style={{ background:'#fff', borderRadius:'var(--radius-lg)', width:'100%', maxWidth:'440px', boxShadow:'0 24px 64px rgba(0,0,0,0.22)', overflow:'hidden', animation:'modalIn 0.22s ease both' }}
-      >
+    <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.45)', backdropFilter:'blur(4px)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:1200, padding:'20px' }}>
+      <div onClick={e => e.stopPropagation()} style={{ background:'#fff', borderRadius:'var(--radius-lg)', width:'100%', maxWidth:'440px', boxShadow:'0 24px 64px rgba(0,0,0,0.22)', overflow:'hidden', animation:'modalIn 0.22s ease both' }}>
         <div style={{ background:accentBg, padding:'20px 24px', borderBottom:`1px solid ${accentBorder}`, display:'flex', alignItems:'center', gap:'14px' }}>
           <div style={{ width:'44px', height:'44px', background:iconBg, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, boxShadow:`0 4px 12px ${iconBg}40` }}>
             <AlertTriangle style={{ width:'22px', height:'22px', color:'#fff' }} />
@@ -81,20 +63,10 @@ const ConfirmModal = ({ config, onClose }) => {
             </div>
           )}
           <div style={{ display:'flex', gap:'10px', justifyContent:'flex-end' }}>
-            <button
-              onClick={onClose}
-              style={{ padding:'9px 18px', border:'1px solid var(--border)', borderRadius:'var(--radius-md)', background:'#fff', color:'var(--gray-700)', fontSize:'14px', fontWeight:600, fontFamily:"'DM Sans', sans-serif", cursor:'pointer', transition:'all 150ms ease' }}
-              onMouseEnter={e => e.currentTarget.style.background = 'var(--gray-100)'}
-              onMouseLeave={e => e.currentTarget.style.background = '#fff'}
-            >
+            <button onClick={onClose} style={{ padding:'9px 18px', border:'1px solid var(--border)', borderRadius:'var(--radius-md)', background:'#fff', color:'var(--gray-700)', fontSize:'14px', fontWeight:600, fontFamily:"'DM Sans', sans-serif", cursor:'pointer', transition:'all 150ms ease' }} onMouseEnter={e => e.currentTarget.style.background = 'var(--gray-100)'} onMouseLeave={e => e.currentTarget.style.background = '#fff'}>
               Cancelar
             </button>
-            <button
-              onClick={() => { config.onConfirm(); onClose(); }}
-              style={{ padding:'9px 22px', border:'none', borderRadius:'var(--radius-md)', background:btnBg, color:'#fff', fontSize:'14px', fontWeight:600, fontFamily:"'DM Sans', sans-serif", cursor:'pointer', boxShadow:btnShadow, transition:'all 150ms ease' }}
-              onMouseEnter={e => e.currentTarget.style.opacity = '0.9'}
-              onMouseLeave={e => e.currentTarget.style.opacity = '1'}
-            >
+            <button onClick={() => { config.onConfirm(); onClose(); }} style={{ padding:'9px 22px', border:'none', borderRadius:'var(--radius-md)', background:btnBg, color:'#fff', fontSize:'14px', fontWeight:600, fontFamily:"'DM Sans', sans-serif", cursor:'pointer', boxShadow:btnShadow, transition:'all 150ms ease' }} onMouseEnter={e => e.currentTarget.style.opacity = '0.9'} onMouseLeave={e => e.currentTarget.style.opacity = '1'}>
               {config.confirmLabel || 'Confirmar'}
             </button>
           </div>
@@ -106,23 +78,34 @@ const ConfirmModal = ({ config, onClose }) => {
 
 const SectionTitle = ({ icon: Icon, text }) => (
   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', paddingBottom: '4px' }}>
-    <Icon style={{ width: '14px', height: '14px', color: 'var(--gray-400)' }} />
-    <span style={{
-      fontSize: '11px', fontWeight: 700,
-      color: 'var(--gray-400)',
-      textTransform: 'uppercase',
-      letterSpacing: '0.06em',
-      fontFamily: "'Plus Jakarta Sans', sans-serif",
-    }}>{text}</span>
+    <Icon style={{ width: '14px', height: '14px', color: 'var(--capyme-blue-mid)' }} />
+    <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--capyme-blue-mid)', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+      {text}
+    </span>
+    <div style={{ flex: 1, height: '1px', background: 'var(--border)', marginLeft: '4px' }} />
+  </div>
+);
+
+const InfoRow = ({ label, value, icon: Icon, isLink }) => (
+  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+    <span style={{ fontSize: '12px', color: 'var(--gray-500)', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", display: 'flex', alignItems: 'center', gap: '5px' }}>
+      {Icon && <Icon style={{ width: '13px', height: '13px', color: 'var(--gray-400)' }} />}
+      {label}
+    </span>
+    {isLink && value ? (
+      <a href={value} target="_blank" rel="noopener noreferrer" style={{ fontSize: '14px', color: 'var(--capyme-blue-mid)', fontFamily: "'DM Sans', sans-serif", fontWeight: 500, display: 'inline-flex', alignItems: 'center', gap: '4px', textDecoration: 'none' }}>
+        Ver enlace <ExternalLink style={{ width: '12px', height: '12px' }} />
+      </a>
+    ) : (
+      <span style={{ fontSize: '14px', color: value ? 'var(--gray-900)' : 'var(--gray-400)', fontFamily: "'DM Sans', sans-serif", fontWeight: 500 }}>
+        {value || '—'}
+      </span>
+    )}
   </div>
 );
 
 const ErrorMsg = ({ text }) => (
-  <p style={{
-    marginTop: '4px', fontSize: '12px', color: '#EF4444',
-    display: 'flex', alignItems: 'center', gap: '4px',
-    fontFamily: "'DM Sans', sans-serif",
-  }}>
+  <p style={{ marginTop: '4px', fontSize: '12px', color: '#EF4444', display: 'flex', alignItems: 'center', gap: '4px', fontFamily: "'DM Sans', sans-serif" }}>
     <AlertCircle style={{ width: '12px', height: '12px' }} /> {text}
   </p>
 );
@@ -134,12 +117,19 @@ const Usuarios = () => {
   const [usuarios, setUsuarios] = useState([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  
   const [showModal, setShowModal] = useState(false);
   const [modalMode, setModalMode] = useState('create');
   const [selectedUsuario, setSelectedUsuario] = useState(null);
+  
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [detailsItem, setDetailsItem] = useState(null);
+  const [hoveredRow, setHoveredRow] = useState(null);
+
   const [searchTerm, setSearchTerm] = useState('');
   const [filterRol, setFilterRol] = useState('');
   const [filterEstado, setFilterEstado] = useState('');
+  
   const [formData, setFormData] = useState(initialFormData);
   const [formErrors, setFormErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
@@ -217,6 +207,9 @@ const Usuarios = () => {
     setFormErrors({});
   };
 
+  const handleOpenDetails = (item) => { setDetailsItem(item); setShowDetailsModal(true); };
+  const handleCloseDetails = () => { setShowDetailsModal(false); setDetailsItem(null); };
+
   const handleChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     if (formErrors[field]) {
@@ -264,6 +257,9 @@ const Usuarios = () => {
           await usuariosService.toggleActivo(usuario.id);
           toast.success(`Usuario ${desactivar ? 'desactivado' : 'activado'} exitosamente`);
           cargarUsuarios();
+          if (detailsItem && detailsItem.id === usuario.id) {
+             setDetailsItem(prev => ({ ...prev, activo: !desactivar }));
+          }
         } catch (error) {
           toast.error('Error al cambiar estado del usuario');
         }
@@ -326,20 +322,9 @@ const Usuarios = () => {
   if (loading) {
     return (
       <Layout>
-        <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          height: '320px', flexDirection: 'column', gap: '16px',
-        }}>
-          <div style={{
-            width: '40px', height: '40px',
-            border: '3px solid var(--border)',
-            borderTopColor: 'var(--capyme-blue-mid)',
-            borderRadius: '50%',
-            animation: 'spin 700ms linear infinite',
-          }} />
-          <p style={{ fontSize: '14px', color: 'var(--gray-400)', fontFamily: "'DM Sans', sans-serif" }}>
-            Cargando usuarios...
-          </p>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '320px', flexDirection: 'column', gap: '16px' }}>
+          <div style={{ width: '40px', height: '40px', border: '3px solid var(--border)', borderTopColor: 'var(--capyme-blue-mid)', borderRadius: '50%', animation: 'spin 700ms linear infinite' }} />
+          <p style={{ fontSize: '14px', color: 'var(--gray-400)', fontFamily: "'DM Sans', sans-serif" }}>Cargando usuarios...</p>
         </div>
       </Layout>
     );
@@ -356,14 +341,7 @@ const Usuarios = () => {
 
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' }}>
           <div>
-            <h1 style={{
-              fontFamily: "'Plus Jakarta Sans', sans-serif",
-              fontSize: '26px', fontWeight: 800,
-              color: 'var(--gray-900)',
-              letterSpacing: '-0.02em',
-              marginBottom: '4px',
-              display: 'flex', alignItems: 'center', gap: '10px',
-            }}>
+            <h1 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: '26px', fontWeight: 800, color: 'var(--gray-900)', letterSpacing: '-0.02em', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '10px' }}>
               <Users style={{ width: '28px', height: '28px', color: 'var(--capyme-blue-mid)' }} />
               Gestión de Usuarios
             </h1>
@@ -373,19 +351,7 @@ const Usuarios = () => {
           </div>
           <button
             onClick={() => handleOpenModal('create')}
-            style={{
-              display: 'flex', alignItems: 'center', gap: '8px',
-              padding: '10px 20px',
-              background: 'linear-gradient(135deg, var(--capyme-blue-mid), var(--capyme-blue))',
-              color: '#fff', border: 'none',
-              borderRadius: 'var(--radius-md)',
-              fontFamily: "'Plus Jakarta Sans', sans-serif",
-              fontSize: '14px', fontWeight: 600,
-              cursor: 'pointer',
-              boxShadow: '0 2px 8px rgba(31,78,158,0.28)',
-              transition: 'all 200ms ease',
-              whiteSpace: 'nowrap',
-            }}
+            style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', background: 'linear-gradient(135deg, var(--capyme-blue-mid), var(--capyme-blue))', color: '#fff', border: 'none', borderRadius: 'var(--radius-md)', fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: '14px', fontWeight: 600, cursor: 'pointer', boxShadow: '0 2px 8px rgba(31,78,158,0.28)', transition: 'all 200ms ease', whiteSpace: 'nowrap' }}
             onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-1px)'}
             onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
           >
@@ -394,35 +360,11 @@ const Usuarios = () => {
           </button>
         </div>
 
-        <div style={{
-          background: '#fff',
-          border: '1px solid var(--border)',
-          borderRadius: 'var(--radius-lg)',
-          boxShadow: 'var(--shadow-sm)',
-          overflow: 'hidden',
-        }}>
-          <div style={{
-            padding: '20px 24px',
-            borderBottom: '1px solid var(--border)',
-            display: 'grid',
-            gridTemplateColumns: '2fr 1fr 1fr',
-            gap: '12px',
-            alignItems: 'center',
-          }}>
+        <div style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-sm)', overflow: 'hidden' }}>
+          <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)', display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: '12px', alignItems: 'center' }}>
             <div style={{ position: 'relative' }}>
-              <Search style={{
-                position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)',
-                width: '16px', height: '16px', color: 'var(--gray-400)', pointerEvents: 'none',
-              }} />
-              <input
-                type="text"
-                placeholder="Buscar por nombre, apellido o email..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                style={inputWithIconStyle}
-                onFocus={e => { e.target.style.borderColor = 'var(--capyme-blue-mid)'; e.target.style.boxShadow = '0 0 0 3px rgba(43,91,166,0.12)'; }}
-                onBlur={e => { e.target.style.borderColor = 'var(--border)'; e.target.style.boxShadow = 'none'; }}
-              />
+              <Search style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', width: '16px', height: '16px', color: 'var(--gray-400)', pointerEvents: 'none' }} />
+              <input type="text" placeholder="Buscar por nombre, apellido o email..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} style={inputWithIconStyle} onFocus={e => { e.target.style.borderColor = 'var(--capyme-blue-mid)'; e.target.style.boxShadow = '0 0 0 3px rgba(43,91,166,0.12)'; }} onBlur={e => { e.target.style.borderColor = 'var(--border)'; e.target.style.boxShadow = 'none'; }} />
             </div>
             <div style={{ position: 'relative' }}>
               <select value={filterRol} onChange={(e) => setFilterRol(e.target.value)} style={selectStyle}>
@@ -447,18 +389,10 @@ const Usuarios = () => {
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ background: 'var(--gray-50)' }}>
-                  {['Usuario', 'Contacto', 'Rol', 'Estado', 'Registro', 'Acciones'].map((h, i) => (
-                    <th key={h} style={{
-                      padding: '14px 24px',
-                      textAlign: i === 5 ? 'right' : i === 3 ? 'center' : 'left',
-                      fontSize: '11px', fontWeight: 700,
-                      color: 'var(--gray-500)',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.05em',
-                      fontFamily: "'Plus Jakarta Sans', sans-serif",
-                      borderBottom: '1px solid var(--border)',
-                      whiteSpace: 'nowrap',
-                    }}>{h}</th>
+                  {['Usuario', 'Contacto', 'Rol', 'Registro', 'Acciones'].map((h, i) => (
+                    <th key={h} style={{ padding: '14px 24px', textAlign: i === 4 ? 'right' : 'left', fontSize: '11px', fontWeight: 700, color: 'var(--gray-500)', textTransform: 'uppercase', letterSpacing: '0.05em', fontFamily: "'Plus Jakarta Sans', sans-serif", borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap' }}>
+                      {h}
+                    </th>
                   ))}
                 </tr>
               </thead>
@@ -469,20 +403,14 @@ const Usuarios = () => {
                     return (
                       <tr
                         key={usuario.id}
-                        style={{ borderBottom: '1px solid var(--border)', transition: 'background 150ms ease', cursor: 'default' }}
-                        onMouseEnter={e => e.currentTarget.style.background = 'var(--gray-50)'}
-                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                        onClick={() => handleOpenDetails(usuario)}
+                        onMouseEnter={() => setHoveredRow(usuario.id)}
+                        onMouseLeave={() => setHoveredRow(null)}
+                        style={{ borderBottom: '1px solid var(--border)', transition: 'background 150ms ease', cursor: 'pointer', background: hoveredRow === usuario.id ? 'var(--gray-50)' : 'transparent' }}
                       >
                         <td style={{ padding: '14px 24px' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                            <div style={{
-                              width: '38px', height: '38px', borderRadius: 'var(--radius-md)',
-                              background: 'linear-gradient(135deg, var(--capyme-blue-mid), var(--capyme-blue))',
-                              display: 'flex', alignItems: 'center', justifyContent: 'center',
-                              color: '#fff', fontSize: '13px', fontWeight: 700,
-                              fontFamily: "'Plus Jakarta Sans', sans-serif",
-                              flexShrink: 0,
-                            }}>
+                            <div style={{ width: '38px', height: '38px', borderRadius: 'var(--radius-md)', background: 'linear-gradient(135deg, var(--capyme-blue-mid), var(--capyme-blue))', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '13px', fontWeight: 700, fontFamily: "'Plus Jakarta Sans', sans-serif", flexShrink: 0 }}>
                               {usuario.nombre?.charAt(0)?.toUpperCase()}{usuario.apellido?.charAt(0)?.toUpperCase()}
                             </div>
                             <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--gray-800)', fontFamily: "'DM Sans', sans-serif" }}>
@@ -503,31 +431,8 @@ const Usuarios = () => {
                           )}
                         </td>
                         <td style={{ padding: '14px 24px' }}>
-                          <span style={{
-                            display: 'inline-block',
-                            padding: '3px 10px',
-                            background: rolStyle.bg,
-                            color: rolStyle.color,
-                            borderRadius: 'var(--radius-sm)',
-                            fontSize: '11px', fontWeight: 700,
-                            fontFamily: "'Plus Jakarta Sans', sans-serif",
-                          }}>
+                          <span style={{ display: 'inline-block', padding: '3px 10px', background: rolStyle.bg, color: rolStyle.color, borderRadius: 'var(--radius-sm)', fontSize: '11px', fontWeight: 700, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
                             {getRolName(usuario.rol)}
-                          </span>
-                        </td>
-                        <td style={{ padding: '14px 24px', textAlign: 'center' }}>
-                          <span style={{
-                            display: 'inline-block',
-                            padding: '3px 10px',
-                            background: usuario.activo ? '#ECFDF5' : '#FEF2F2',
-                            color: usuario.activo ? '#065F46' : '#DC2626',
-                            borderRadius: '99px',
-                            fontSize: '11px', fontWeight: 700,
-                            fontFamily: "'Plus Jakarta Sans', sans-serif",
-                            textTransform: 'uppercase',
-                            letterSpacing: '0.04em',
-                          }}>
-                            {usuario.activo ? 'Activo' : 'Inactivo'}
                           </span>
                         </td>
                         <td style={{ padding: '14px 24px' }}>
@@ -535,71 +440,30 @@ const Usuarios = () => {
                             {new Date(usuario.fechaRegistro).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })}
                           </p>
                         </td>
-                        <td style={{ padding: '14px 24px', textAlign: 'right' }}>
+                        <td style={{ padding: '14px 24px', textAlign: 'right' }} onClick={e => e.stopPropagation()}>
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '4px' }}>
+                            <button onClick={() => handleOpenDetails(usuario)} title="Ver detalles" style={{ width: '34px', height: '34px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', borderRadius: 'var(--radius-sm)', background: 'transparent', cursor: 'pointer', color: 'var(--gray-400)', transition: 'all 150ms ease' }} onMouseEnter={e => { e.currentTarget.style.background = '#EEF4FF'; e.currentTarget.style.color = 'var(--capyme-blue-mid)'; }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gray-400)'; }}>
+                              <Eye style={{ width: '15px', height: '15px' }} />
+                            </button>
+
                             {(currentUser.rol === 'admin' || usuario.rol !== 'admin') ? (
-                              <button
-                                onClick={() => handleOpenModal('edit', usuario)}
-                                title="Editar"
-                                style={{
-                                  width: '34px', height: '34px',
-                                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                  border: 'none', borderRadius: 'var(--radius-sm)',
-                                  background: 'transparent', cursor: 'pointer',
-                                  color: 'var(--gray-400)', transition: 'all 150ms ease',
-                                }}
-                                onMouseEnter={e => { e.currentTarget.style.background = '#EEF4FF'; e.currentTarget.style.color = 'var(--capyme-blue-mid)'; }}
-                                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gray-400)'; }}
-                              >
+                              <button onClick={() => handleOpenModal('edit', usuario)} title="Editar" style={{ width: '34px', height: '34px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', borderRadius: 'var(--radius-sm)', background: 'transparent', cursor: 'pointer', color: 'var(--gray-400)', transition: 'all 150ms ease' }} onMouseEnter={e => { e.currentTarget.style.background = '#EEF4FF'; e.currentTarget.style.color = 'var(--capyme-blue-mid)'; }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gray-400)'; }}>
                                 <Edit style={{ width: '16px', height: '16px' }} />
                               </button>
                             ) : (
-                              <div
-                                title="Sin permisos para editar administradores"
-                                style={{
-                                  width: '34px', height: '34px',
-                                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                  borderRadius: 'var(--radius-sm)',
-                                  color: 'var(--gray-200)',
-                                  cursor: 'not-allowed',
-                                }}
-                              >
+                              <div title="Sin permisos para editar administradores" style={{ width: '34px', height: '34px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 'var(--radius-sm)', color: 'var(--gray-200)', cursor: 'not-allowed' }}>
                                 <Shield style={{ width: '16px', height: '16px' }} />
                               </div>
                             )}
 
                             {currentUser.rol === 'admin' && !usuario.activo && (
-                              <button
-                                onClick={() => handleToggleActivo(usuario)}
-                                title="Activar usuario"
-                                style={{
-                                  width: '34px', height: '34px',
-                                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                  border: 'none', borderRadius: 'var(--radius-sm)',
-                                  background: 'transparent', cursor: 'pointer',
-                                  color: 'var(--gray-400)', transition: 'all 150ms ease',
-                                }}
-                                onMouseEnter={e => { e.currentTarget.style.background = '#ECFDF5'; e.currentTarget.style.color = '#065F46'; }}
-                                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gray-400)'; }}
-                              >
+                              <button onClick={() => handleToggleActivo(usuario)} title="Activar usuario" style={{ width: '34px', height: '34px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', borderRadius: 'var(--radius-sm)', background: 'transparent', cursor: 'pointer', color: 'var(--gray-400)', transition: 'all 150ms ease' }} onMouseEnter={e => { e.currentTarget.style.background = '#ECFDF5'; e.currentTarget.style.color = '#065F46'; }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gray-400)'; }}>
                                 <CheckCircle style={{ width: '16px', height: '16px' }} />
                               </button>
                             )}
 
                             {currentUser.rol === 'admin' && usuario.activo && (
-                              <button
-                                onClick={() => handleToggleActivo(usuario)}
-                                title="Desactivar usuario"
-                                style={{
-                                  width: '34px', height: '34px',
-                                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                  border: 'none', borderRadius: 'var(--radius-sm)',
-                                  background: 'transparent', cursor: 'pointer',
-                                  color: 'var(--gray-400)', transition: 'all 150ms ease',
-                                }}
-                                onMouseEnter={e => { e.currentTarget.style.background = '#FEF2F2'; e.currentTarget.style.color = '#DC2626'; }}
-                                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gray-400)'; }}
-                              >
+                              <button onClick={() => handleToggleActivo(usuario)} title="Desactivar usuario" style={{ width: '34px', height: '34px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', borderRadius: 'var(--radius-sm)', background: 'transparent', cursor: 'pointer', color: 'var(--gray-400)', transition: 'all 150ms ease' }} onMouseEnter={e => { e.currentTarget.style.background = '#FEF2F2'; e.currentTarget.style.color = '#DC2626'; }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gray-400)'; }}>
                                 <Trash2 style={{ width: '16px', height: '16px' }} />
                               </button>
                             )}
@@ -610,7 +474,7 @@ const Usuarios = () => {
                   })
                 ) : (
                   <tr>
-                    <td colSpan="6" style={{ padding: '60px 24px', textAlign: 'center' }}>
+                    <td colSpan="5" style={{ padding: '60px 24px', textAlign: 'center' }}>
                       <Users style={{ width: '40px', height: '40px', color: 'var(--gray-200)', margin: '0 auto 12px' }} />
                       <p style={{ fontSize: '14px', color: 'var(--gray-400)', fontWeight: 500 }}>No se encontraron usuarios</p>
                       <p style={{ fontSize: '12px', color: 'var(--gray-300)', marginTop: '4px' }}>Intenta ajustar los filtros o crea uno nuevo</p>
@@ -624,58 +488,18 @@ const Usuarios = () => {
       </div>
 
       {showModal && (
-        <div
-          style={{
-            position: 'fixed', inset: 0,
-            background: 'rgba(0,0,0,0.4)',
-            backdropFilter: 'blur(4px)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            zIndex: 50, padding: '16px',
-          }}
-        >
-          <div
-            style={{
-              background: '#fff',
-              borderRadius: 'var(--radius-lg)',
-              maxWidth: '600px', width: '100%',
-              maxHeight: '90vh',
-              display: 'flex', flexDirection: 'column',
-              boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
-              overflow: 'hidden',
-              animation: 'modalIn 0.25s ease both',
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              padding: '20px 24px',
-              borderBottom: '1px solid var(--border)',
-              background: 'var(--gray-50)',
-            }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '16px' }}>
+          <div style={{ background: '#fff', borderRadius: 'var(--radius-lg)', maxWidth: '600px', width: '100%', maxHeight: '90vh', display: 'flex', flexDirection: 'column', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', overflow: 'hidden', animation: 'modalIn 0.25s ease both' }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 24px', borderBottom: '1px solid var(--border)', background: 'var(--gray-50)' }}>
               <div>
-                <h2 style={{
-                  fontFamily: "'Plus Jakarta Sans', sans-serif",
-                  fontSize: '18px', fontWeight: 800, color: 'var(--gray-900)',
-                  letterSpacing: '-0.01em',
-                }}>
+                <h2 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: '18px', fontWeight: 800, color: 'var(--gray-900)', letterSpacing: '-0.01em' }}>
                   {modalMode === 'create' ? 'Nuevo Usuario' : 'Editar Usuario'}
                 </h2>
                 <p style={{ fontSize: '13px', color: 'var(--gray-400)', marginTop: '2px', fontFamily: "'DM Sans', sans-serif" }}>
                   {modalMode === 'create' ? 'Registra un nuevo usuario en el sistema' : `Editando: ${selectedUsuario?.nombre} ${selectedUsuario?.apellido}`}
                 </p>
               </div>
-              <button
-                onClick={handleCloseModal}
-                style={{
-                  width: '36px', height: '36px',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  border: 'none', borderRadius: 'var(--radius-sm)',
-                  background: 'transparent', cursor: 'pointer',
-                  color: 'var(--gray-400)', transition: 'all 150ms ease',
-                }}
-                onMouseEnter={e => { e.currentTarget.style.background = 'var(--gray-100)'; e.currentTarget.style.color = 'var(--gray-600)'; }}
-                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gray-400)'; }}
-              >
+              <button onClick={handleCloseModal} style={{ width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', borderRadius: 'var(--radius-sm)', background: 'transparent', cursor: 'pointer', color: 'var(--gray-400)', transition: 'all 150ms ease' }} onMouseEnter={e => { e.currentTarget.style.background = 'var(--gray-100)'; e.currentTarget.style.color = 'var(--gray-600)'; }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gray-400)'; }}>
                 <X style={{ width: '20px', height: '20px' }} />
               </button>
             </div>
@@ -689,27 +513,13 @@ const Usuarios = () => {
                     <label style={labelStyle}>Nombre *</label>
                     <div style={{ position: 'relative' }}>
                       <User style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', width: '16px', height: '16px', color: 'var(--gray-400)', pointerEvents: 'none' }} />
-                      <input
-                        type="text" value={formData.nombre}
-                        onChange={(e) => handleChange('nombre', e.target.value)}
-                        placeholder="Nombre"
-                        style={{ ...inputWithIconStyle, ...(formErrors.nombre ? inputErrorStyle : {}) }}
-                        onFocus={e => { if (!formErrors.nombre) { e.target.style.borderColor = 'var(--capyme-blue-mid)'; e.target.style.boxShadow = '0 0 0 3px rgba(43,91,166,0.12)'; } }}
-                        onBlur={e => { if (!formErrors.nombre) { e.target.style.borderColor = 'var(--border)'; e.target.style.boxShadow = 'none'; } }}
-                      />
+                      <input type="text" value={formData.nombre} onChange={(e) => handleChange('nombre', e.target.value)} placeholder="Nombre" style={{ ...inputWithIconStyle, ...(formErrors.nombre ? inputErrorStyle : {}) }} onFocus={e => { if (!formErrors.nombre) { e.target.style.borderColor = 'var(--capyme-blue-mid)'; e.target.style.boxShadow = '0 0 0 3px rgba(43,91,166,0.12)'; } }} onBlur={e => { if (!formErrors.nombre) { e.target.style.borderColor = 'var(--border)'; e.target.style.boxShadow = 'none'; } }} />
                     </div>
                     {formErrors.nombre && <ErrorMsg text={formErrors.nombre} />}
                   </div>
                   <div>
                     <label style={labelStyle}>Apellido *</label>
-                    <input
-                      type="text" value={formData.apellido}
-                      onChange={(e) => handleChange('apellido', e.target.value)}
-                      placeholder="Apellido"
-                      style={{ ...inputBaseStyle, ...(formErrors.apellido ? inputErrorStyle : {}) }}
-                      onFocus={e => { if (!formErrors.apellido) { e.target.style.borderColor = 'var(--capyme-blue-mid)'; e.target.style.boxShadow = '0 0 0 3px rgba(43,91,166,0.12)'; } }}
-                      onBlur={e => { if (!formErrors.apellido) { e.target.style.borderColor = 'var(--border)'; e.target.style.boxShadow = 'none'; } }}
-                    />
+                    <input type="text" value={formData.apellido} onChange={(e) => handleChange('apellido', e.target.value)} placeholder="Apellido" style={{ ...inputBaseStyle, ...(formErrors.apellido ? inputErrorStyle : {}) }} onFocus={e => { if (!formErrors.apellido) { e.target.style.borderColor = 'var(--capyme-blue-mid)'; e.target.style.boxShadow = '0 0 0 3px rgba(43,91,166,0.12)'; } }} onBlur={e => { if (!formErrors.apellido) { e.target.style.borderColor = 'var(--border)'; e.target.style.boxShadow = 'none'; } }} />
                     {formErrors.apellido && <ErrorMsg text={formErrors.apellido} />}
                   </div>
 
@@ -717,14 +527,7 @@ const Usuarios = () => {
                     <label style={labelStyle}>Email *</label>
                     <div style={{ position: 'relative' }}>
                       <Mail style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', width: '16px', height: '16px', color: 'var(--gray-400)', pointerEvents: 'none' }} />
-                      <input
-                        type="email" value={formData.email}
-                        onChange={(e) => handleChange('email', e.target.value)}
-                        placeholder="correo@ejemplo.com"
-                        style={{ ...inputWithIconStyle, ...(formErrors.email ? inputErrorStyle : {}) }}
-                        onFocus={e => { if (!formErrors.email) { e.target.style.borderColor = 'var(--capyme-blue-mid)'; e.target.style.boxShadow = '0 0 0 3px rgba(43,91,166,0.12)'; } }}
-                        onBlur={e => { if (!formErrors.email) { e.target.style.borderColor = 'var(--border)'; e.target.style.boxShadow = 'none'; } }}
-                      />
+                      <input type="email" value={formData.email} onChange={(e) => handleChange('email', e.target.value)} placeholder="correo@ejemplo.com" style={{ ...inputWithIconStyle, ...(formErrors.email ? inputErrorStyle : {}) }} onFocus={e => { if (!formErrors.email) { e.target.style.borderColor = 'var(--capyme-blue-mid)'; e.target.style.boxShadow = '0 0 0 3px rgba(43,91,166,0.12)'; } }} onBlur={e => { if (!formErrors.email) { e.target.style.borderColor = 'var(--border)'; e.target.style.boxShadow = 'none'; } }} />
                     </div>
                     {formErrors.email && <ErrorMsg text={formErrors.email} />}
                   </div>
@@ -733,14 +536,7 @@ const Usuarios = () => {
                     <label style={labelStyle}>Teléfono</label>
                     <div style={{ position: 'relative' }}>
                       <Phone style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', width: '16px', height: '16px', color: 'var(--gray-400)', pointerEvents: 'none' }} />
-                      <input
-                        type="tel" value={formData.telefono}
-                        onChange={(e) => handleChange('telefono', e.target.value)}
-                        placeholder="442 123 4567"
-                        style={inputWithIconStyle}
-                        onFocus={e => { e.target.style.borderColor = 'var(--capyme-blue-mid)'; e.target.style.boxShadow = '0 0 0 3px rgba(43,91,166,0.12)'; }}
-                        onBlur={e => { e.target.style.borderColor = 'var(--border)'; e.target.style.boxShadow = 'none'; }}
-                      />
+                      <input type="tel" value={formData.telefono} onChange={(e) => handleChange('telefono', e.target.value)} placeholder="442 123 4567" style={inputWithIconStyle} onFocus={e => { e.target.style.borderColor = 'var(--capyme-blue-mid)'; e.target.style.boxShadow = '0 0 0 3px rgba(43,91,166,0.12)'; }} onBlur={e => { e.target.style.borderColor = 'var(--border)'; e.target.style.boxShadow = 'none'; }} />
                     </div>
                   </div>
                 </div>
@@ -753,24 +549,8 @@ const Usuarios = () => {
                       {modalMode === 'create' && ' *'}
                     </label>
                     <div style={{ position: 'relative' }}>
-                      <input
-                        type={showPassword ? 'text' : 'password'}
-                        value={formData.password}
-                        onChange={(e) => handleChange('password', e.target.value)}
-                        placeholder={modalMode === 'create' ? 'Mínimo 6 caracteres' : '••••••••'}
-                        style={{ ...inputBaseStyle, paddingRight: '42px', ...(formErrors.password ? inputErrorStyle : {}) }}
-                        onFocus={e => { if (!formErrors.password) { e.target.style.borderColor = 'var(--capyme-blue-mid)'; e.target.style.boxShadow = '0 0 0 3px rgba(43,91,166,0.12)'; } }}
-                        onBlur={e => { if (!formErrors.password) { e.target.style.borderColor = 'var(--border)'; e.target.style.boxShadow = 'none'; } }}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        style={{
-                          position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)',
-                          background: 'none', border: 'none', cursor: 'pointer',
-                          color: 'var(--gray-400)', padding: '0', display: 'flex',
-                        }}
-                      >
+                      <input type={showPassword ? 'text' : 'password'} value={formData.password} onChange={(e) => handleChange('password', e.target.value)} placeholder={modalMode === 'create' ? 'Mínimo 6 caracteres' : '••••••••'} style={{ ...inputBaseStyle, paddingRight: '42px', ...(formErrors.password ? inputErrorStyle : {}) }} onFocus={e => { if (!formErrors.password) { e.target.style.borderColor = 'var(--capyme-blue-mid)'; e.target.style.boxShadow = '0 0 0 3px rgba(43,91,166,0.12)'; } }} onBlur={e => { if (!formErrors.password) { e.target.style.borderColor = 'var(--border)'; e.target.style.boxShadow = 'none'; } }} />
+                      <button type="button" onClick={() => setShowPassword(!showPassword)} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--gray-400)', padding: '0', display: 'flex' }}>
                         {showPassword ? <EyeOff style={{ width: '16px', height: '16px' }} /> : <Eye style={{ width: '16px', height: '16px' }} />}
                       </button>
                     </div>
@@ -780,17 +560,7 @@ const Usuarios = () => {
                   <div>
                     <label style={labelStyle}>Rol *</label>
                     <div style={{ position: 'relative' }}>
-                      <select
-                        value={formData.rol}
-                        onChange={(e) => handleChange('rol', e.target.value)}
-                        disabled={currentUser.rol !== 'admin'}
-                        style={{
-                          ...selectStyle,
-                          backgroundColor: currentUser.rol !== 'admin' ? '#f3f4f6' : 'white',
-                          cursor: currentUser.rol !== 'admin' ? 'not-allowed' : 'pointer',
-                          opacity: currentUser.rol !== 'admin' ? 0.7 : 1
-                        }}
-                      >
+                      <select value={formData.rol} onChange={(e) => handleChange('rol', e.target.value)} disabled={currentUser.rol !== 'admin'} style={{ ...selectStyle, backgroundColor: currentUser.rol !== 'admin' ? '#f3f4f6' : 'white', cursor: currentUser.rol !== 'admin' ? 'not-allowed' : 'pointer', opacity: currentUser.rol !== 'admin' ? 0.7 : 1 }}>
                         <option value="cliente">Cliente</option>
                         <option value="colaborador">Colaborador</option>
                         <option value="admin">Administrador</option>
@@ -799,8 +569,7 @@ const Usuarios = () => {
                     </div>
                     {currentUser.rol === 'colaborador' && (
                       <p style={{ marginTop: '5px', fontSize: '11px', color: 'var(--gray-400)', fontFamily: "'DM Sans', sans-serif", display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <Shield style={{ width: '11px', height: '11px' }} />
-                        Solo un administrador puede asignar el rol Admin
+                        <Shield style={{ width: '11px', height: '11px' }} /> Solo un administrador puede asignar el rol Admin
                       </p>
                     )}
                   </div>
@@ -808,61 +577,85 @@ const Usuarios = () => {
               </div>
             </form>
 
-            <div style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '12px',
-              padding: '16px 24px',
-              borderTop: '1px solid var(--border)',
-              background: 'var(--gray-50)',
-            }}>
-              <button
-                type="button" onClick={handleCloseModal} disabled={submitting}
-                style={{
-                  padding: '10px 20px',
-                  fontSize: '14px', fontWeight: 600,
-                  fontFamily: "'Plus Jakarta Sans', sans-serif",
-                  color: 'var(--gray-600)',
-                  background: '#fff',
-                  border: '1px solid var(--border)',
-                  borderRadius: 'var(--radius-md)',
-                  cursor: submitting ? 'not-allowed' : 'pointer',
-                  opacity: submitting ? 0.5 : 1,
-                  transition: 'all 150ms ease',
-                }}
-                onMouseEnter={e => { if (!submitting) e.currentTarget.style.background = 'var(--gray-50)'; }}
-                onMouseLeave={e => e.currentTarget.style.background = '#fff'}
-              >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '12px', padding: '16px 24px', borderTop: '1px solid var(--border)', background: 'var(--gray-50)' }}>
+              <button type="button" onClick={handleCloseModal} disabled={submitting} style={{ padding: '10px 20px', fontSize: '14px', fontWeight: 600, fontFamily: "'Plus Jakarta Sans', sans-serif", color: 'var(--gray-600)', background: '#fff', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', cursor: submitting ? 'not-allowed' : 'pointer', opacity: submitting ? 0.5 : 1, transition: 'all 150ms ease' }} onMouseEnter={e => { if (!submitting) e.currentTarget.style.background = 'var(--gray-50)'; }} onMouseLeave={e => e.currentTarget.style.background = '#fff'}>
                 Cancelar
               </button>
-              <button
-                type="submit" onClick={handleSubmit} disabled={submitting || Object.keys(formErrors).length > 0 || !isFormValid}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: '8px',
-                  padding: '10px 24px',
-                  fontSize: '14px', fontWeight: 600,
-                  fontFamily: "'Plus Jakarta Sans', sans-serif",
-                  color: '#fff',
-                  background: 'linear-gradient(135deg, var(--capyme-blue-mid), var(--capyme-blue))',
-                  border: 'none',
-                  borderRadius: 'var(--radius-md)',
-                  cursor: submitting || Object.keys(formErrors).length > 0 || !isFormValid ? 'not-allowed' : 'pointer',
-                  opacity: submitting || Object.keys(formErrors).length > 0 || !isFormValid ? 0.6 : 1,
-                  boxShadow: '0 2px 8px rgba(31,78,158,0.28)',
-                  transition: 'all 200ms ease',
-                }}
-                onMouseEnter={e => { if (!submitting && isFormValid && Object.keys(formErrors).length === 0) e.currentTarget.style.transform = 'translateY(-1px)'; }}
-                onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
-              >
-                {submitting && (
-                  <div style={{
-                    width: '16px', height: '16px',
-                    border: '2px solid rgba(255,255,255,0.3)',
-                    borderTopColor: '#fff',
-                    borderRadius: '50%',
-                    animation: 'spin 700ms linear infinite',
-                  }} />
-                )}
+              <button type="submit" onClick={handleSubmit} disabled={submitting || Object.keys(formErrors).length > 0 || !isFormValid} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 24px', fontSize: '14px', fontWeight: 600, fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#fff', background: 'linear-gradient(135deg, var(--capyme-blue-mid), var(--capyme-blue))', border: 'none', borderRadius: 'var(--radius-md)', cursor: submitting || Object.keys(formErrors).length > 0 || !isFormValid ? 'not-allowed' : 'pointer', opacity: submitting || Object.keys(formErrors).length > 0 || !isFormValid ? 0.6 : 1, boxShadow: '0 2px 8px rgba(31,78,158,0.28)', transition: 'all 200ms ease' }} onMouseEnter={e => { if (!submitting && isFormValid && Object.keys(formErrors).length === 0) e.currentTarget.style.transform = 'translateY(-1px)'; }} onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}>
+                {submitting && <div style={{ width: '16px', height: '16px', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 700ms linear infinite' }} />}
                 {modalMode === 'create' ? 'Crear Usuario' : 'Guardar Cambios'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showDetailsModal && detailsItem && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 'var(--radius-lg)', width: '100%', maxWidth: '640px', maxHeight: '90vh', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 60px rgba(0,0,0,0.18)', animation: 'modalIn 200ms ease' }}>
+            <div style={{ padding: '20px 24px', background: 'var(--gray-50)', borderBottom: '1px solid var(--border)', borderRadius: 'var(--radius-lg) var(--radius-lg) 0 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                <div style={{ width: '42px', height: '42px', borderRadius: 'var(--radius-md)', background: 'linear-gradient(135deg, var(--capyme-blue-mid), var(--capyme-blue))', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '15px', fontWeight: 700, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                  {detailsItem.nombre?.charAt(0)?.toUpperCase()}{detailsItem.apellido?.charAt(0)?.toUpperCase()}
+                </div>
+                <div>
+                  <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 800, fontFamily: "'Plus Jakarta Sans', sans-serif", color: 'var(--gray-900)' }}>
+                    {detailsItem.nombre} {detailsItem.apellido}
+                  </h2>
+                  <p style={{ margin: 0, fontSize: '13px', color: 'var(--gray-500)', fontFamily: "'DM Sans', sans-serif" }}>Detalles completos del usuario</p>
+                </div>
+              </div>
+              <button onClick={handleCloseDetails} style={{ width: '34px', height: '34px', border: 'none', background: 'transparent', borderRadius: 'var(--radius-sm)', cursor: 'pointer', color: 'var(--gray-400)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 150ms ease' }} onMouseEnter={e => { e.currentTarget.style.background = 'var(--gray-100)'; e.currentTarget.style.color = 'var(--gray-700)'; }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gray-400)'; }}>
+                <X style={{ width: '18px', height: '18px' }} />
+              </button>
+            </div>
+
+            <div style={{ overflowY: 'auto', flex: 1, padding: '24px', display: 'flex', flexDirection: 'column', gap: '28px' }}>
+              <div>
+                <SectionTitle icon={User} text="Información Personal y Contacto" />
+                <div style={{ marginTop: '12px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', background: '#fff', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '16px' }}>
+                  <InfoRow label="Nombre Completo" value={`${detailsItem.nombre} ${detailsItem.apellido}`} icon={User} />
+                  <InfoRow label="Correo Electrónico" value={detailsItem.email} icon={Mail} />
+                  <InfoRow label="Teléfono" value={detailsItem.telefono} icon={Phone} />
+                </div>
+              </div>
+
+              <div>
+                <SectionTitle icon={Shield} text="Sistema y Permisos" />
+                <div style={{ marginTop: '12px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', background: '#fff', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '16px' }}>
+                  <div>
+                    <span style={{ fontSize: '12px', color: 'var(--gray-500)', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", display: 'block', marginBottom: '4px' }}>Rol en el Sistema</span>
+                    <span style={{ display: 'inline-block', padding: '3px 10px', background: getRolColor(detailsItem.rol).bg, color: getRolColor(detailsItem.rol).color, borderRadius: 'var(--radius-sm)', fontSize: '11px', fontWeight: 700, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                      {getRolName(detailsItem.rol)}
+                    </span>
+                  </div>
+                  <div>
+                    <span style={{ fontSize: '12px', color: 'var(--gray-500)', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", display: 'block', marginBottom: '4px' }}>Estado de Acceso</span>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '4px 10px', borderRadius: 'var(--radius-sm)', fontSize: '12px', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", background: detailsItem.activo ? '#ECFDF5' : '#FEF2F2', color: detailsItem.activo ? '#065F46' : '#DC2626' }}>
+                      <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: detailsItem.activo ? '#10B981' : '#EF4444', display: 'inline-block' }} />{detailsItem.activo ? 'Activo' : 'Inactivo'}
+                    </span>
+                  </div>
+                  <InfoRow label="Fecha de Registro" value={new Date(detailsItem.fechaRegistro).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })} icon={Calendar} />
+                </div>
+              </div>
+            </div>
+
+            <div style={{ padding: '16px 24px', background: 'var(--gray-50)', borderTop: '1px solid var(--border)', borderRadius: '0 0 var(--radius-lg) var(--radius-lg)', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+              <button onClick={handleCloseDetails} style={{ padding: '9px 24px', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', background: '#fff', color: 'var(--gray-700)', fontSize: '14px', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", cursor: 'pointer', transition: 'all 150ms ease' }} onMouseEnter={e => e.currentTarget.style.background = 'var(--gray-100)'} onMouseLeave={e => e.currentTarget.style.background = '#fff'}>
+                Cerrar Detalles
+              </button>
+              
+              {(currentUser.rol === 'admin' || detailsItem.rol !== 'admin') && (
+                <button onClick={() => { handleCloseDetails(); handleOpenModal('edit', detailsItem); }} style={{ padding: '9px 24px', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', background: '#EEF4FF', color: 'var(--capyme-blue-mid)', fontSize: '14px', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", cursor: 'pointer', transition: 'all 150ms ease' }}>
+                  Editar Usuario
+                </button>
+              )}
+              
+              {currentUser.rol === 'admin' && (
+                <button onClick={() => handleToggleActivo(detailsItem)} style={{ padding: '9px 24px', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', background: detailsItem.activo ? '#FEF2F2' : '#ECFDF5', color: detailsItem.activo ? '#DC2626' : '#065F46', fontSize: '14px', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", cursor: 'pointer', transition: 'all 150ms ease' }}>
+                  {detailsItem.activo ? 'Desactivar' : 'Activar'}
+                </button>
+              )}
             </div>
           </div>
         </div>
