@@ -5,7 +5,7 @@ import {
   AlertCircle, X, FolderOpen, Link, UserCheck, MapPin,
   Calendar, Phone, Mail, Building2, ExternalLink,
   ChevronDown, SlidersHorizontal, User, AlertTriangle,
-  Eye, Tag, Clock, CreditCard
+  Tag, Clock, CreditCard
 } from 'lucide-react';
 import Layout from '../components/common/Layout';
 import { jcfService } from '../services/jcfService';
@@ -378,7 +378,7 @@ const JovenesConstruyendoFuturo = () => {
   const formatFecha = (dateStr) => {
     if (!dateStr) return '—';
     const d = new Date(dateStr);
-    return d.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
+    return d.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'UTC' });
   };
 
   const getEstatusColor = (estatus) => {
@@ -667,7 +667,6 @@ const JovenesConstruyendoFuturo = () => {
 
                 {formData.estatus === 'Vinculado' ? (
                   <>
-                    <div></div>
                     <div><label style={labelStyle}>Fecha de inicio</label><input name="fechaInicio" value={formData.fechaInicio} onChange={handleChange} type="date" style={{ ...inputBaseStyle, ...(formErrors.fechaInicio ? inputErrorStyle : {}) }} /></div>
                     <div><label style={labelStyle}>Fecha de término</label><input name="fechaTermino" value={formData.fechaTermino} onChange={handleChange} type="date" style={{ ...inputBaseStyle, ...(formErrors.fechaTermino ? inputErrorStyle : {}) }} /></div>
                     <div><label style={labelStyle}>Horarios asignados</label><input name="horarios" value={formData.horarios} onChange={handleChange} placeholder="Ej. Lunes a Viernes 9am - 2pm" style={inputBaseStyle} /></div>
@@ -757,10 +756,9 @@ const JovenesConstruyendoFuturo = () => {
                     </span>
                   </div>
                   
-                  <InfoRow label="Periodo de Capacitación" value={(detailsItem.fechaInicio || detailsItem.fechaTermino) ? `${formatFecha(detailsItem.fechaInicio)} — ${formatFecha(detailsItem.fechaTermino)}` : null} icon={Calendar} />
-                  
                   {detailsItem.estatus === 'Vinculado' && (
                     <>
+                      <InfoRow label="Periodo de Capacitación" value={(detailsItem.fechaInicio || detailsItem.fechaTermino) ? `${formatFecha(detailsItem.fechaInicio)} — ${formatFecha(detailsItem.fechaTermino)}` : null} icon={Calendar} />
                       <InfoRow label="Horarios" value={detailsItem.horarios} icon={Clock} />
                       <InfoRow label="Tarjeta Entregada" value={detailsItem.tarjetaEntregada ? 'Sí' : 'No'} icon={CreditCard} />
                       <InfoRow label="Horario Confirmado" value={detailsItem.horarioConfirmado ? 'Sí' : 'No'} icon={CheckCircle} />
