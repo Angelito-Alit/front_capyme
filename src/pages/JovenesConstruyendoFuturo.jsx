@@ -5,7 +5,7 @@ import {
   AlertCircle, X, FolderOpen, Link, UserCheck, MapPin,
   Calendar, Phone, Mail, Building2, ExternalLink,
   ChevronDown, SlidersHorizontal, User, AlertTriangle,
-  Eye, Tag
+  Eye, Tag, Clock, CreditCard
 } from 'lucide-react';
 import Layout from '../components/common/Layout';
 import { jcfService } from '../services/jcfService';
@@ -18,7 +18,8 @@ const ESTATUS_OPCIONES = [
   'Negocio',
   'No se pudo vincular',
   'Por registrar',
-  'Por vincular'
+  'Por vincular',
+  'Vinculado'
 ];
 
 const initialFormData = {
@@ -32,6 +33,9 @@ const initialFormData = {
   clienteId: '',
   negocioId: '',
   estatus: 'Por registrar',
+  tarjetaEntregada: false,
+  horarios: '',
+  horarioConfirmado: false,
 };
 
 const ConfirmModal = ({ config, onClose }) => {
@@ -138,11 +142,6 @@ const JovenesConstruyendoFuturo = () => {
   const showConfirm = (cfg) => setConfirmConfig({ show: true, ...cfg });
   const closeConfirm = () => setConfirmConfig({ show: false });
 
-  const negocioSeleccionado = useMemo(() => {
-    if (!formData.negocioId) return null;
-    return negocios.find(n => String(n.id) === String(formData.negocioId)) || null;
-  }, [formData.negocioId, negocios]);
-
   const inputBaseStyle = {
     width: '100%', padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)',
     fontSize: '14px', fontFamily: "'DM Sans', sans-serif", color: 'var(--gray-900)', background: '#fff',
@@ -239,7 +238,7 @@ const JovenesConstruyendoFuturo = () => {
     if (formData.correo && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.correo)) errors.correo = 'El correo no es válido';
     if (formData.curp && formData.curp.length !== 18) errors.curp = 'La CURP debe tener exactamente 18 caracteres';
     if (formData.telefono && !/^\d{10}$/.test(formData.telefono.replace(/\s/g, ''))) errors.telefono = 'El teléfono debe tener 10 dígitos';
-    if (formData.fechaInicio && formData.fechaTermino && formData.fechaInicio > formData.fechaTermino) errors.fechaTermino = 'La fecha de término debe ser posterior a la de inicio';
+    if (formData.estatus === 'Vinculado' && formData.fechaInicio && formData.fechaTermino && formData.fechaInicio > formData.fechaTermino) errors.fechaTermino = 'La fecha de término debe ser posterior a la de inicio';
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -248,7 +247,7 @@ const JovenesConstruyendoFuturo = () => {
                       (!formData.correo || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.correo)) &&
                       (!formData.curp || formData.curp.length === 18) &&
                       (!formData.telefono || /^\d{10}$/.test(formData.telefono.replace(/\s/g, ''))) &&
-                      (!(formData.fechaInicio && formData.fechaTermino) || formData.fechaInicio <= formData.fechaTermino);
+                      (!(formData.estatus === 'Vinculado' && formData.fechaInicio && formData.fechaTermino) || formData.fechaInicio <= formData.fechaTermino);
 
   const handleOpenModal = (mode, item = null) => {
     setModalMode(mode);
@@ -257,9 +256,19 @@ const JovenesConstruyendoFuturo = () => {
     if (mode === 'edit' && item) {
       const clienteId = item.negocio?.usuarioId ? String(item.negocio.usuarioId) : '';
       setFormData({
-        nombre: item.nombre || '', apellido: item.apellido || '', correo: item.correo || '', telefono: item.telefono || '',
-        curp: item.curp || '', fechaInicio: item.fechaInicio ? item.fechaInicio.split('T')[0] : '', fechaTermino: item.fechaTermino ? item.fechaTermino.split('T')[0] : '',
-        clienteId, negocioId: item.negocioId ? String(item.negocioId) : '', estatus: item.estatus || 'Por registrar',
+        nombre: item.nombre || '', 
+        apellido: item.apellido || '', 
+        correo: item.correo || '', 
+        telefono: item.telefono || '',
+        curp: item.curp || '', 
+        fechaInicio: item.fechaInicio ? item.fechaInicio.split('T')[0] : '', 
+        fechaTermino: item.fechaTermino ? item.fechaTermino.split('T')[0] : '',
+        clienteId, 
+        negocioId: item.negocioId ? String(item.negocioId) : '', 
+        estatus: item.estatus || 'Por registrar',
+        tarjetaEntregada: item.tarjetaEntregada || false,
+        horarios: item.horarios || '',
+        horarioConfirmado: item.horarioConfirmado || false,
       });
     } else {
       setFormData(initialFormData);
@@ -272,12 +281,14 @@ const JovenesConstruyendoFuturo = () => {
   const handleCloseDetails = () => { setShowDetailsModal(false); setDetailsItem(null); };
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
+    const { name, value, type, checked } = e.target;
+    const val = type === 'checkbox' ? checked : value;
+    
     if (name === 'clienteId') {
-      setFormData(prev => ({ ...prev, clienteId: value, negocioId: '' }));
+      setFormData(prev => ({ ...prev, clienteId: val, negocioId: '' }));
       if (formErrors.clienteId) setFormErrors(prev => ({ ...prev, clienteId: '' }));
     } else {
-      setFormData(prev => ({ ...prev, [name]: value }));
+      setFormData(prev => ({ ...prev, [name]: val }));
       if (formErrors[name]) setFormErrors(prev => ({ ...prev, [name]: '' }));
     }
   };
@@ -292,8 +303,19 @@ const JovenesConstruyendoFuturo = () => {
       if (!payload.correo) delete payload.correo;
       if (!payload.telefono) delete payload.telefono;
       if (!payload.curp) delete payload.curp;
-      if (!payload.fechaInicio) delete payload.fechaInicio;
-      if (!payload.fechaTermino) delete payload.fechaTermino;
+      
+      if (payload.estatus !== 'Vinculado') {
+        delete payload.fechaInicio;
+        delete payload.fechaTermino;
+        payload.tarjetaEntregada = false;
+        payload.horarios = null;
+        payload.horarioConfirmado = false;
+      } else {
+        if (!payload.fechaInicio) delete payload.fechaInicio;
+        if (!payload.fechaTermino) delete payload.fechaTermino;
+        payload.tarjetaEntregada = Boolean(payload.tarjetaEntregada);
+        payload.horarioConfirmado = Boolean(payload.horarioConfirmado);
+      }
 
       if (modalMode === 'create') {
         await jcfService.create(payload);
@@ -362,6 +384,7 @@ const JovenesConstruyendoFuturo = () => {
   const getEstatusColor = (estatus) => {
     switch(estatus) {
       case 'Aceptado': return { bg: '#ECFDF5', text: '#065F46' };
+      case 'Vinculado': return { bg: '#E0F2FE', text: '#0369A1' };
       case 'En capacitación': return { bg: '#EFF6FF', text: '#1D4ED8' };
       case 'Negocio': return { bg: '#F5F3FF', text: '#6D28D9' };
       case 'Egresado': return { bg: '#F0FDF4', text: '#15803D' };
@@ -641,17 +664,34 @@ const JovenesConstruyendoFuturo = () => {
                     <DropArrow />
                   </div>
                 </div>
-                <div></div>
 
-                <div><label style={labelStyle}>Fecha de inicio</label><input name="fechaInicio" value={formData.fechaInicio} onChange={handleChange} type="date" style={{ ...inputBaseStyle, ...(formErrors.fechaInicio ? inputErrorStyle : {}) }} /></div>
-                <div><label style={labelStyle}>Fecha de término</label><input name="fechaTermino" value={formData.fechaTermino} onChange={handleChange} type="date" style={{ ...inputBaseStyle, ...(formErrors.fechaTermino ? inputErrorStyle : {}) }} /></div>
+                {formData.estatus === 'Vinculado' ? (
+                  <>
+                    <div></div>
+                    <div><label style={labelStyle}>Fecha de inicio</label><input name="fechaInicio" value={formData.fechaInicio} onChange={handleChange} type="date" style={{ ...inputBaseStyle, ...(formErrors.fechaInicio ? inputErrorStyle : {}) }} /></div>
+                    <div><label style={labelStyle}>Fecha de término</label><input name="fechaTermino" value={formData.fechaTermino} onChange={handleChange} type="date" style={{ ...inputBaseStyle, ...(formErrors.fechaTermino ? inputErrorStyle : {}) }} /></div>
+                    <div><label style={labelStyle}>Horarios asignados</label><input name="horarios" value={formData.horarios} onChange={handleChange} placeholder="Ej. Lunes a Viernes 9am - 2pm" style={inputBaseStyle} /></div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
+                      <label style={{ ...labelStyle, display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', margin: 0, fontWeight: 500 }}>
+                        <input type="checkbox" name="tarjetaEntregada" checked={formData.tarjetaEntregada} onChange={handleChange} style={{ width: '16px', height: '16px', cursor: 'pointer' }} />
+                        Tarjeta entregada
+                      </label>
+                      <label style={{ ...labelStyle, display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', margin: 0, fontWeight: 500 }}>
+                        <input type="checkbox" name="horarioConfirmado" checked={formData.horarioConfirmado} onChange={handleChange} style={{ width: '16px', height: '16px', cursor: 'pointer' }} />
+                        Horario confirmado
+                      </label>
+                    </div>
+                  </>
+                ) : (
+                  <div></div>
+                )}
               </div>
 
               <SectionTitle icon={Users} text="Datos personales del beneficiario" />
               <div style={{ marginTop: '14px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px' }}>
                 <div><label style={labelStyle}>Nombre <span style={{ color: '#EF4444' }}>*</span></label><input name="nombre" value={formData.nombre} onChange={handleChange} placeholder="Nombre(s)" style={{ ...inputBaseStyle, ...(formErrors.nombre ? inputErrorStyle : {}) }} />{formErrors.nombre && <ErrorMsg text={formErrors.nombre} />}</div>
                 <div><label style={labelStyle}>Apellidos <span style={{ color: '#EF4444' }}>*</span></label><input name="apellido" value={formData.apellido} onChange={handleChange} placeholder="Apellido paterno y materno" style={{ ...inputBaseStyle, ...(formErrors.apellido ? inputErrorStyle : {}) }} />{formErrors.apellido && <ErrorMsg text={formErrors.apellido} />}</div>
-                <div><label style={labelStyle}>CURP</label><input name="curp" value={formData.curp} onChange={e => handleChange({ target: { name: 'curp', value: e.target.value.toUpperCase() } })} placeholder="18 caracteres" maxLength={18} style={{ ...inputBaseStyle, fontFamily: "'JetBrains Mono', monospace", letterSpacing: '0.05em', ...(formErrors.curp ? inputErrorStyle : {}) }} />{formErrors.curp && <ErrorMsg text={formErrors.curp} />}</div>
+                <div><label style={labelStyle}>CURP</label><input name="curp" value={formData.curp} onChange={e => handleChange({ target: { name: 'curp', value: e.target.value.toUpperCase() }, type: e.target.type })} placeholder="18 caracteres" maxLength={18} style={{ ...inputBaseStyle, fontFamily: "'JetBrains Mono', monospace", letterSpacing: '0.05em', ...(formErrors.curp ? inputErrorStyle : {}) }} />{formErrors.curp && <ErrorMsg text={formErrors.curp} />}</div>
               </div>
 
               <SectionTitle icon={Phone} text="Contacto" />
@@ -716,8 +756,17 @@ const JovenesConstruyendoFuturo = () => {
                       {detailsItem.estatus || 'Por registrar'}
                     </span>
                   </div>
+                  
                   <InfoRow label="Periodo de Capacitación" value={(detailsItem.fechaInicio || detailsItem.fechaTermino) ? `${formatFecha(detailsItem.fechaInicio)} — ${formatFecha(detailsItem.fechaTermino)}` : null} icon={Calendar} />
                   
+                  {detailsItem.estatus === 'Vinculado' && (
+                    <>
+                      <InfoRow label="Horarios" value={detailsItem.horarios} icon={Clock} />
+                      <InfoRow label="Tarjeta Entregada" value={detailsItem.tarjetaEntregada ? 'Sí' : 'No'} icon={CreditCard} />
+                      <InfoRow label="Horario Confirmado" value={detailsItem.horarioConfirmado ? 'Sí' : 'No'} icon={CheckCircle} />
+                    </>
+                  )}
+
                   <div>
                     <span style={{ fontSize: '12px', color: 'var(--gray-500)', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", display: 'block', marginBottom: '4px' }}>Estado en Sistema</span>
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '4px 10px', borderRadius: 'var(--radius-sm)', fontSize: '12px', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", background: detailsItem.activo ? '#ECFDF5' : '#FEF2F2', color: detailsItem.activo ? '#065F46' : '#DC2626' }}>
