@@ -227,14 +227,22 @@ const Postulaciones = () => {
     setShowModal(true);
   };
 
-  const handleOpenDetalle = async (post) => {
-    setSelectedPost(post);
-    setShowDetalle(true);
+  const handleOpenDetalle = async (postData) => {
+    const isId = typeof postData !== 'object';
+    const idToFetch = isId ? postData : postData.id;
+    const postLocal = isId 
+      ? postulaciones.find(p => p.id === idToFetch) 
+      : postData;
+    if (postLocal) {
+      setSelectedPost(postLocal);
+      setShowDetalle(true);
+    }
     try {
-      const res = await postulacionesService.getById(post.id);
-      setSelectedPost(res.data); 
-    } catch {
-      console.error('Error al actualizar detalles en segundo plano');
+      const res = await postulacionesService.getById(idToFetch);
+      setSelectedPost(res.data);
+      if (!postLocal) setShowDetalle(true); 
+    } catch (error) {
+      console.error('Error al actualizar detalles en segundo plano:', error);
     }
   };
 
