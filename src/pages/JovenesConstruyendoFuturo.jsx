@@ -111,7 +111,6 @@ const JovenesConstruyendoFuturo = () => {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   
-  // Modals state
   const [showModal, setShowModal] = useState(false);
   const [modalMode, setModalMode] = useState('create');
   const [selectedItem, setSelectedItem] = useState(null);
@@ -127,7 +126,6 @@ const JovenesConstruyendoFuturo = () => {
   const [submittingRecurso, setSubmittingRecurso] = useState(false);
   const [hoveredRow, setHoveredRow] = useState(null);
   
-  // Filters state
   const [showFilters, setShowFilters] = useState(false);
   const [filterEstado, setFilterEstado] = useState('');
   const [filterCliente, setFilterCliente] = useState('');
@@ -154,8 +152,7 @@ const JovenesConstruyendoFuturo = () => {
   const labelStyle = { display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--gray-600)', marginBottom: '6px', fontFamily: "'DM Sans', sans-serif" };
   const selectStyle = { ...inputBaseStyle, appearance: 'none', paddingRight: '36px', cursor: 'pointer' };
   const selectDisabledStyle = { ...inputBaseStyle, appearance: 'none', paddingRight: '36px', background: 'var(--gray-50)', color: 'var(--gray-400)', cursor: 'not-allowed' };
-  const inputReadonlyStyle = { ...inputBaseStyle, background: 'var(--gray-50)', color: 'var(--gray-500)', cursor: 'default' };
-
+  
   useEffect(() => {
     cargarDatos();
     cargarClientes();
@@ -328,6 +325,9 @@ const JovenesConstruyendoFuturo = () => {
           await jcfService.toggleActivo(item.id);
           toast.success(`Beneficiario ${desactivar ? 'desactivado' : 'activado'} exitosamente`);
           cargarDatos();
+          if (detailsItem && detailsItem.id === item.id) {
+             setDetailsItem(prev => ({ ...prev, activo: !desactivar }));
+          }
         } catch {
           toast.error('Error al cambiar estado');
         }
@@ -406,7 +406,6 @@ const JovenesConstruyendoFuturo = () => {
 
       <div style={{ padding: '28px 32px', animation: 'fadeIn 250ms ease' }}>
 
-        {/* HEADER */}
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '28px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
             <div style={{ width: '48px', height: '48px', borderRadius: 'var(--radius-md)', background: 'linear-gradient(135deg, var(--capyme-blue-mid), var(--capyme-blue))', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(31,78,158,0.25)' }}>
@@ -435,7 +434,6 @@ const JovenesConstruyendoFuturo = () => {
           )}
         </div>
 
-        {/* FILTROS Y BÚSQUEDA */}
         <div style={{ background: '#fff', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)', padding: '16px 20px', marginBottom: '20px', boxShadow: 'var(--shadow-sm)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
             <div style={{ position: 'relative', flex: 1, minWidth: '260px', maxWidth: '420px' }}>
@@ -455,7 +453,7 @@ const JovenesConstruyendoFuturo = () => {
             <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid var(--border)', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '14px', animation: 'filtersIn 200ms ease' }}>
               <div>
                 <label style={{ ...labelStyle, fontSize: '12px', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                  <Tag style={{ width: '11px', height: '11px' }} /> Estatus
+                  <Tag style={{ width: '11px', height: '11px' }} /> Estatus de Vinculación
                 </label>
                 <div style={{ position: 'relative' }}>
                   <select value={filterEstatus} onChange={e => setFilterEstatus(e.target.value)} style={{ ...selectStyle, fontSize: '13px', padding: '8px 30px 8px 10px' }}>
@@ -518,14 +516,13 @@ const JovenesConstruyendoFuturo = () => {
           )}
         </div>
 
-        {/* TABLA PRINCIPAL REDUCIDA PARA MAYOR RESPONSIVIDAD */}
         <div style={{ background: '#fff', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)', overflow: 'hidden', boxShadow: 'var(--shadow-sm)' }}>
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '600px' }}>
               <thead>
                 <tr style={{ background: 'var(--gray-50)' }}>
-                  {[ 'Beneficiario', 'Negocio Asignado', 'Estatus', 'Sistema', 'Acciones' ].map((col, i) => (
-                    <th key={i} style={{ padding: '13px 20px', textAlign: i === 4 ? 'right' : i >= 2 ? 'center' : 'left', fontSize: '11px', fontWeight: 700, color: 'var(--gray-500)', fontFamily: "'Plus Jakarta Sans', sans-serif", textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap' }}>
+                  {[ 'Beneficiario', 'Negocio Asignado', 'Estatus', 'Acciones' ].map((col, i) => (
+                    <th key={i} style={{ padding: '13px 20px', textAlign: i === 3 ? 'right' : i === 2 ? 'center' : 'left', fontSize: '11px', fontWeight: 700, color: 'var(--gray-500)', fontFamily: "'Plus Jakarta Sans', sans-serif", textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap' }}>
                       {col}
                     </th>
                   ))}
@@ -534,14 +531,13 @@ const JovenesConstruyendoFuturo = () => {
               <tbody>
                 {filtered.length === 0 ? (
                   <tr>
-                    <td colSpan={5} style={{ padding: '60px 16px', textAlign: 'center', color: 'var(--gray-400)', fontFamily: "'DM Sans', sans-serif", fontSize: '14px' }}>
+                    <td colSpan={4} style={{ padding: '60px 16px', textAlign: 'center', color: 'var(--gray-400)', fontFamily: "'DM Sans', sans-serif", fontSize: '14px' }}>
                       <Users style={{ width: '40px', height: '40px', margin: '0 auto 12px', display: 'block', opacity: 0.3 }} />
                       No se encontraron beneficiarios
                     </td>
                   </tr>
                 ) : filtered.map(item => (
-                  <tr key={item.id} onMouseEnter={() => setHoveredRow(item.id)} onMouseLeave={() => setHoveredRow(null)} style={{ background: hoveredRow === item.id ? 'var(--gray-50)' : '#fff', transition: 'background 150ms ease', borderBottom: '1px solid var(--border)' }}>
-                    {/* BENEFICIARIO */}
+                  <tr key={item.id} onClick={() => handleOpenDetails(item)} onMouseEnter={() => setHoveredRow(item.id)} onMouseLeave={() => setHoveredRow(null)} style={{ background: hoveredRow === item.id ? 'var(--gray-50)' : '#fff', transition: 'background 150ms ease', borderBottom: '1px solid var(--border)', cursor: 'pointer' }}>
                     <td style={{ padding: '13px 20px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                         <div style={{ width: '38px', height: '38px', borderRadius: 'var(--radius-md)', background: 'linear-gradient(135deg, var(--capyme-blue-mid), var(--capyme-blue))', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: '12px', fontWeight: 700, color: '#fff', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
@@ -550,7 +546,6 @@ const JovenesConstruyendoFuturo = () => {
                         <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--gray-900)', fontFamily: "'DM Sans', sans-serif" }}>{item.nombre} {item.apellido}</div>
                       </div>
                     </td>
-                    {/* NEGOCIO ASIGNADO */}
                     <td style={{ padding: '13px 20px' }}>
                       {item.negocio ? (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
@@ -561,27 +556,13 @@ const JovenesConstruyendoFuturo = () => {
                         </div>
                       ) : <span style={{ color: 'var(--gray-300)', fontSize: '13px' }}>—</span>}
                     </td>
-                    {/* ESTATUS */}
                     <td style={{ padding: '13px 20px', textAlign: 'center' }}>
                       <span style={{ display: 'inline-flex', padding: '4px 10px', borderRadius: 'var(--radius-sm)', fontSize: '11px', fontWeight: 700, fontFamily: "'Plus Jakarta Sans', sans-serif", background: getEstatusColor(item.estatus || 'Por registrar').bg, color: getEstatusColor(item.estatus || 'Por registrar').text }}>
                         {item.estatus || 'Por registrar'}
                       </span>
                     </td>
-                    {/* SISTEMA */}
-                    <td style={{ padding: '13px 20px', textAlign: 'center' }}>
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '4px 10px', borderRadius: 'var(--radius-sm)', fontSize: '12px', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", background: item.activo ? '#ECFDF5' : '#FEF2F2', color: item.activo ? '#065F46' : '#DC2626' }}>
-                        <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: item.activo ? '#10B981' : '#EF4444', display: 'inline-block' }} />{item.activo ? 'Activo' : 'Inactivo'}
-                      </span>
-                    </td>
-                    {/* ACCIONES */}
-                    <td style={{ padding: '13px 20px', textAlign: 'right' }}>
+                    <td style={{ padding: '13px 20px', textAlign: 'right' }} onClick={e => e.stopPropagation()}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '4px' }}>
-                        
-                        {/* BOTÓN VER DETALLES (NUEVO) */}
-                        <button onClick={() => handleOpenDetails(item)} title="Ver detalles completos" style={{ width: '34px', height: '34px', border: 'none', borderRadius: 'var(--radius-sm)', background: 'transparent', cursor: 'pointer', color: 'var(--gray-400)', transition: 'all 150ms ease', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }} onMouseEnter={e => { e.currentTarget.style.background = '#EEF4FF'; e.currentTarget.style.color = 'var(--capyme-blue-mid)'; }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gray-400)'; }}>
-                          <Eye style={{ width: '16px', height: '16px' }} />
-                        </button>
-
                         {currentUser.rol !== 'cliente' && (
                           <>
                             <button onClick={() => handleOpenRecurso(item)} title={item.urlRecurso ? 'Editar recurso' : 'Agregar recurso'} style={{ width: '34px', height: '34px', border: 'none', borderRadius: 'var(--radius-sm)', background: 'transparent', cursor: 'pointer', transition: 'all 150ms ease', color: item.urlRecurso ? '#059669' : 'var(--gray-400)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }} onMouseEnter={e => { e.currentTarget.style.background = item.urlRecurso ? '#ECFDF5' : '#EEF4FF'; e.currentTarget.style.color = item.urlRecurso ? '#047857' : 'var(--capyme-blue-mid)'; }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = item.urlRecurso ? '#059669' : 'var(--gray-400)'; }}>
@@ -613,7 +594,6 @@ const JovenesConstruyendoFuturo = () => {
         </div>
       </div>
 
-      {/* MODAL PARA CREAR / EDITAR BENEFICIARIO */}
       {showModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
           <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 'var(--radius-lg)', width: '100%', maxWidth: '720px', maxHeight: '90vh', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 60px rgba(0,0,0,0.18)', animation: 'modalIn 200ms ease' }}>
@@ -689,7 +669,6 @@ const JovenesConstruyendoFuturo = () => {
         </div>
       )}
 
-      {/* NUEVO MODAL: DETALLES COMPLETOS DEL BENEFICIARIO */}
       {showDetailsModal && detailsItem && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
           <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 'var(--radius-lg)', width: '100%', maxWidth: '640px', maxHeight: '90vh', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 60px rgba(0,0,0,0.18)', animation: 'modalIn 200ms ease' }}>
@@ -710,7 +689,6 @@ const JovenesConstruyendoFuturo = () => {
 
             <div style={{ overflowY: 'auto', flex: 1, padding: '24px', display: 'flex', flexDirection: 'column', gap: '28px' }}>
               
-              {/* Información Personal */}
               <div>
                 <SectionTitle icon={Users} text="Información Personal" />
                 <div style={{ marginTop: '12px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', background: '#fff', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '16px' }}>
@@ -720,7 +698,6 @@ const JovenesConstruyendoFuturo = () => {
                 </div>
               </div>
 
-              {/* Asignación (Negocio / Cliente) */}
               <div>
                 <SectionTitle icon={Building2} text="Asignación y Ubicación" />
                 <div style={{ marginTop: '12px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', background: '#fff', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '16px' }}>
@@ -730,7 +707,6 @@ const JovenesConstruyendoFuturo = () => {
                 </div>
               </div>
 
-              {/* Estado y Programa */}
               <div>
                 <SectionTitle icon={Tag} text="Programa Jóvenes Construyendo el Futuro" />
                 <div style={{ marginTop: '12px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', background: '#fff', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '16px' }}>
@@ -755,14 +731,24 @@ const JovenesConstruyendoFuturo = () => {
 
             </div>
 
-            <div style={{ padding: '16px 24px', background: 'var(--gray-50)', borderTop: '1px solid var(--border)', borderRadius: '0 0 var(--radius-lg) var(--radius-lg)', display: 'flex', justifyContent: 'flex-end' }}>
-              <button onClick={handleCloseDetails} style={{ padding: '9px 24px', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', background: '#fff', color: 'var(--gray-700)', fontSize: '14px', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", cursor: 'pointer', transition: 'all 150ms ease' }} onMouseEnter={e => e.currentTarget.style.background = 'var(--gray-100)'} onMouseLeave={e => e.currentTarget.style.background = '#fff'}>Cerrar Detalles</button>
+            <div style={{ padding: '16px 24px', background: 'var(--gray-50)', borderTop: '1px solid var(--border)', borderRadius: '0 0 var(--radius-lg) var(--radius-lg)', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+              <button onClick={handleCloseDetails} style={{ padding: '9px 20px', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', background: '#fff', color: 'var(--gray-700)', fontSize: '14px', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", cursor: 'pointer', transition: 'all 150ms ease' }} onMouseEnter={e => e.currentTarget.style.background = 'var(--gray-100)'} onMouseLeave={e => e.currentTarget.style.background = '#fff'}>Cerrar Detalles</button>
+              
+              {currentUser.rol !== 'cliente' && (
+                <>
+                  <button onClick={() => { handleCloseDetails(); handleOpenModal('edit', detailsItem); }} style={{ padding: '9px 24px', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', background: '#EEF4FF', color: 'var(--capyme-blue-mid)', fontSize: '14px', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", cursor: 'pointer', transition: 'all 150ms ease' }}>Editar Registro</button>
+                  {currentUser.rol === 'admin' && (
+                    <button onClick={() => handleToggleActivo(detailsItem)} style={{ padding: '9px 24px', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', background: detailsItem.activo ? '#FEF2F2' : '#ECFDF5', color: detailsItem.activo ? '#DC2626' : '#065F46', fontSize: '14px', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", cursor: 'pointer', transition: 'all 150ms ease' }}>
+                      {detailsItem.activo ? 'Desactivar' : 'Activar'}
+                    </button>
+                  )}
+                </>
+              )}
             </div>
           </div>
         </div>
       )}
 
-      {/* MODAL PARA AGREGAR/EDITAR URL DE RECURSO */}
       {showRecursoModal && recursoItem && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1001, padding: '20px' }}>
           <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 'var(--radius-lg)', width: '100%', maxWidth: '480px', boxShadow: '0 20px 60px rgba(0,0,0,0.18)', animation: 'modalIn 200ms ease' }}>
