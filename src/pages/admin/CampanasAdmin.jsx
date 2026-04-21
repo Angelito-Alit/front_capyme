@@ -3,7 +3,8 @@ import Layout from '../../components/common/Layout'
 import { toast } from 'react-hot-toast'
 import { 
   Search, Plus, Edit, CheckCircle, Trash2, AlertCircle, 
-  Megaphone, Building2, DollarSign, Calendar, Activity 
+  Megaphone, Building2, DollarSign, Calendar, Activity,
+  Filter, Eye, User, Briefcase, BarChart3
 } from 'lucide-react'
 import { campanasAdminService } from '../../services/campanasAdminService'
 
@@ -57,7 +58,10 @@ const CampanasAdmin = () => {
   const [showModal, setShowModal] = useState(false)
   const [modalMode, setModalMode] = useState('create')
   const [selectedItem, setSelectedItem] = useState(null)
+  
   const [searchTerm, setSearchTerm] = useState('')
+  const [filterEstado, setFilterEstado] = useState('todos')
+  
   const [formData, setFormData] = useState(initialFormData)
   const [formErrors, setFormErrors] = useState({})
 
@@ -91,12 +95,14 @@ const CampanasAdmin = () => {
         descripcion: item.descripcion || '',
         metaRecaudacion: item.metaRecaudacion,
         montoRecaudado: item.montoRecaudado || '0',
-        fechaInicio: item.fechaInicio.split('T')[0],
-        fechaCierre: item.fechaCierre.split('T')[0],
+        fechaInicio: item.fechaInicio ? item.fechaInicio.split('T')[0] : '',
+        fechaCierre: item.fechaCierre ? item.fechaCierre.split('T')[0] : '',
         negocioId: item.negocioId,
         tipoCrowdfunding: item.tipoCrowdfunding,
         estado: item.estado
       })
+    } else if (mode === 'view' && item) {
+      setSelectedItem(item)
     } else {
       setSelectedItem(null)
       setFormData(initialFormData)
@@ -126,7 +132,9 @@ const CampanasAdmin = () => {
     if (!formData.metaRecaudacion || parseFloat(formData.metaRecaudacion) <= 0) errors.metaRecaudacion = 'Monto inválido'
     if (!formData.fechaInicio) errors.fechaInicio = 'Seleccione fecha de inicio'
     if (!formData.fechaCierre) errors.fechaCierre = 'Seleccione fecha de cierre'
-    if (new Date(formData.fechaCierre) < new Date(formData.fechaInicio)) errors.fechaCierre = 'Debe ser posterior al inicio'
+    if (formData.fechaInicio && formData.fechaCierre && new Date(formData.fechaCierre) < new Date(formData.fechaInicio)) {
+      errors.fechaCierre = 'Debe ser posterior al inicio'
+    }
     
     setFormErrors(errors)
     return Object.keys(errors).length === 0
@@ -160,6 +168,9 @@ const CampanasAdmin = () => {
       try {
         await campanasAdminService.toggleActivo(item.id)
         toast.success(`${accion === 'desactivar' ? 'Desactivada' : 'Activada'} exitosamente`)
+        if (modalMode === 'view') {
+           handleCloseModal()
+        }
         cargarDatos()
       } catch (error) {
         toast.error('Error al cambiar estado')
@@ -167,10 +178,19 @@ const CampanasAdmin = () => {
     }
   }
 
-  const filteredItems = items.filter(item => 
-    item.titulo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.negocio?.nombreNegocio.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  const filteredItems = items.filter(item => {
+    const matchesSearch = item.titulo.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          (item.negocio?.nombreNegocio || '').toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesEstado = filterEstado === 'todos' || item.estado === filterEstado
+    return matchesSearch && matchesEstado
+  })
+
+  const formatearFecha = (fechaString) => {
+    if (!fechaString) return 'N/A'
+    return new Date(fechaString).toLocaleDateString('es-MX', {
+      year: 'numeric', month: 'long', day: 'numeric'
+    })
+  }
 
   if (loading) {
     return (
@@ -214,8 +234,9 @@ const CampanasAdmin = () => {
       </div>
 
       <div style={{ background: '#fff', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)', overflow: 'hidden' }}>
-        <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', background: '#fff' }}>
-          <div style={{ position: 'relative', maxWidth: '400px' }}>
+        <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', background: '#fff', display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+          
+          <div style={{ position: 'relative', flex: '1', minWidth: '250px' }}>
             <Search style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', width: '18px', height: '18px', color: 'var(--gray-400)' }} />
             <input 
               type="text" 
@@ -224,6 +245,25 @@ const CampanasAdmin = () => {
               onChange={e => setSearchTerm(e.target.value)}
               style={inputWithIconStyle}
             />
+          </div>
+
+          <div style={{ position: 'relative', width: '220px' }}>
+            <Filter style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', width: '18px', height: '18px', color: 'var(--gray-400)' }} />
+            <select
+              value={filterEstado}
+              onChange={e => setFilterEstado(e.target.value)}
+              style={{ ...selectStyle, paddingLeft: '38px' }}
+            >
+              <option value="todos">Todos los Estados</option>
+              <option value="en_revision">En Revisión</option>
+              <option value="aprobada">Aprobada</option>
+              <option value="rechazada">Rechazada</option>
+              <option value="activa">Activa</option>
+              <option value="pausada">Pausada</option>
+              <option value="completada">Completada</option>
+              <option value="cancelada">Cancelada</option>
+            </select>
+            <div style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: 'var(--gray-400)' }}>▼</div>
           </div>
         </div>
 
@@ -277,14 +317,26 @@ const CampanasAdmin = () => {
                   </td>
                   <td style={{ padding: '16px 20px', textAlign: 'right' }}>
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '4px' }}>
+                      
                       <button
-                        onClick={() => handleOpenModal('edit', item)}
+                        onClick={() => handleOpenModal('view', item)}
                         style={{ width: '34px', height: '34px', border: 'none', borderRadius: 'var(--radius-sm)', background: 'transparent', cursor: 'pointer', color: 'var(--gray-400)', transition: 'all 150ms ease' }}
-                        onMouseEnter={e => { e.currentTarget.style.background = '#EEF4FF'; e.currentTarget.style.color = 'var(--capyme-blue-mid)'; }}
+                        onMouseEnter={e => { e.currentTarget.style.background = 'var(--gray-100)'; e.currentTarget.style.color = 'var(--gray-700)'; }}
                         onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gray-400)'; }}
                       >
-                        <Edit style={{ width: '16px', height: '16px' }} />
+                        <Eye style={{ width: '16px', height: '16px' }} />
                       </button>
+
+                      {currentUser.rol === 'admin' && (
+                        <button
+                          onClick={() => handleOpenModal('edit', item)}
+                          style={{ width: '34px', height: '34px', border: 'none', borderRadius: 'var(--radius-sm)', background: 'transparent', cursor: 'pointer', color: 'var(--gray-400)', transition: 'all 150ms ease' }}
+                          onMouseEnter={e => { e.currentTarget.style.background = '#EEF4FF'; e.currentTarget.style.color = 'var(--capyme-blue-mid)'; }}
+                          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gray-400)'; }}
+                        >
+                          <Edit style={{ width: '16px', height: '16px' }} />
+                        </button>
+                      )}
 
                       {currentUser.rol === 'admin' && !item.activo && (
                         <button 
@@ -323,7 +375,7 @@ const CampanasAdmin = () => {
         </div>
       </div>
 
-      {showModal && (
+      {showModal && (modalMode === 'create' || modalMode === 'edit') && (
         <div 
           onClick={handleCloseModal}
           style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.45)', backdropFilter: 'blur(4px)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}
@@ -474,6 +526,134 @@ const CampanasAdmin = () => {
               >
                 {submitting ? 'Guardando...' : 'Guardar Campaña'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showModal && modalMode === 'view' && selectedItem && (
+        <div 
+          onClick={handleCloseModal}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.45)', backdropFilter: 'blur(4px)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}
+        >
+          <div 
+            onClick={e => e.stopPropagation()}
+            style={{ background: '#fff', borderRadius: 'var(--radius-lg)', width: '100%', maxWidth: '600px', maxHeight: '90vh', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04)' }}
+          >
+            <div style={{ padding: '24px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                <div style={{ width: '56px', height: '56px', borderRadius: 'var(--radius-md)', background: 'linear-gradient(135deg, var(--capyme-blue-mid), var(--capyme-blue))', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', fontWeight: 800, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                  {selectedItem.titulo.substring(0, 2).toUpperCase()}
+                </div>
+                <div>
+                  <h2 style={{ margin: '0 0 6px 0', fontSize: '20px', fontWeight: 800, color: 'var(--gray-900)', fontFamily: "'Plus Jakarta Sans', sans-serif", lineHeight: 1.2 }}>
+                    {selectedItem.titulo}
+                  </h2>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    <span style={{ padding: '4px 10px', borderRadius: '99px', fontSize: '12px', fontWeight: 600, fontFamily: "'Plus Jakarta Sans', sans-serif', letterSpacing: '0.02em", background: selectedItem.activo ? '#ECFDF5' : '#FEF2F2', color: selectedItem.activo ? '#065F46' : '#DC2626' }}>
+                      {selectedItem.activo ? 'Activo' : 'Inactivo'}
+                    </span>
+                    <span style={{ padding: '4px 10px', borderRadius: '99px', fontSize: '12px', fontWeight: 600, fontFamily: "'Plus Jakarta Sans', sans-serif', letterSpacing: '0.02em", background: 'var(--gray-100)', color: 'var(--gray-700)', textTransform: 'capitalize' }}>
+                      {selectedItem.estado.replace('_', ' ')}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ padding: '24px', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '24px' }}>
+              
+              <div>
+                <SectionTitle icon={Megaphone} text="Detalles de la Campaña" />
+                <div style={{ background: 'var(--gray-50)', borderRadius: 'var(--radius-md)', padding: '16px', marginTop: '12px', border: '1px solid var(--border)' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                    <div>
+                      <p style={{ margin: '0 0 4px', fontSize: '12px', color: 'var(--gray-500)', fontWeight: 600, textTransform: 'uppercase', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Tipo</p>
+                      <p style={{ margin: 0, fontSize: '14px', color: 'var(--gray-900)', fontWeight: 500, fontFamily: "'DM Sans', sans-serif", textTransform: 'capitalize' }}>{selectedItem.tipoCrowdfunding}</p>
+                    </div>
+                    <div>
+                      <p style={{ margin: '0 0 4px', fontSize: '12px', color: 'var(--gray-500)', fontWeight: 600, textTransform: 'uppercase', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Fechas</p>
+                      <p style={{ margin: 0, fontSize: '14px', color: 'var(--gray-900)', fontWeight: 500, fontFamily: "'DM Sans', sans-serif" }}>
+                        {formatearFecha(selectedItem.fechaInicio)} - {formatearFecha(selectedItem.fechaCierre)}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid var(--border)' }}>
+                    <p style={{ margin: '0 0 4px', fontSize: '12px', color: 'var(--gray-500)', fontWeight: 600, textTransform: 'uppercase', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Descripción</p>
+                    <p style={{ margin: 0, fontSize: '14px', color: 'var(--gray-700)', fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
+                      {selectedItem.descripcion || 'Sin descripción'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <SectionTitle icon={BarChart3} text="Avance Financiero" />
+                <div style={{ display: 'flex', gap: '16px', marginTop: '12px' }}>
+                  <div style={{ flex: 1, padding: '16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: '#fff' }}>
+                    <p style={{ margin: '0 0 4px', fontSize: '12px', color: 'var(--gray-500)', fontWeight: 600, textTransform: 'uppercase', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Recaudado</p>
+                    <p style={{ margin: 0, fontSize: '20px', fontWeight: 800, color: '#10B981', fontFamily: "'JetBrains Mono', monospace" }}>${selectedItem.montoRecaudado}</p>
+                  </div>
+                  <div style={{ flex: 1, padding: '16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: '#fff' }}>
+                    <p style={{ margin: '0 0 4px', fontSize: '12px', color: 'var(--gray-500)', fontWeight: 600, textTransform: 'uppercase', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Meta</p>
+                    <p style={{ margin: 0, fontSize: '20px', fontWeight: 800, color: 'var(--gray-900)', fontFamily: "'JetBrains Mono', monospace" }}>${selectedItem.metaRecaudacion}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <SectionTitle icon={Briefcase} text="Negocio Vinculado" />
+                <div style={{ padding: '16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: '#fff', marginTop: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+                    <div style={{ width: '40px', height: '40px', borderRadius: 'var(--radius-md)', background: 'var(--gray-100)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Building2 style={{ width: '20px', height: '20px', color: 'var(--gray-600)' }} />
+                    </div>
+                    <div>
+                      <p style={{ margin: 0, fontSize: '14px', fontWeight: 600, color: 'var(--gray-900)', fontFamily: "'DM Sans', sans-serif" }}>{selectedItem.negocio?.nombreNegocio}</p>
+                      <p style={{ margin: '2px 0 0', fontSize: '13px', color: 'var(--gray-500)', fontFamily: "'DM Sans', sans-serif" }}>RFC: {selectedItem.negocio?.rfc || 'N/A'}</p>
+                    </div>
+                  </div>
+                  
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', paddingTop: '12px', borderTop: '1px solid var(--border)' }}>
+                    <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'var(--gray-100)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <User style={{ width: '20px', height: '20px', color: 'var(--gray-600)' }} />
+                    </div>
+                    <div>
+                      <p style={{ margin: 0, fontSize: '13px', color: 'var(--gray-500)', fontFamily: "'DM Sans', sans-serif" }}>Propietario / Cliente</p>
+                      <p style={{ margin: '2px 0 0', fontSize: '14px', fontWeight: 500, color: 'var(--gray-900)', fontFamily: "'DM Sans', sans-serif" }}>{selectedItem.negocio?.usuario?.nombre} {selectedItem.negocio?.usuario?.apellido}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+            <div style={{ padding: '16px 24px', borderTop: '1px solid var(--border)', background: 'var(--gray-50)', display: 'flex', justifyContent: 'flex-end', gap: '12px', borderRadius: '0 0 var(--radius-lg) var(--radius-lg)' }}>
+              <button 
+                onClick={handleCloseModal}
+                style={{ padding: '10px 18px', background: '#fff', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', fontSize: '14px', fontWeight: 600, color: 'var(--gray-700)', fontFamily: "'DM Sans', sans-serif", cursor: 'pointer', transition: 'all 200ms ease' }}
+              >
+                Cerrar
+              </button>
+              
+              {currentUser.rol === 'admin' && (
+                <button 
+                  onClick={() => { handleCloseModal(); handleOpenModal('edit', selectedItem); }}
+                  style={{ padding: '10px 24px', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', background: '#EEF4FF', color: 'var(--capyme-blue-mid)', fontSize: '14px', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", cursor: 'pointer', transition: 'all 150ms ease' }}
+                >
+                  Editar Campaña
+                </button>
+              )}
+
+              {currentUser.rol === 'admin' && (
+                <button 
+                  onClick={() => handleToggleActivo(selectedItem)}
+                  style={{ padding: '10px 24px', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', background: selectedItem.activo ? '#FEF2F2' : '#ECFDF5', color: selectedItem.activo ? '#DC2626' : '#065F46', fontSize: '14px', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", cursor: 'pointer', transition: 'all 150ms ease' }}
+                >
+                  {selectedItem.activo ? 'Desactivar' : 'Activar'}
+                </button>
+              )}
             </div>
           </div>
         </div>
