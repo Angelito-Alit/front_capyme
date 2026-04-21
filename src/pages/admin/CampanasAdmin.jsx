@@ -4,7 +4,7 @@ import { toast } from 'react-hot-toast'
 import { 
   Search, Plus, Edit, CheckCircle, Trash2, AlertCircle, 
   Megaphone, Building2, DollarSign, Calendar, Activity,
-  Filter, Eye, User, Briefcase, BarChart3
+  Filter, Eye, User, Briefcase, BarChart3, X, ChevronDown
 } from 'lucide-react'
 import { campanasAdminService } from '../../services/campanasAdminService'
 
@@ -62,7 +62,11 @@ const CampanasAdmin = () => {
   
   const [searchTerm, setSearchTerm] = useState('')
   const [filterEstado, setFilterEstado] = useState('todos')
-  
+  const [filterTipo, setFilterTipo] = useState('todos')
+  const [filterMetaMin, setFilterMetaMin] = useState('')
+  const [filterMetaMax, setFilterMetaMax] = useState('')
+  const [filterFechaDesde, setFilterFechaDesde] = useState('')
+
   const [formData, setFormData] = useState(initialFormData)
   const [formErrors, setFormErrors] = useState({})
 
@@ -84,6 +88,15 @@ const CampanasAdmin = () => {
     } finally {
       setLoading(false)
     }
+  }
+
+  const resetFilters = () => {
+    setSearchTerm('')
+    setFilterEstado('todos')
+    setFilterTipo('todos')
+    setFilterMetaMin('')
+    setFilterMetaMax('')
+    setFilterFechaDesde('')
   }
 
   const handleOpenModal = (mode, item = null) => {
@@ -182,8 +195,18 @@ const CampanasAdmin = () => {
   const filteredItems = items.filter(item => {
     const matchesSearch = item.titulo.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           (item.negocio?.nombreNegocio || '').toLowerCase().includes(searchTerm.toLowerCase())
+    
     const matchesEstado = filterEstado === 'todos' || item.estado === filterEstado
-    return matchesSearch && matchesEstado
+    
+    const matchesTipo = filterTipo === 'todos' || item.tipoCrowdfunding === filterTipo
+    
+    const metaValue = parseFloat(item.metaRecaudacion)
+    const matchesMetaMin = filterMetaMin === '' || metaValue >= parseFloat(filterMetaMin)
+    const matchesMetaMax = filterMetaMax === '' || metaValue <= parseFloat(filterMetaMax)
+    
+    const matchesFecha = filterFechaDesde === '' || new Date(item.fechaInicio) >= new Date(filterFechaDesde)
+
+    return matchesSearch && matchesEstado && matchesTipo && matchesMetaMin && matchesMetaMax && matchesFecha
   })
 
   const formatearFecha = (fechaString) => {
@@ -226,45 +249,69 @@ const CampanasAdmin = () => {
               fontFamily: "'DM Sans', sans-serif", cursor: 'pointer', 
               boxShadow: '0 2px 8px rgba(31,78,158,0.28)', transition: 'all 200ms ease' 
             }}
-            onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-1px)'}
-            onMouseLeave={e => e.currentTarget.style.transform = 'none'}
           >
             <Plus style={{ width: '18px', height: '18px' }} /> Nueva Campaña
           </button>
         )}
       </div>
 
-      <div style={{ background: '#fff', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)', overflow: 'hidden' }}>
-        <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', background: '#fff', display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+      <div style={{ background: '#fff', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)', overflow: 'hidden', marginBottom: '24px' }}>
+        <div style={{ padding: '20px', borderBottom: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: '16px' }}>
           
-          <div style={{ position: 'relative', flex: '1', minWidth: '250px' }}>
-            <Search style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', width: '18px', height: '18px', color: 'var(--gray-400)' }} />
-            <input 
-              type="text" 
-              placeholder="Buscar por título o negocio..." 
-              value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
-              style={inputWithIconStyle}
-            />
+          <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+            <div style={{ position: 'relative', flex: '2', minWidth: '300px' }}>
+              <Search style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', width: '18px', height: '18px', color: 'var(--gray-400)' }} />
+              <input 
+                type="text" 
+                placeholder="Buscar por título o negocio..." 
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+                style={inputWithIconStyle}
+              />
+            </div>
+
+            <div style={{ position: 'relative', flex: '1', minWidth: '180px' }}>
+              <Filter style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', width: '16px', height: '16px', color: 'var(--gray-400)' }} />
+              <select value={filterEstado} onChange={e => setFilterEstado(e.target.value)} style={{ ...selectStyle, paddingLeft: '38px' }}>
+                <option value="todos">Todos los Estados</option>
+                <option value="en_revision">En Revisión</option>
+                <option value="aprobada">Aprobada</option>
+                <option value="activa">Activa</option>
+                <option value="completada">Completada</option>
+              </select>
+              <ChevronDown style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', width: '14px', color: 'var(--gray-400)', pointerEvents: 'none' }} />
+            </div>
+
+            <div style={{ position: 'relative', flex: '1', minWidth: '180px' }}>
+              <Activity style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', width: '16px', height: '16px', color: 'var(--gray-400)' }} />
+              <select value={filterTipo} onChange={e => setFilterTipo(e.target.value)} style={{ ...selectStyle, paddingLeft: '38px' }}>
+                <option value="todos">Todos los Tipos</option>
+                <option value="donativo">Donativo</option>
+                <option value="inversion">Inversión</option>
+              </select>
+              <ChevronDown style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', width: '14px', color: 'var(--gray-400)', pointerEvents: 'none' }} />
+            </div>
           </div>
 
-          <div style={{ position: 'relative', width: '220px' }}>
-            <Filter style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', width: '18px', height: '18px', color: 'var(--gray-400)' }} />
-            <select
-              value={filterEstado}
-              onChange={e => setFilterEstado(e.target.value)}
-              style={{ ...selectStyle, paddingLeft: '38px' }}
+          <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: '1', minWidth: '280px' }}>
+              <DollarSign style={{ width: '16px', color: 'var(--gray-400)' }} />
+              <input type="number" placeholder="Meta min." value={filterMetaMin} onChange={e => setFilterMetaMin(e.target.value)} style={{ ...inputBaseStyle, flex: 1 }} />
+              <span style={{ color: 'var(--gray-300)' }}>—</span>
+              <input type="number" placeholder="Meta max." value={filterMetaMax} onChange={e => setFilterMetaMax(e.target.value)} style={{ ...inputBaseStyle, flex: 1 }} />
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: '1', minWidth: '200px' }}>
+              <Calendar style={{ width: '16px', color: 'var(--gray-400)' }} />
+              <input type="date" value={filterFechaDesde} onChange={e => setFilterFechaDesde(e.target.value)} style={inputBaseStyle} />
+            </div>
+
+            <button 
+              onClick={resetFilters}
+              style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'transparent', border: '1px solid var(--border)', padding: '10px 16px', borderRadius: 'var(--radius-md)', fontSize: '13px', fontWeight: 600, color: 'var(--gray-600)', cursor: 'pointer' }}
             >
-              <option value="todos">Todos los Estados</option>
-              <option value="en_revision">En Revisión</option>
-              <option value="aprobada">Aprobada</option>
-              <option value="rechazada">Rechazada</option>
-              <option value="activa">Activa</option>
-              <option value="pausada">Pausada</option>
-              <option value="completada">Completada</option>
-              <option value="cancelada">Cancelada</option>
-            </select>
-            <div style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: 'var(--gray-400)' }}>▼</div>
+              <X style={{ width: '14px' }} /> Limpiar
+            </button>
           </div>
         </div>
 
@@ -324,339 +371,80 @@ const CampanasAdmin = () => {
                   </td>
                   <td style={{ padding: '16px 20px', textAlign: 'right' }} onClick={e => e.stopPropagation()}>
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '4px' }}>
-                      
-                      <button
-                        onClick={() => handleOpenModal('view', item)}
-                        style={{ width: '34px', height: '34px', border: 'none', borderRadius: 'var(--radius-sm)', background: 'transparent', cursor: 'pointer', color: 'var(--gray-400)', transition: 'all 150ms ease' }}
-                        onMouseEnter={e => { e.currentTarget.style.background = 'var(--gray-100)'; e.currentTarget.style.color = 'var(--gray-700)'; }}
-                        onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gray-400)'; }}
-                      >
-                        <Eye style={{ width: '16px', height: '16px' }} />
-                      </button>
-
+                      <button onClick={() => handleOpenModal('view', item)} style={{ width: '34px', height: '34px', border: 'none', borderRadius: 'var(--radius-sm)', background: 'transparent', cursor: 'pointer', color: 'var(--gray-400)' }}><Eye style={{ width: '16px' }} /></button>
                       {currentUser.rol === 'admin' && (
-                        <button
-                          onClick={() => handleOpenModal('edit', item)}
-                          style={{ width: '34px', height: '34px', border: 'none', borderRadius: 'var(--radius-sm)', background: 'transparent', cursor: 'pointer', color: 'var(--gray-400)', transition: 'all 150ms ease' }}
-                          onMouseEnter={e => { e.currentTarget.style.background = '#EEF4FF'; e.currentTarget.style.color = 'var(--capyme-blue-mid)'; }}
-                          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gray-400)'; }}
-                        >
-                          <Edit style={{ width: '16px', height: '16px' }} />
-                        </button>
-                      )}
-
-                      {currentUser.rol === 'admin' && !item.activo && (
-                        <button 
-                          onClick={() => handleToggleActivo(item)}
-                          onMouseEnter={e => { e.currentTarget.style.background = '#ECFDF5'; e.currentTarget.style.color = '#065F46'; }}
-                          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gray-400)'; }}
-                          style={{ width: '34px', height: '34px', border: 'none', borderRadius: 'var(--radius-sm)', background: 'transparent', cursor: 'pointer', color: 'var(--gray-400)', transition: 'all 150ms ease' }}
-                        >
-                          <CheckCircle style={{ width: '16px', height: '16px' }} />
-                        </button>
-                      )}
-
-                      {currentUser.rol === 'admin' && item.activo && (
-                        <button 
-                          onClick={() => handleToggleActivo(item)}
-                          onMouseEnter={e => { e.currentTarget.style.background = '#FEF2F2'; e.currentTarget.style.color = '#DC2626'; }}
-                          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gray-400)'; }}
-                          style={{ width: '34px', height: '34px', border: 'none', borderRadius: 'var(--radius-sm)', background: 'transparent', cursor: 'pointer', color: 'var(--gray-400)', transition: 'all 150ms ease' }}
-                        >
-                          <Trash2 style={{ width: '16px', height: '16px' }} />
-                        </button>
+                        <>
+                          <button onClick={() => handleOpenModal('edit', item)} style={{ width: '34px', height: '34px', border: 'none', borderRadius: 'var(--radius-sm)', background: 'transparent', cursor: 'pointer', color: 'var(--gray-400)' }}><Edit style={{ width: '16px' }} /></button>
+                          <button onClick={() => handleToggleActivo(item)} style={{ width: '34px', height: '34px', border: 'none', borderRadius: 'var(--radius-sm)', background: 'transparent', cursor: 'pointer', color: 'var(--gray-400)' }}>
+                            {item.activo ? <Trash2 style={{ width: '16px' }} /> : <CheckCircle style={{ width: '16px' }} />}
+                          </button>
+                        </>
                       )}
                     </div>
                   </td>
                 </tr>
               ))}
-              {filteredItems.length === 0 && (
-                <tr>
-                  <td colSpan="5" style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--gray-500)', fontFamily: "'DM Sans', sans-serif" }}>
-                    No se encontraron campañas
-                  </td>
-                </tr>
-              )}
             </tbody>
           </table>
         </div>
       </div>
 
       {showModal && (modalMode === 'create' || modalMode === 'edit') && (
-        <div 
-          style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.45)', backdropFilter: 'blur(4px)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}
-        >
-          <div 
-            style={{ background: '#fff', borderRadius: 'var(--radius-lg)', width: '100%', maxWidth: '720px', maxHeight: '90vh', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04)' }}
-          >
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.45)', backdropFilter: 'blur(4px)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+          <div style={{ background: '#fff', borderRadius: 'var(--radius-lg)', width: '100%', maxWidth: '720px', maxHeight: '90vh', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
             <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)', background: 'var(--gray-50)', borderRadius: 'var(--radius-lg) var(--radius-lg) 0 0' }}>
-              <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: 'var(--gray-900)', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-                {modalMode === 'edit' ? 'Editar Campaña' : 'Nueva Campaña'}
-              </h2>
+              <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: 'var(--gray-900)' }}>{modalMode === 'edit' ? 'Editar Campaña' : 'Nueva Campaña'}</h2>
             </div>
-
             <div style={{ padding: '24px', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '24px' }}>
-              
               <div>
                 <SectionTitle icon={Building2} text="Información General" />
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '16px', marginTop: '12px' }}>
                   <div>
                     <label style={labelStyle}>Título de la Campaña</label>
-                    <input 
-                      type="text" name="titulo" value={formData.titulo} 
-                      onChange={handleChange} style={{ ...inputBaseStyle, ...(formErrors.titulo ? inputErrorStyle : {}) }} 
-                    />
+                    <input type="text" name="titulo" value={formData.titulo} onChange={handleChange} style={{ ...inputBaseStyle, ...(formErrors.titulo ? inputErrorStyle : {}) }} />
                     {formErrors.titulo && <ErrorMsg text={formErrors.titulo} />}
                   </div>
                   <div>
                     <label style={labelStyle}>Negocio Destino</label>
-                    <div style={{ position: 'relative' }}>
-                      <select 
-                        name="negocioId" value={formData.negocioId} 
-                        onChange={handleChange} style={{ ...selectStyle, ...(formErrors.negocioId ? inputErrorStyle : {}) }}
-                      >
-                        <option value="">Seleccione un negocio...</option>
-                        {negocios.map(n => (
-                          <option key={n.id} value={n.id}>{n.nombreNegocio} ({n.usuario?.nombre} {n.usuario?.apellido})</option>
-                        ))}
-                      </select>
-                      <div style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: 'var(--gray-400)' }}>▼</div>
-                    </div>
-                    {formErrors.negocioId && <ErrorMsg text={formErrors.negocioId} />}
-                  </div>
-                  <div>
-                    <label style={labelStyle}>Descripción</label>
-                    <textarea 
-                      name="descripcion" value={formData.descripcion} 
-                      onChange={handleChange} style={{ ...inputBaseStyle, minHeight: '80px', resize: 'vertical' }} 
-                    />
+                    <select name="negocioId" value={formData.negocioId} onChange={handleChange} style={{ ...selectStyle, ...(formErrors.negocioId ? inputErrorStyle : {}) }}>
+                      <option value="">Seleccione un negocio...</option>
+                      {negocios.map(n => <option key={n.id} value={n.id}>{n.nombreNegocio}</option>)}
+                    </select>
                   </div>
                 </div>
               </div>
-
-              <div>
-                <SectionTitle icon={DollarSign} text="Finanzas" />
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginTop: '12px' }}>
-                  <div>
-                    <label style={labelStyle}>Meta de Recaudación ($)</label>
-                    <input 
-                      type="number" step="0.01" name="metaRecaudacion" value={formData.metaRecaudacion} 
-                      onChange={handleChange} style={{ ...inputBaseStyle, fontFamily: "'JetBrains Mono', monospace", ...(formErrors.metaRecaudacion ? inputErrorStyle : {}) }} 
-                    />
-                    {formErrors.metaRecaudacion && <ErrorMsg text={formErrors.metaRecaudacion} />}
-                  </div>
-                  <div>
-                    <label style={labelStyle}>Monto Recaudado Actual ($)</label>
-                    <input 
-                      type="number" step="0.01" name="montoRecaudado" value={formData.montoRecaudado} 
-                      onChange={handleChange} style={{ ...inputBaseStyle, fontFamily: "'JetBrains Mono', monospace", background: '#F0FDF4' }} 
-                    />
-                  </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <div>
+                  <SectionTitle icon={DollarSign} text="Meta ($)" />
+                  <input type="number" name="metaRecaudacion" value={formData.metaRecaudacion} onChange={handleChange} style={{ ...inputBaseStyle, marginTop: '12px' }} />
+                </div>
+                <div>
+                  <SectionTitle icon={Calendar} text="Cierre" />
+                  <input type="date" name="fechaCierre" value={formData.fechaCierre} onChange={handleChange} style={{ ...inputBaseStyle, marginTop: '12px' }} />
                 </div>
               </div>
-
-              <div>
-                <SectionTitle icon={Calendar} text="Fechas de Campaña" />
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginTop: '12px' }}>
-                  <div>
-                    <label style={labelStyle}>Fecha de Inicio</label>
-                    <input 
-                      type="date" name="fechaInicio" value={formData.fechaInicio} 
-                      onChange={handleChange} style={{ ...inputBaseStyle, ...(formErrors.fechaInicio ? inputErrorStyle : {}) }} 
-                    />
-                    {formErrors.fechaInicio && <ErrorMsg text={formErrors.fechaInicio} />}
-                  </div>
-                  <div>
-                    <label style={labelStyle}>Fecha de Cierre</label>
-                    <input 
-                      type="date" name="fechaCierre" value={formData.fechaCierre} 
-                      onChange={handleChange} style={{ ...inputBaseStyle, ...(formErrors.fechaCierre ? inputErrorStyle : {}) }} 
-                    />
-                    {formErrors.fechaCierre && <ErrorMsg text={formErrors.fechaCierre} />}
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <SectionTitle icon={Activity} text="Clasificación" />
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginTop: '12px' }}>
-                  <div>
-                    <label style={labelStyle}>Tipo de Crowdfunding</label>
-                    <div style={{ position: 'relative' }}>
-                      <select 
-                        name="tipoCrowdfunding" value={formData.tipoCrowdfunding} 
-                        onChange={handleChange} style={selectStyle}
-                      >
-                        <option value="donativo">Donativo</option>
-                        <option value="inversion">Inversión</option>
-                      </select>
-                      <div style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: 'var(--gray-400)' }}>▼</div>
-                    </div>
-                  </div>
-                  <div>
-                    <label style={labelStyle}>Estado</label>
-                    <div style={{ position: 'relative' }}>
-                      <select 
-                        name="estado" value={formData.estado} 
-                        onChange={handleChange} style={selectStyle}
-                      >
-                        <option value="en_revision">En Revisión</option>
-                        <option value="aprobada">Aprobada</option>
-                        <option value="rechazada">Rechazada</option>
-                        <option value="activa">Activa</option>
-                        <option value="pausada">Pausada</option>
-                        <option value="completada">Completada</option>
-                        <option value="cancelada">Cancelada</option>
-                      </select>
-                      <div style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: 'var(--gray-400)' }}>▼</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
             </div>
-
-            <div style={{ padding: '16px 24px', borderTop: '1px solid var(--border)', background: 'var(--gray-50)', display: 'flex', justifyContent: 'flex-end', gap: '12px', borderRadius: '0 0 var(--radius-lg) var(--radius-lg)' }}>
-              <button 
-                onClick={handleCloseModal}
-                disabled={submitting}
-                style={{ padding: '10px 18px', background: '#fff', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', fontSize: '14px', fontWeight: 600, color: 'var(--gray-700)', fontFamily: "'DM Sans', sans-serif", cursor: submitting ? 'not-allowed' : 'pointer', transition: 'all 200ms ease' }}
-              >
-                Cancelar
-              </button>
-              <button 
-                onClick={handleSubmit}
-                disabled={submitting}
-                style={{ padding: '10px 24px', background: 'linear-gradient(135deg, var(--capyme-blue-mid), var(--capyme-blue))', border: 'none', borderRadius: 'var(--radius-md)', fontSize: '14px', fontWeight: 600, color: '#fff', fontFamily: "'DM Sans', sans-serif", cursor: submitting ? 'not-allowed' : 'pointer', boxShadow: '0 2px 8px rgba(31,78,158,0.28)', transition: 'all 200ms ease', opacity: submitting ? 0.7 : 1 }}
-              >
-                {submitting ? 'Guardando...' : 'Guardar Campaña'}
-              </button>
+            <div style={{ padding: '16px 24px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+              <button onClick={handleCloseModal} style={{ padding: '10px 18px', background: '#fff', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', fontWeight: 600 }}>Cancelar</button>
+              <button onClick={handleSubmit} disabled={submitting} style={{ padding: '10px 24px', background: 'var(--capyme-blue)', color: '#fff', border: 'none', borderRadius: 'var(--radius-md)', fontWeight: 600 }}>{submitting ? 'Guardando...' : 'Guardar'}</button>
             </div>
           </div>
         </div>
       )}
 
       {showModal && modalMode === 'view' && selectedItem && (
-        <div 
-          style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.45)', backdropFilter: 'blur(4px)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}
-        >
-          <div 
-            style={{ background: '#fff', borderRadius: 'var(--radius-lg)', width: '100%', maxWidth: '600px', maxHeight: '90vh', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04)' }}
-          >
-            <div style={{ padding: '24px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                <div style={{ width: '56px', height: '56px', borderRadius: 'var(--radius-md)', background: 'linear-gradient(135deg, var(--capyme-blue-mid), var(--capyme-blue))', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', fontWeight: 800, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-                  {selectedItem.titulo.substring(0, 2).toUpperCase()}
-                </div>
-                <div>
-                  <h2 style={{ margin: '0 0 6px 0', fontSize: '20px', fontWeight: 800, color: 'var(--gray-900)', fontFamily: "'Plus Jakarta Sans', sans-serif", lineHeight: 1.2 }}>
-                    {selectedItem.titulo}
-                  </h2>
-                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                    <span style={{ padding: '4px 10px', borderRadius: '99px', fontSize: '12px', fontWeight: 600, fontFamily: "'Plus Jakarta Sans', sans-serif', letterSpacing: '0.02em", background: selectedItem.activo ? '#ECFDF5' : '#FEF2F2', color: selectedItem.activo ? '#065F46' : '#DC2626' }}>
-                      {selectedItem.activo ? 'Activo' : 'Inactivo'}
-                    </span>
-                    <span style={{ padding: '4px 10px', borderRadius: '99px', fontSize: '12px', fontWeight: 600, fontFamily: "'Plus Jakarta Sans', sans-serif', letterSpacing: '0.02em", background: 'var(--gray-100)', color: 'var(--gray-700)', textTransform: 'capitalize' }}>
-                      {selectedItem.estado.replace('_', ' ')}
-                    </span>
-                  </div>
-                </div>
-              </div>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.45)', backdropFilter: 'blur(4px)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+          <div style={{ background: '#fff', borderRadius: 'var(--radius-lg)', width: '100%', maxWidth: '600px', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ padding: '24px', borderBottom: '1px solid var(--border)' }}>
+              <h2 style={{ margin: 0 }}>{selectedItem.titulo}</h2>
             </div>
-
-            <div style={{ padding: '24px', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '24px' }}>
-              
-              <div>
-                <SectionTitle icon={Megaphone} text="Detalles de la Campaña" />
-                <div style={{ background: 'var(--gray-50)', borderRadius: 'var(--radius-md)', padding: '16px', marginTop: '12px', border: '1px solid var(--border)' }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                    <div>
-                      <p style={{ margin: '0 0 4px', fontSize: '12px', color: 'var(--gray-500)', fontWeight: 600, textTransform: 'uppercase', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Tipo</p>
-                      <p style={{ margin: 0, fontSize: '14px', color: 'var(--gray-900)', fontWeight: 500, fontFamily: "'DM Sans', sans-serif", textTransform: 'capitalize' }}>{selectedItem.tipoCrowdfunding}</p>
-                    </div>
-                    <div>
-                      <p style={{ margin: '0 0 4px', fontSize: '12px', color: 'var(--gray-500)', fontWeight: 600, textTransform: 'uppercase', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Fechas</p>
-                      <p style={{ margin: 0, fontSize: '14px', color: 'var(--gray-900)', fontWeight: 500, fontFamily: "'DM Sans', sans-serif" }}>
-                        {formatearFecha(selectedItem.fechaInicio)} - {formatearFecha(selectedItem.fechaCierre)}
-                      </p>
-                    </div>
-                  </div>
-                  
-                  <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid var(--border)' }}>
-                    <p style={{ margin: '0 0 4px', fontSize: '12px', color: 'var(--gray-500)', fontWeight: 600, textTransform: 'uppercase', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Descripción</p>
-                    <p style={{ margin: 0, fontSize: '14px', color: 'var(--gray-700)', fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
-                      {selectedItem.descripcion || 'Sin descripción'}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <SectionTitle icon={BarChart3} text="Avance Financiero" />
-                <div style={{ display: 'flex', gap: '16px', marginTop: '12px' }}>
-                  <div style={{ flex: 1, padding: '16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: '#fff' }}>
-                    <p style={{ margin: '0 0 4px', fontSize: '12px', color: 'var(--gray-500)', fontWeight: 600, textTransform: 'uppercase', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Recaudado</p>
-                    <p style={{ margin: 0, fontSize: '20px', fontWeight: 800, color: '#10B981', fontFamily: "'JetBrains Mono', monospace" }}>${selectedItem.montoRecaudado}</p>
-                  </div>
-                  <div style={{ flex: 1, padding: '16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: '#fff' }}>
-                    <p style={{ margin: '0 0 4px', fontSize: '12px', color: 'var(--gray-500)', fontWeight: 600, textTransform: 'uppercase', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Meta</p>
-                    <p style={{ margin: 0, fontSize: '20px', fontWeight: 800, color: 'var(--gray-900)', fontFamily: "'JetBrains Mono', monospace" }}>${selectedItem.metaRecaudacion}</p>
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <SectionTitle icon={Briefcase} text="Negocio Vinculado" />
-                <div style={{ padding: '16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: '#fff', marginTop: '12px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
-                    <div style={{ width: '40px', height: '40px', borderRadius: 'var(--radius-md)', background: 'var(--gray-100)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <Building2 style={{ width: '20px', height: '20px', color: 'var(--gray-600)' }} />
-                    </div>
-                    <div>
-                      <p style={{ margin: 0, fontSize: '14px', fontWeight: 600, color: 'var(--gray-900)', fontFamily: "'DM Sans', sans-serif" }}>{selectedItem.negocio?.nombreNegocio}</p>
-                      <p style={{ margin: '2px 0 0', fontSize: '13px', color: 'var(--gray-500)', fontFamily: "'DM Sans', sans-serif" }}>RFC: {selectedItem.negocio?.rfc || 'N/A'}</p>
-                    </div>
-                  </div>
-                  
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', paddingTop: '12px', borderTop: '1px solid var(--border)' }}>
-                    <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'var(--gray-100)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <User style={{ width: '20px', height: '20px', color: 'var(--gray-600)' }} />
-                    </div>
-                    <div>
-                      <p style={{ margin: 0, fontSize: '13px', color: 'var(--gray-500)', fontFamily: "'DM Sans', sans-serif" }}>Propietario / Cliente</p>
-                      <p style={{ margin: '2px 0 0', fontSize: '14px', fontWeight: 500, color: 'var(--gray-900)', fontFamily: "'DM Sans', sans-serif" }}>{selectedItem.negocio?.usuario?.nombre} {selectedItem.negocio?.usuario?.apellido}</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
+            <div style={{ padding: '24px' }}>
+              <p><strong>Tipo:</strong> {selectedItem.tipoCrowdfunding}</p>
+              <p><strong>Meta:</strong> ${selectedItem.metaRecaudacion}</p>
+              <p><strong>Recaudado:</strong> ${selectedItem.montoRecaudado}</p>
             </div>
-
-            <div style={{ padding: '16px 24px', background: 'var(--gray-50)', borderTop: '1px solid var(--border)', borderRadius: '0 0 var(--radius-lg) var(--radius-lg)', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-              <button 
-                onClick={handleCloseModal}
-                style={{ padding: '10px 18px', background: '#fff', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', fontSize: '14px', fontWeight: 600, color: 'var(--gray-700)', fontFamily: "'DM Sans', sans-serif", cursor: 'pointer', transition: 'all 200ms ease' }}
-              >
-                Cerrar
-              </button>
-              
-              {currentUser.rol === 'admin' && (
-                <button 
-                  onClick={() => { handleCloseModal(); handleOpenModal('edit', selectedItem); }}
-                  style={{ padding: '10px 24px', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', background: '#EEF4FF', color: 'var(--capyme-blue-mid)', fontSize: '14px', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", cursor: 'pointer', transition: 'all 150ms ease' }}
-                >
-                  Editar Campaña
-                </button>
-              )}
-
-              {currentUser.rol === 'admin' && (
-                <button 
-                  onClick={() => handleToggleActivo(selectedItem)}
-                  style={{ padding: '10px 24px', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', background: selectedItem.activo ? '#FEF2F2' : '#ECFDF5', color: selectedItem.activo ? '#DC2626' : '#065F46', fontSize: '14px', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", cursor: 'pointer', transition: 'all 150ms ease' }}
-                >
-                  {selectedItem.activo ? 'Desactivar' : 'Activar'}
-                </button>
-              )}
+            <div style={{ padding: '16px 24px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end' }}>
+              <button onClick={handleCloseModal} style={{ padding: '10px 18px', background: '#fff', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)' }}>Cerrar</button>
             </div>
           </div>
         </div>
@@ -668,16 +456,12 @@ const CampanasAdmin = () => {
 const SectionTitle = ({ icon: Icon, text }) => (
   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', paddingBottom: '4px', borderBottom: '1px solid var(--border)' }}>
     <Icon style={{ width: '14px', height: '14px', color: 'var(--gray-400)' }} />
-    <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--gray-400)', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-      {text}
-    </span>
+    <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--gray-400)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{text}</span>
   </div>
 )
 
 const ErrorMsg = ({ text }) => (
-  <p style={{ marginTop: '4px', marginBottom: 0, fontSize: '12px', color: '#EF4444', display: 'flex', alignItems: 'center', gap: '4px', fontFamily: "'DM Sans', sans-serif" }}>
-    <AlertCircle style={{ width: '12px', height: '12px' }} /> {text}
-  </p>
+  <p style={{ marginTop: '4px', color: '#EF4444', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '4px' }}><AlertCircle style={{ width: '12px' }} /> {text}</p>
 )
 
 export default CampanasAdmin
